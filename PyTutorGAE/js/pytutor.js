@@ -1186,14 +1186,15 @@ ExecutionVisualizer.prototype.renderDataStructures = function() {
       .tween('krazyTween', function() {
         var i = d3.interpolate($(this).find('div.heapObject').height(), '0');
         return function(t) {
-          myViz.redrawConnectors(); // TODO: could be slow!
+          myViz.redrawConnectors();
           $(this).find('div.heapObject').height(i(t));
         }
       })
       .duration(1000)
       .each('end', function() {
         hrExit.remove();
-        myViz.updateOutput(); // ugh
+        myViz.redrawConnectors();
+        //myViz.updateOutput(); // TODO: is this necessary or overkill?
       });
   }
   else {
@@ -1252,14 +1253,15 @@ ExecutionVisualizer.prototype.renderDataStructures = function() {
       .tween('krazyTween', function() {
         var i = d3.interpolate($(this).find('div.heapObject').width(), '0');
         return function(t) {
-          myViz.redrawConnectors(); // TODO: could be slow!
+          myViz.redrawConnectors();
           $(this).find('div.heapObject').width(i(t));
         }
       })
       .duration(800)
       .each('end', function() {
         tlhExit.remove();
-        myViz.updateOutput(); // ugh
+        myViz.redrawConnectors();
+        //myViz.updateOutput(); // TODO: is this necessary or overkill?
       });
 
   }
