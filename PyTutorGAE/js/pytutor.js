@@ -1149,9 +1149,6 @@ ExecutionVisualizer.prototype.renderDataStructures = function() {
   var connectionEndpointIDs = d3.map();
   var heapConnectionEndpointIDs = d3.map(); // subset of connectionEndpointIDs for heap->heap connections
 
-  var heap_pointer_src_id = 1; // increment this to be unique for each heap_pointer_src_*
-
-
   var renderedObjectIDs = d3.map();
 
   // count everything in curToplevelLayout as already rendered since we will render them
@@ -1184,13 +1181,19 @@ ExecutionVisualizer.prototype.renderDataStructures = function() {
 
   if (myViz.enableTransitions) {
     hrExit
-      .style('opacity', '1')
       .transition()
-      .style('opacity', '0')
-      .duration(500)
+      // SQUEEZE the life out of all enclosed div.heapObject objects
+      .tween('krazyTween', function() {
+        var i = d3.interpolate($(this).find('div.heapObject').height(), '0');
+        return function(t) {
+          myViz.redrawConnectors(); // TODO: could be slow!
+          $(this).find('div.heapObject').height(i(t));
+        }
+      })
+      .duration(1000)
       .each('end', function() {
         hrExit.remove();
-        myViz.redrawConnectors();
+        myViz.updateOutput(); // ugh
       });
   }
   else {
@@ -1236,7 +1239,7 @@ ExecutionVisualizer.prototype.renderDataStructures = function() {
       // TODO: add a smoother transition in the future
       // Right now, just delete the old element and render a new one in its place
       $(this).empty();
-      renderCompoundObject(objID, $(this), true);
+      renderCompoundObject(objID, $(this));
     });
 
   // delete a toplevelHeapObject
@@ -1244,12 +1247,6 @@ ExecutionVisualizer.prototype.renderDataStructures = function() {
 
   if (myViz.enableTransitions) {
     tlhExit
-      .each(function() {
-        var heapObjID = $(this).find('div.heapObject').attr('id');
-        var conn = myViz.jsPlumbInstance.select({target: heapObjID});
-        console.log('wtf', heapObjID);
-        myViz.jsPlumbInstance.deleteEndpoint(conn.endpoints[0]);
-      })
       .transition()
       // SQUEEZE the life out of the enclosed div.heapObject
       .tween('krazyTween', function() {
@@ -1259,15 +1256,11 @@ ExecutionVisualizer.prototype.renderDataStructures = function() {
           $(this).find('div.heapObject').width(i(t));
         }
       })
-      .duration(700)
+      .duration(800)
       .each('end', function() {
         tlhExit.remove();
-        myViz.redrawConnectors();
+        myViz.updateOutput(); // ugh
       });
-
-
-  //$(this).find('div.heapObject').animate({width: 0}, 1000);
-
 
   }
   else {
@@ -1275,12 +1268,18 @@ ExecutionVisualizer.prototype.renderDataStructures = function() {
   }
 
 
-  function renderNestedObject(obj, d3DomElement) {
+  // TODO: parentAndIndexID is still not a wholly satisfactory solution,
+  // since that doesn't really capture the "essence" of the source node.
+  // however, it's sufficient to at least provide "uniqueness" within
+  // one particular iteration. I need to think a lot harder about what
+  // can go wrong when using parentAndIndexID to identify jsPlumb
+  // HEAP->HEAP connector sources.
+  function renderNestedObject(obj, d3DomElement, parentAndIndexID) {
     if (isPrimitiveType(obj)) {
       renderPrimitiveObject(obj, d3DomElement);
     }
     else {
-      renderCompoundObject(getRefID(obj), d3DomElement, false);
+      renderCompoundObject(getRefID(obj), d3DomElement, parentAndIndexID);
     }
   }
 
@@ -1318,8 +1317,8 @@ ExecutionVisualizer.prototype.renderDataStructures = function() {
   }
 
 
-  function renderCompoundObject(objID, d3DomElement, isTopLevel) {
-    if (!isTopLevel && renderedObjectIDs.has(objID)) {
+  function renderCompoundObject(objID, d3DomElement, parentAndIndexID) {
+    if (parentAndIndexID /* NOT top-level */ && renderedObjectIDs.has(objID)) {
       // render jsPlumb arrow source since this heap object has already been rendered
       // (or will be rendered soon)
 
@@ -1327,8 +1326,8 @@ ExecutionVisualizer.prototype.renderDataStructures = function() {
       // IE needs this div to be NON-EMPTY in order to properly
       // render jsPlumb endpoints, so that's why we add an "&nbsp;"!
 
-      var srcDivID = myViz.generateID('heap_pointer_src_' + heap_pointer_src_id);
-      heap_pointer_src_id++; // just make sure each source has a UNIQUE ID
+      // we need each connector source div to have a UNIQUE ID
+      var srcDivID = myViz.generateID('heap_pointer_src_' + parentAndIndexID);
       d3DomElement.append('<div id="' + srcDivID + '">&nbsp;</div>');
 
       var dstDivID = myViz.generateID('heap_object_' + objID);
@@ -1384,7 +1383,7 @@ ExecutionVisualizer.prototype.renderDataStructures = function() {
             headerTr.find('td:last').append(ind - 1);
 
             contentTr.append('<td class="'+ label + 'Elt"></td>');
-            renderNestedObject(val, contentTr.find('td:last'));
+            renderNestedObject(val, contentTr.find('td:last'), objID + '_li' + ind);
           });
         }
         else if (obj[0] == 'SET') {
@@ -1413,7 +1412,7 @@ ExecutionVisualizer.prototype.renderDataStructures = function() {
 
             var curTr = tbl.find('tr:last');
             curTr.append('<td class="setElt"></td>');
-            renderNestedObject(val, curTr.find('td:last'));
+            renderNestedObject(val, curTr.find('td:last'), objID + '_si' + ind);
           });
         }
         else if (obj[0] == 'DICT') {
@@ -1428,8 +1427,8 @@ ExecutionVisualizer.prototype.renderDataStructures = function() {
             var key = kvPair[0];
             var val = kvPair[1];
 
-            renderNestedObject(key, keyTd);
-            renderNestedObject(val, valTd);
+            renderNestedObject(key, keyTd, objID + '_dk' + ind);
+            renderNestedObject(val, valTd, objID + '_dv' + ind);
           });
         }
       }
@@ -1472,7 +1471,7 @@ ExecutionVisualizer.prototype.renderDataStructures = function() {
           keyTd.append('<span class="keyObj">' + attrnameStr + '</span>');
 
           // values can be arbitrary objects, so recurse:
-          renderNestedObject(kvPair[1], valTd);
+          renderNestedObject(kvPair[1], valTd, objID + '_ci' + ind);
         });
       }
     }
