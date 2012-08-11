@@ -577,6 +577,8 @@ table.heapRow {
 
 div.heapObject {
   padding-left: 2px; /* leave a TINY amount of room for connector endpoints */
+
+  overflow: hidden; /* needed for d3 transitions */
 }
 
 div#stackHeader {

@@ -90,7 +90,7 @@ function ExecutionVisualizer(domRootID, dat, params) {
   this.sortedBreakpointsList = null; // sorted and synced with breakpointLines
   this.hoverBreakpoints = null;      // set of breakpoints because we're HOVERING over a given line
 
-  this.enableTransitions = false; // EXPERIMENTAL - enable transition effects
+  this.enableTransitions = true; // EXPERIMENTAL - enable transition effects
 
 
   this.hasRendered = false;
@@ -1228,13 +1228,32 @@ ExecutionVisualizer.prototype.renderDataStructures = function() {
   var tlhExit = toplevelHeapObjects.exit();
 
   if (myViz.enableTransitions) {
-    tlhExit.transition()
-      .style('opacity', '0') /* fade out */
-      .duration(500)
+    tlhExit
+      .each(function() {
+        var heapObjID = $(this).find('div.heapObject').attr('id');
+        var conn = myViz.jsPlumbInstance.select({target: heapObjID});
+        console.log('wtf', heapObjID);
+        myViz.jsPlumbInstance.deleteEndpoint(conn.endpoints[0]);
+      })
+      .transition()
+      // SQUEEZE the life out of the enclosed div.heapObject
+      .tween('krazyTween', function() {
+        var i = d3.interpolate($(this).find('div.heapObject').width(), '0');
+        return function(t) {
+          myViz.redrawConnectors(); // TODO: could be slow!
+          $(this).find('div.heapObject').width(i(t));
+        }
+      })
+      .duration(700)
       .each('end', function() {
         tlhExit.remove();
         myViz.redrawConnectors();
       });
+
+
+  //$(this).find('div.heapObject').animate({width: 0}, 1000);
+
+
   }
   else {
     tlhExit.remove();
@@ -1727,11 +1746,9 @@ ExecutionVisualizer.prototype.renderDataStructures = function() {
     myViz.jsPlumbInstance.connect({source: varID, target: valueID});
   });
 
-  /*
   myViz.jsPlumbInstance.select().each(function(c) {
-    console.log(c.sourceId, c.targetId);
+    console.log('CONN', c.sourceId, c.targetId);
   });
-  */
 
 
   function highlight_frame(frameID) {
