@@ -1160,6 +1160,8 @@ Get live help! (NEW!)
   }
 
   startRecording() {
+    this.enterEditMode(); // always start recording in edit mode
+
     $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
     $("#togetherjsStatus").html("Recording now ...");
     this.isRecordingDemo = true; // TODO: unify everything into 1 boolean
@@ -1320,10 +1322,6 @@ Get live help! (NEW!)
   }
 
   initRecordDemo() {
-    // TODO: don't send events to the togetherjs server when you're in recording mode
-    // so as not to overwhelm the logs (or alternatively, send to
-    // another server that's not being logged?!?)
-
     assert(!this.wantsPublicHelp && this.isRecordingDemo && !this.isPlayingDemo); // TODO: refactor into a single boolean
 
     this.curRecordingInitialCod = this.pyInputGetValue();
@@ -1337,21 +1335,14 @@ Get live help! (NEW!)
         this.curRecordingEvents.push(msg);
       }
     });
-
-    this.redrawConnectors(); // update all arrows at the end
   }
 
   initPlayDemo() {
-    /* misc TODOs (from first hacking on it on 2018-01-01)
-
-      - playback works only ONCE, especially with respect to Ace editor
-        code edits. maybe the _listeners are hardwired to a particular
-        instance of the Ace editor, and that somehow 'goes away'? anyways,
-        need to do a lot more digging here to figure out why we can't
-        replay one recording multiple times
+    /* TODOs (from first hacking on it on 2018-01-01)
 
       - add VCR-style controls and scrubber for feature parity with
-        video player
+        video players (but what does it mean to go "backwards" here, since
+        the togetherjs logs don't let you easily go backwards)
 
       - no ability to pause the 'video' yet, and even more difficult, if
         you pause and modify the code and want to 'resume' the video, you
@@ -1370,16 +1361,25 @@ Get live help! (NEW!)
 
       - get this working better in live mode, which has all sorts of quirks
 
-    */
+      - disable chat box in recording/playback modes
 
-    // TODO: don't send events to the togetherjs server when you're in playback mode
-    // so as not to overwhelm the logs (or alternatively, send to
-    // another server that's not being logged?!?)
+      - it would be nice to see a CURSOR in the Ace editor as the video
+        is being played back ... right now the cursor doesn't visibly move
+
+      - minor: disable the "Restore old code" undo buffer when in playback mode
+
+      - minor: set a more instructive username for the tutor pointer
+
+      - don't send events to the togetherjs when you're in recording or
+        playback mode, so as not to overwhelm the logs. also it seems
+        kinda silly that you need to connect to a remote server for this
+        to work, since we don't require anything from the server
+
+    */
 
     assert(!this.wantsPublicHelp && !this.isRecordingDemo && this.isPlayingDemo); // TODO: refactor into a single boolean
 
     var sess = TogetherJS.require("session"); // important to grab the session HERE and not globally
-
     var evts = this.curRecordingEvents;
 
     if (evts.length <= 0) {
@@ -1387,23 +1387,35 @@ Get live help! (NEW!)
       return;
     }
 
-
     function doit(i) {
-      // seems weird but we need both in order to gracefully handle
+      var msg = evts[i];
+      // seems weird but we need both sess.hub.emit() and
+      // TogetherJS._onmessage() in order to gracefully handle
       // both built-in TogetherJS events and custom OPT app events:
       // copied-pasted from lib/togetherjs/togetherjs/togetherjsPackage.js
       // around line 1870
       try {
-        sess.hub.emit(evts[i].type, evts[i]);
+        sess.hub.emit(msg.type, msg);
       } catch (e) {
-        // let it go!
+        // let it go! let it go!
       }
 
       try {
-        TogetherJS._onmessage(evts[i]);
+        TogetherJS._onmessage(msg);
       } catch (e) {
-        // let it go!
+        // let it go! let it go!
       }
+
+      // however, TogetherJS._onmessage mangles up the type fields
+      // (UGH!), so we need to restore them back to their original
+      // form to ensure idempotence. copied from session.appSend()
+      var type = msg.type;
+      if (type.search(/^togetherjs\./) === 0) {
+        type = type.substr("togetherjs.".length);
+      } else if (type.search(/^app\./) === -1) {
+        type = "app." + type;
+      }
+      msg.type = type;
     }
 
     // set one timeout at a time, and when that one starts executing,
@@ -1422,39 +1434,9 @@ Get live help! (NEW!)
     };
     setAllTimeouts(1); // start at event #1 and ignore the 0th event ... it actually ends up working smoother
 
-
-    // for testing only: have a fixed time between steps:
-    /*
-    var i = 0;
-    var timerId = setInterval(() => {
-      if (i >= evts.length) {
-        clearInterval(timerId);
-        $("#togetherjsStatus").html("DONE playing recording");
-        return;
-      }
-
-      console.log('PLAY:', i, evts[i]);
-
-      try {
-        // seems weird but we need both in order to gracefully handle
-        // both built-in TogetherJS events and custom OPT app events:
-        // copied-pasted from lib/togetherjs/togetherjs/togetherjsPackage.js
-        // around line 1870
-        sess.hub.emit(evts[i].type, evts[i]);
-        TogetherJS._onmessage(evts[i]); // buh?!?
-      } catch(e) {
-        // silently ignore errors :0
-      }
-
-      i++;
-    }, 500);
-    */
-
     // for manual debugging:
     window.sess = sess;
     window.evts = evts;
-
-    this.redrawConnectors(); // update all arrows at the end
   }
 
   appendTogetherJsFooter() {
