@@ -230,9 +230,10 @@ function randomlyPickSurveyItem(key) {
 // only record certain kinds of events in the recorder
 // see ../../v3/opt_togetherjs/server.js around line 460 for all
 function shouldRecordEvent(e) {
+  // do NOT record cursor-click since that's too much noise
+
   return ((e.type == 'form-update') ||
           (e.type == 'cursor-update') ||
-          (e.type == 'cursor-click') ||
           (e.type == 'app.executeCode') ||
           (e.type == 'app.updateOutput') ||
           (e.type == 'pyCodeOutputDivScroll') ||
@@ -1166,7 +1167,8 @@ Get live help! (NEW!)
   }
 
   startPlayback() {
-    // for some reason, we need to do this BEFORE TogetherJS initialize
+    // we need to do all this BEFORE TogetherJS initialize
+    this.enterEditMode();
     this.pyInputSetValue(this.curRecordingInitialCod);
 
     $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
@@ -1323,7 +1325,6 @@ Get live help! (NEW!)
     // another server that's not being logged?!?)
 
     assert(!this.wantsPublicHelp && this.isRecordingDemo && !this.isPlayingDemo); // TODO: refactor into a single boolean
-    TogetherJS.config('dontShowClicks', false); // show clicks when recording / playing demos for better clarity
 
     this.curRecordingInitialCod = this.pyInputGetValue();
 
@@ -1346,7 +1347,6 @@ Get live help! (NEW!)
     // another server that's not being logged?!?)
 
     assert(!this.wantsPublicHelp && !this.isRecordingDemo && this.isPlayingDemo); // TODO: refactor into a single boolean
-    TogetherJS.config('dontShowClicks', false); // show clicks when recording / playing demos for better clarity
 
     var sess = TogetherJS.require("session"); // important to grab the session HERE and not globally
 
@@ -1355,6 +1355,7 @@ Get live help! (NEW!)
     var timerId = setInterval(() => {
       if (i >= evts.length) {
         clearInterval(timerId);
+        $("#togetherjsStatus").html("DONE playing recording");
         return;
       }
 
