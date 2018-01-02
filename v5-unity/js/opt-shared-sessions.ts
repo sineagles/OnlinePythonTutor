@@ -1342,6 +1342,36 @@ Get live help! (NEW!)
   }
 
   initPlayDemo() {
+    /* misc TODOs (from first hacking on it on 2018-01-01)
+
+      - playback works only ONCE, especially with respect to Ace editor
+        code edits. maybe the _listeners are hardwired to a particular
+        instance of the Ace editor, and that somehow 'goes away'? anyways,
+        need to do a lot more digging here to figure out why we can't
+        replay one recording multiple times
+
+      - add VCR-style controls and scrubber for feature parity with
+        video player
+
+      - no ability to pause the 'video' yet, and even more difficult, if
+        you pause and modify the code and want to 'resume' the video, you
+        need to restore the appState from when you paused (maybe with
+        getAppState?) and then resume from there. my hunch is that
+        getAppState() is your friend here for restoring states mid-playback
+
+      - how can we best synchronize with my voice audio, since playback
+        of events may lag a bit; make sure to set timeouts as precisely as
+        possible in that case to prevent 'drift'; hopefully it's OK for the
+        short-ish video clips that i'll be recording, but drift may worsen
+        for longer clips
+        - also, after an event like executeCode(), i should *pause* my
+          voice a bit to give it time to finish executing, since some users may
+          be on slow connections where it might take a few second to execute
+
+      - get this working better in live mode, which has all sorts of quirks
+
+    */
+
     // TODO: don't send events to the togetherjs server when you're in playback mode
     // so as not to overwhelm the logs (or alternatively, send to
     // another server that's not being logged?!?)
