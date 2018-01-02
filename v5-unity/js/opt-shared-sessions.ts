@@ -1356,6 +1356,13 @@ Get live help! (NEW!)
         getAppState?) and then resume from there. my hunch is that
         getAppState() is your friend here for restoring states mid-playback
 
+      - things get kinda flaky if you *ALREADY* have code in the editor
+        and then try to record a demo; sometimes it doesn't work properly.
+
+      - sometimes it's not good to skip the first event if it's not
+        something innocuous like a cursor-update or something; what if the first
+        event is someone writing code?
+
       - how can we best synchronize with my voice audio, since playback
         of events may lag a bit; make sure to set timeouts as precisely as
         possible in that case to prevent 'drift'; hopefully it's OK for the
