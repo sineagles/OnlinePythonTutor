@@ -267,7 +267,7 @@ export class OptFrontendSharedSessions extends OptFrontend {
     this.pyInputAceEditor.getSession().on("change", (e) => {
       // unfortunately, Ace doesn't detect whether a change was caused
       // by a setValue call
-      if (TogetherJS.running) {
+      if (TogetherJS.running && !this.isPlayingDemo) {
         TogetherJS.send({type: "codemirror-edit"});
       }
     });
@@ -386,7 +386,7 @@ Get live help! (NEW!)
 
     // add an additional listener in addition to whatever the superclasses added
     window.addEventListener("hashchange", (e) => {
-      if (TogetherJS.running && !this.isExecutingCode) {
+      if (TogetherJS.running && !this.isPlayingDemo && !this.isExecutingCode) {
         TogetherJS.send({type: "hashchange",
                          appMode: this.appMode,
                          codeInputScrollTop: this.pyInputGetScrollTop(),
@@ -685,13 +685,13 @@ Get live help! (NEW!)
 
   logEditDelta(delta) {
     super.logEditDelta(delta);
-    if (TogetherJS.running) {
+    if (TogetherJS.running && !this.isPlayingDemo) {
       TogetherJS.send({type: "editCode", delta: delta});
     }
   }
 
   startExecutingCode(startingInstruction=0) {
-    if (TogetherJS.running && !this.executeCodeSignalFromRemote) {
+    if (TogetherJS.running && !this.isPlayingDemo && !this.executeCodeSignalFromRemote) {
       TogetherJS.send({type: "executeCode",
                        myAppState: this.getAppState(),
                        forceStartingInstr: startingInstruction,
@@ -727,7 +727,7 @@ Get live help! (NEW!)
         // debounce
         $.doTimeout('pyCodeOutputDivScroll', 100, function() {
           // note that this will send a signal back and forth both ways
-          if (TogetherJS.running) {
+          if (TogetherJS.running && !this.isPlayingDemo) {
             // (there's no easy way to prevent this), but it shouldn't keep
             // bouncing back and forth indefinitely since no the second signal
             // causes no additional scrolling
@@ -749,7 +749,7 @@ Get live help! (NEW!)
         return [true]; // die early; no more hooks should run after this one!
       }
 
-      if (TogetherJS.running && !this.isExecutingCode) {
+      if (TogetherJS.running && !this.isPlayingDemo && !this.isExecutingCode) {
         TogetherJS.send({type: "updateOutput", step: args.myViz.curInstr});
       }
       return [false]; // pass through to let other hooks keep handling
@@ -871,6 +871,7 @@ Get live help! (NEW!)
     TogetherJS.hub.on("updateOutput", this.updateOutputTogetherJsHandler.bind(this));
 
     TogetherJS.hub.on("executeCode", (msg) => {
+      console.log('TogetherJS.hub.on("executeCode" ...)');
       if (!msg.sameUrl) return; // make sure we're on the same page
       if (this.isExecutingCode) {
         return;
@@ -1055,7 +1056,7 @@ Get live help! (NEW!)
 
       // send this to the server for the purposes of logging, but other
       // clients shouldn't do anything with this data
-      if (TogetherJS.running) {
+      if (TogetherJS.running && !this.isPlayingDemo) {
         TogetherJS.send({type: "initialAppState",
                          myAppState: this.getAppState(),
                          user_uuid: this.userUUID,
@@ -1358,9 +1359,24 @@ Get live help! (NEW!)
       }
 
       console.log('PLAY:', i, evts[i]);
-      sess.hub.emit(evts[i].type, evts[i]);
+
+      try {
+        // seems weird but we need both in order to gracefully handle
+        // both built-in TogetherJS events and custom OPT app events:
+        // copied-pasted from lib/togetherjs/togetherjs/togetherjsPackage.js
+        // around line 1870
+        sess.hub.emit(evts[i].type, evts[i]);
+        TogetherJS._onmessage(evts[i]); // buh?!?
+      } catch(e) {
+        // silently ignore errors :0
+      }
+
       i++;
     }, 500);
+
+    // for manual debugging:
+    //window.sess = sess;
+    //window.evts = evts;
 
     this.redrawConnectors(); // update all arrows at the end
   }

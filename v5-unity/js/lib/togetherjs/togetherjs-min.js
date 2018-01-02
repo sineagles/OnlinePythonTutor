@@ -499,6 +499,7 @@
       }
     };
     proto.emit = function emit(name) {
+      console.log('proto.emit', name, this);
       var offs = this._listenerOffs = [];
       if ((! this._listeners) || ! this._listeners[name]) {
         return;
