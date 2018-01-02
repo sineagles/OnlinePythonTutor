@@ -20,9 +20,9 @@
     // The code to enable (this is defaulting to a Mozilla code):
     analyticsCode: "UA-35433268-28",
     // The base URL of the hub (gets filled in below):
-    hubBase: "http://45.79.11.225:30035/",    // pgbovine - online deployment to new Linode (starting 2017-10-27)
+    //hubBase: "http://45.79.11.225:30035/",    // pgbovine - online deployment to new Linode (starting 2017-10-27)
     //hubBase: "http://104.237.139.253:30035/", // pgbovine - online deployment to old Linode (prior to 2017-10-27)
-    //hubBase: "http://localhost:30035/",     // pgbovine - localhost testing
+    hubBase: "http://localhost:30035/",     // pgbovine - localhost testing
 
     // A function that will return the name of the user:
     // pgbovine - customized to use opt_uuid in localStorage if available
@@ -86,6 +86,9 @@
     youtube: true,
     // Ignores the following console messages, disables all messages if set to true
     ignoreMessages: ["cursor-update", "keydown", "scroll-update"],
+    // if non-null, set to a callback function to log all events. this
+    // can be used to record a canned demo
+    eventRecorderFunc: null, // pgbovine
     // Ignores the following forms (will ignore all forms if set to true):
     ignoreForms: [":password", '.togetherjsIgnore'], // pgbovine
     fallbackLang: "en_US"

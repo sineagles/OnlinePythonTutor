@@ -455,6 +455,7 @@ wsServer.on('request', function(request) {
                  ' conn ID: ' + connection.ID + ' data:' + message.utf8Data.substr(0, 20) +
                  ' connections: ' + allConnections[id].length);
 
+    console.log('YAY', parsed);
     // ignore some kinds of extraneous noisy events
     if (parsed.type != 'cursor-update' &&
         parsed.type != 'scroll-update' &&

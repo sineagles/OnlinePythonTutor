@@ -232,7 +232,14 @@ export class OptFrontendSharedSessions extends OptFrontend {
   togetherjsSyncRequested = false;
   pendingCodeOutputScrollTop = null;
   updateOutputSignalFromRemote = false;
+
+  // TODO: unify these 3 booleans into 1 unified one:
   wantsPublicHelp = false;
+  isRecordingDemo = false;
+  isPlayingDemo = false;
+  curRecordingInitialCod = '';
+  curRecordingEvents = [];
+
   disableSharedSessions = false; // if we're on mobile/tablets, disable this entirely since it doesn't work on mobile
   isIdle = false;
   peopleIveKickedOut = []; // #savage
@@ -286,6 +293,17 @@ Get live help! (NEW!)
   <button id="sharedSessionBtn" type="button" class="togetherjsBtn" style="font-size: 9pt;">
   Start private chat session
   </button>
+
+  <br/>
+  <button id="recordBtn" type="button" class="togetherjsBtn" style="font-size: 9pt;">
+  Record demo
+  </button>
+
+  <br/>
+  <button id="playbackBtn" type="button" class="togetherjsBtn" style="font-size: 9pt;">
+  Play recording
+  </button>
+
   <div style="margin-top: 5px; font-size: 8pt;">
   <a href="https://www.youtube.com/watch?v=oDY7ScMPtqI" target="_blank">How do I use this?</a>
   </div>
@@ -316,6 +334,9 @@ Get live help! (NEW!)
     $("#sharedSessionBtn").click(this.startSharedSession.bind(this, false));
     $("#stopTogetherJSBtn").click(TogetherJS); // toggles off
     $("#requestHelpBtn").click(this.requestPublicHelpButtonClick.bind(this));
+
+    $("#recordBtn").click(this.startRecording.bind(this));
+    $("#playbackBtn").click(this.startPlayback.bind(this));
 
     // jquery.idle:
     ($(document) as any).idle({
@@ -1091,7 +1112,12 @@ Get live help! (NEW!)
     this.activateEurekaSurvey = false;
     $("#eureka_survey").remove(); // if a survey is already displayed on-screen, then kill it
 
-    if (this.wantsPublicHelp) {
+    // TODO: simplify this into a single boolean instead of ~3 separate ones
+    if (this.isRecordingDemo) {
+      this.initRecordDemo();
+    } else if (this.isPlayingDemo) {
+      this.initPlayDemo();
+    } else if (this.wantsPublicHelp) {
       this.initRequestPublicHelp();
     } else {
       this.initPrivateSharedSession();
@@ -1103,13 +1129,36 @@ Get live help! (NEW!)
       $("#surveyHeader").show();
     }
     this.wantsPublicHelp = false; // explicitly reset it
+
+    // reset all recording-related stuff too!
+    this.isRecordingDemo = false;
+    this.isPlayingDemo = false;
+    TogetherJS.config('eventRecorderFunc', null);
+    TogetherJS.config('dontShowClicks', true);
   }
 
   startSharedSession(wantsPublicHelp) {
     $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
     $("#togetherjsStatus").html("Please wait ... loading live help chat session");
     TogetherJS();
-    this.wantsPublicHelp = wantsPublicHelp;
+    this.wantsPublicHelp = wantsPublicHelp; // TODO: unify everything into 1 boolean
+  }
+
+  startRecording() {
+    $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
+    $("#togetherjsStatus").html("Recording now ...");
+    this.isRecordingDemo = true; // TODO: unify everything into 1 boolean
+    TogetherJS();
+  }
+
+  startPlayback() {
+    // for some reason, we need to do this BEFORE TogetherJS initialize
+    this.pyInputSetValue(this.curRecordingInitialCod);
+
+    $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
+    $("#togetherjsStatus").html("Playing recording now ...");
+    this.isPlayingDemo = true; // TODO: unify everything into 1 boolean
+    TogetherJS();
   }
 
   requestPublicHelpButtonClick() {
@@ -1251,6 +1300,75 @@ Get live help! (NEW!)
     }
 
     this.appendTogetherJsFooter();
+    this.redrawConnectors(); // update all arrows at the end
+  }
+
+  initRecordDemo() {
+    // TODO: don't send events to the togetherjs server when you're in recording mode
+    // so as not to overwhelm the logs (or alternatively, send to
+    // another server that's not being logged?!?)
+
+    assert(!this.wantsPublicHelp && this.isRecordingDemo && !this.isPlayingDemo); // TODO: refactor into a single boolean
+    this.curRecordingInitialCod = this.pyInputGetValue();
+
+    this.curRecordingEvents = []; // reset it when you start a new recording!
+    TogetherJS.config('dontShowClicks', false); // show clicks when recording / playing demos for better clarity
+    TogetherJS.config('eventRecorderFunc', (msg) => {
+      msg.ts = new Date().getTime(); // augment with timestamp
+
+      /* obsolete code
+      var p = TogetherJS.require("peers");
+      msg.peer = p.Self;
+
+      var type = msg_copy.type;
+      if (type.search(/^app\./) === 0) {
+        type = type.substr("app.".length);
+      } else {
+        type = "togetherjs." + type;
+      }
+      msg_copy.type = type;
+      */
+
+      msg.peer = {color: "#8d549f"}; // fake just enough of a peer object for downstream functions to work
+      msg.sameUrl = true;
+      this.curRecordingEvents.push(msg);
+      console.log(this.curRecordingEvents.length, this.curRecordingEvents[this.curRecordingEvents.length - 1]);
+    });
+
+    this.redrawConnectors(); // update all arrows at the end
+  }
+
+  initPlayDemo() {
+    // TODO: don't send events to the togetherjs server when you're in playback mode
+    // so as not to overwhelm the logs (or alternatively, send to
+    // another server that's not being logged?!?)
+
+    assert(!this.wantsPublicHelp && !this.isRecordingDemo && this.isPlayingDemo); // TODO: refactor into a single boolean
+    TogetherJS.config('dontShowClicks', false); // show clicks when recording / playing demos for better clarity
+
+    var sess = TogetherJS.require("session"); // important to grab the session HERE and not globally
+
+    // only replay certain kinds of events ...
+    // see ../../v3/opt_togetherjs/server.js around line 460 for all
+    // relevant event types
+    var filteredEvents = this.curRecordingEvents.filter((e) => {
+      return ((e.type != 'form-focus') &&
+              (e.type != 'bye'));
+    });
+
+    var i = 0;
+    var timerId = setInterval(() => {
+      console.log(new Date());
+      if (i >= filteredEvents.length) {
+        clearInterval(timerId);
+        return;
+      }
+
+      console.log('PLAY:', i, filteredEvents[i]);
+      sess.hub.emit(filteredEvents[i].type, filteredEvents[i]);
+      i++;
+    }, 500);
+
     this.redrawConnectors(); // update all arrows at the end
   }
 

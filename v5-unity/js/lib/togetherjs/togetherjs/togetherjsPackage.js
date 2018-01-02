@@ -1879,6 +1879,13 @@ define('session',["require", "util", "channels", "jquery", "storage"], function 
       console.info("Send:", msg);
     }
     msg.clientId = session.clientId;
+    // pgbovine - note that we still need to send the message as usual,
+    // or else things break in subtle ways
+    var eventRecorderFunc = TogetherJS.config.get("eventRecorderFunc");
+    if (eventRecorderFunc) {
+      eventRecorderFunc(msg);
+    }
+
     channel.send(msg);
   };
 
