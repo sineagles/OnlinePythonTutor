@@ -227,6 +227,19 @@ function randomlyPickSurveyItem(key) {
 }
 
 
+// only record certain kinds of events in the recorder
+// see ../../v3/opt_togetherjs/server.js around line 460 for all
+function shouldRecordEvent(e) {
+  return ((e.type == 'form-update') ||
+          (e.type == 'cursor-update') ||
+          (e.type == 'cursor-click') ||
+          (e.type == 'app.executeCode') ||
+          (e.type == 'app.updateOutput') ||
+          (e.type == 'pyCodeOutputDivScroll') ||
+          (e.type == 'app.hashchange'));
+}
+
+
 export class OptFrontendSharedSessions extends OptFrontend {
   executeCodeSignalFromRemote = false;
   togetherjsSyncRequested = false;
@@ -1309,30 +1322,18 @@ Get live help! (NEW!)
     // another server that's not being logged?!?)
 
     assert(!this.wantsPublicHelp && this.isRecordingDemo && !this.isPlayingDemo); // TODO: refactor into a single boolean
+    TogetherJS.config('dontShowClicks', false); // show clicks when recording / playing demos for better clarity
+
     this.curRecordingInitialCod = this.pyInputGetValue();
 
-    this.curRecordingEvents = []; // reset it when you start a new recording!
-    TogetherJS.config('dontShowClicks', false); // show clicks when recording / playing demos for better clarity
+    this.curRecordingEvents = []; // reset it when you start a new recording
     TogetherJS.config('eventRecorderFunc', (msg) => {
       msg.ts = new Date().getTime(); // augment with timestamp
-
-      /* obsolete code
-      var p = TogetherJS.require("peers");
-      msg.peer = p.Self;
-
-      var type = msg_copy.type;
-      if (type.search(/^app\./) === 0) {
-        type = type.substr("app.".length);
-      } else {
-        type = "togetherjs." + type;
-      }
-      msg_copy.type = type;
-      */
-
       msg.peer = {color: "#8d549f"}; // fake just enough of a peer object for downstream functions to work
       msg.sameUrl = true;
-      this.curRecordingEvents.push(msg);
-      console.log(this.curRecordingEvents.length, this.curRecordingEvents[this.curRecordingEvents.length - 1]);
+      if (shouldRecordEvent(msg)) {
+        this.curRecordingEvents.push(msg);
+      }
     });
 
     this.redrawConnectors(); // update all arrows at the end
@@ -1348,24 +1349,16 @@ Get live help! (NEW!)
 
     var sess = TogetherJS.require("session"); // important to grab the session HERE and not globally
 
-    // only replay certain kinds of events ...
-    // see ../../v3/opt_togetherjs/server.js around line 460 for all
-    // relevant event types
-    var filteredEvents = this.curRecordingEvents.filter((e) => {
-      return ((e.type != 'form-focus') &&
-              (e.type != 'bye'));
-    });
-
+    var evts = this.curRecordingEvents;
     var i = 0;
     var timerId = setInterval(() => {
-      console.log(new Date());
-      if (i >= filteredEvents.length) {
+      if (i >= evts.length) {
         clearInterval(timerId);
         return;
       }
 
-      console.log('PLAY:', i, filteredEvents[i]);
-      sess.hub.emit(filteredEvents[i].type, filteredEvents[i]);
+      console.log('PLAY:', i, evts[i]);
+      sess.hub.emit(evts[i].type, evts[i]);
       i++;
     }, 500);
 
