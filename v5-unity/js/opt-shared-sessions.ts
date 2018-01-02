@@ -1340,6 +1340,12 @@ Get live help! (NEW!)
   initPlayDemo() {
     /* TODOs (from first hacking on it on 2018-01-01)
 
+      - abstract the playback mechanism into its own helper class so
+        that we're able to selectively play back a previously-saved event
+        stream (saved in, say, localStorage for testing purposes) and also
+        have finer-grained control over the playing. maybe name the class
+        TogetherJSEventPlayer or something
+
       - add VCR-style controls and scrubber for feature parity with
         video players (but what does it mean to go "backwards" here, since
         the togetherjs logs don't let you easily go backwards)
@@ -1365,6 +1371,14 @@ Get live help! (NEW!)
 
       - it would be nice to see a CURSOR in the Ace editor as the video
         is being played back ... right now the cursor doesn't visibly move
+        - maybe issue an app-specific cursor event to show the cursor's
+          position after each keystroke? this might be overkill, though.
+          - oh, OR take the delta from the form-update event object and
+            infer the cursor position from that, and then stick it into Ace;
+            that could work!
+        - also, it would be cool to get the user's current text block SELECTION
+          too (bonus)
+        - https://stackoverflow.com/questions/27625028/how-to-move-the-cursor-to-the-end-of-the-line-in-ace-editor
 
       - minor: disable the "Restore old code" undo buffer when in playback mode
 
