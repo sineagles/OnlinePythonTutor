@@ -1351,6 +1351,50 @@ Get live help! (NEW!)
     var sess = TogetherJS.require("session"); // important to grab the session HERE and not globally
 
     var evts = this.curRecordingEvents;
+
+    if (evts.length <= 0) {
+      $("#togetherjsStatus").html("DONE playing recording");
+      return;
+    }
+
+
+    function doit(i) {
+      // seems weird but we need both in order to gracefully handle
+      // both built-in TogetherJS events and custom OPT app events:
+      // copied-pasted from lib/togetherjs/togetherjs/togetherjsPackage.js
+      // around line 1870
+      try {
+        sess.hub.emit(evts[i].type, evts[i]);
+      } catch (e) {
+        // let it go!
+      }
+
+      try {
+        TogetherJS._onmessage(evts[i]);
+      } catch (e) {
+        // let it go!
+      }
+    }
+
+    // set one timeout at a time, and when that one starts executing,
+    // set the next timeout
+    var setAllTimeouts = (i) => {
+      setTimeout(() => {
+        if (i >= evts.length - 1) {
+          $("#togetherjsStatus").html("DONE playing recording");
+          return;
+        }
+
+        setAllTimeouts(i+1); // set the next timeout right away before performing your action!
+        console.log("FIRE", i);
+        doit(i);
+      }, evts[i].ts - evts[i-1].ts);
+    };
+    setAllTimeouts(1); // start at event #1 and ignore the 0th event ... it actually ends up working smoother
+
+
+    // for testing only: have a fixed time between steps:
+    /*
     var i = 0;
     var timerId = setInterval(() => {
       if (i >= evts.length) {
@@ -1374,10 +1418,11 @@ Get live help! (NEW!)
 
       i++;
     }, 500);
+    */
 
     // for manual debugging:
-    //window.sess = sess;
-    //window.evts = evts;
+    window.sess = sess;
+    window.evts = evts;
 
     this.redrawConnectors(); // update all arrows at the end
   }
