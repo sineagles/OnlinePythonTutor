@@ -89,6 +89,7 @@
     // if non-null, set to a callback function to log all events. this
     // can be used to record a canned demo
     eventRecorderFunc: null, // pgbovine
+    isDemoSession: false, // pgbovine - are we recording or playing a demo?
     // Ignores the following forms (will ignore all forms if set to true):
     ignoreForms: [":password", '.togetherjsIgnore'], // pgbovine
     fallbackLang: "en_US"

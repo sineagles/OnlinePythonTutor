@@ -1149,7 +1149,7 @@ Get live help! (NEW!)
     this.isRecordingDemo = false;
     this.isPlayingDemo = false;
     TogetherJS.config('eventRecorderFunc', null);
-    TogetherJS.config('dontShowClicks', true);
+    TogetherJS.config('isDemoSession', false);
   }
 
   startSharedSession(wantsPublicHelp) {
@@ -1165,6 +1165,7 @@ Get live help! (NEW!)
     $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
     $("#togetherjsStatus").html("Recording now ...");
     this.isRecordingDemo = true; // TODO: unify everything into 1 boolean
+    TogetherJS.config('isDemoSession', true);
     TogetherJS();
   }
 
@@ -1176,6 +1177,7 @@ Get live help! (NEW!)
     $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
     $("#togetherjsStatus").html("Playing recording now ...");
     this.isPlayingDemo = true; // TODO: unify everything into 1 boolean
+    TogetherJS.config('isDemoSession', true);
     TogetherJS();
   }
 
@@ -1322,7 +1324,7 @@ Get live help! (NEW!)
   }
 
   initRecordDemo() {
-    assert(!this.wantsPublicHelp && this.isRecordingDemo && !this.isPlayingDemo); // TODO: refactor into a single boolean
+    assert(TogetherJS.running && !this.wantsPublicHelp && this.isRecordingDemo && !this.isPlayingDemo); // TODO: refactor into a single boolean
 
     this.curRecordingInitialCod = this.pyInputGetValue();
 
@@ -1345,6 +1347,10 @@ Get live help! (NEW!)
         stream (saved in, say, localStorage for testing purposes) and also
         have finer-grained control over the playing. maybe name the class
         TogetherJSEventPlayer or something
+
+      - we need to 'lock' the UI while the video is playing and only
+        allow modifications once you push the 'pause' button and it's
+        gotten a chance to save state
 
       - add VCR-style controls and scrubber for feature parity with
         video players (but what does it mean to go "backwards" here, since
@@ -1374,8 +1380,6 @@ Get live help! (NEW!)
 
       - get this working better in live mode, which has all sorts of quirks
 
-      - disable chat box in recording/playback modes
-
       - it would be nice to see a CURSOR in the Ace editor as the video
         is being played back ... right now the cursor doesn't visibly move
         - maybe issue an app-specific cursor event to show the cursor's
@@ -1387,9 +1391,10 @@ Get live help! (NEW!)
           too (bonus)
         - https://stackoverflow.com/questions/27625028/how-to-move-the-cursor-to-the-end-of-the-line-in-ace-editor
 
-      - minor: disable the "Restore old code" undo buffer when in playback mode
+      - minor: set a more instructive username for the tutor's mouse pointer
 
-      - minor: set a more instructive username for the tutor pointer
+      - minor: disable the "Restore old code" undo buffer when in playback mode
+        - i think this is fixed now
 
       - don't send events to the togetherjs when you're in recording or
         playback mode, so as not to overwhelm the logs. also it seems
@@ -1398,13 +1403,14 @@ Get live help! (NEW!)
 
     */
 
-    assert(!this.wantsPublicHelp && !this.isRecordingDemo && this.isPlayingDemo); // TODO: refactor into a single boolean
+    assert(TogetherJS.running && !this.wantsPublicHelp && !this.isRecordingDemo && this.isPlayingDemo); // TODO: refactor into a single boolean
 
     var sess = TogetherJS.require("session"); // important to grab the session HERE and not globally
     var evts = this.curRecordingEvents;
 
     if (evts.length <= 0) {
       $("#togetherjsStatus").html("DONE playing recording");
+      TogetherJS(); // toggles off
       return;
     }
 
@@ -1445,6 +1451,7 @@ Get live help! (NEW!)
       setTimeout(() => {
         if (i >= evts.length - 1) {
           $("#togetherjsStatus").html("DONE playing recording");
+          TogetherJS(); // toggles off
           return;
         }
 
@@ -1470,6 +1477,11 @@ Get live help! (NEW!)
   // the code rather than a diff, for simplicity.
   // don't do this too frequently or else things might blow up.
   takeFullCodeSnapshot() {
+    // don't do this if we're in demo mode
+    if (this.isRecordingDemo || this.isPlayingDemo) {
+      return;
+    }
+
     var curCod = this.pyInputGetValue();
 
     // brute-force search through all of this.fullCodeSnapshots for an

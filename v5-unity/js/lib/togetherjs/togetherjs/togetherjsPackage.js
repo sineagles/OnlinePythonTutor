@@ -9095,8 +9095,10 @@ define('startup',["util", "require", "jquery", "windowing", "storage"], function
     },
 
     sessionIntro: function (next) {
-      // pgbovine - pop open chat
-      windowing.show("#togetherjs-chat");
+      // pgbovine - pop open chat unless we're recording/playing a demo
+      if (!TogetherJS.config.get("isDemoSession")) {
+        windowing.show("#togetherjs-chat");
+      }
 
       if ((! session.isClient) || ! session.firstRun) {
         next();
