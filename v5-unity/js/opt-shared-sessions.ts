@@ -1366,8 +1366,8 @@ Get live help! (NEW!)
         and then try to record a demo; sometimes it doesn't work properly.
 
       - sometimes it's not good to skip the first event if it's not
-        something innocuous like a cursor-update or something; what if the first
-        event is someone writing code?
+        something innocuous like a cursor-update or something; what if the
+        first event is someone writing code?
 
       - how can we best synchronize with my voice audio, since playback
         of events may lag a bit; make sure to set timeouts as precisely as
@@ -1378,7 +1378,7 @@ Get live help! (NEW!)
           voice a bit to give it time to finish executing, since some users may
           be on slow connections where it might take a few second to execute
 
-      - get this working better in live mode, which has all sorts of quirks
+      - get this working better in live mode, which has some quirks
 
       - it would be nice to see a CURSOR in the Ace editor as the video
         is being played back ... right now the cursor doesn't visibly move
@@ -1392,9 +1392,6 @@ Get live help! (NEW!)
         - https://stackoverflow.com/questions/27625028/how-to-move-the-cursor-to-the-end-of-the-line-in-ace-editor
 
       - minor: set a more instructive username for the tutor's mouse pointer
-
-      - minor: disable the "Restore old code" undo buffer when in playback mode
-        - i think this is fixed now
 
       - don't send events to the togetherjs when you're in recording or
         playback mode, so as not to overwhelm the logs. also it seems
