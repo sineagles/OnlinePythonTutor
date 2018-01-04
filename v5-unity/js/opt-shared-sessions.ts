@@ -241,6 +241,172 @@ function shouldRecordEvent(e) {
 }
 
 
+// represents a list of TogetherJS events that can be replayed, paused, etc.
+// within the context of the current OptFrontendSharedSessions app
+class OPTDemoVideo {
+  events = null;
+  frontend = null;
+  curIndex = 0;
+
+  // TODO: maybe use getAppState to get the initial state of the recording
+  // (instead of simply its initial code)? that way, we can pull
+  // curRecordingInitialCod and curRecordingEvents into here or maybe
+  // into a parent class called something like OPTDemoRecorder, which
+  // creates and records OPTDemoVideo objects
+
+  constructor(frontend, events) {
+    this.frontend = frontend;
+    this.events = events;
+  }
+
+  play() {
+    // TODO: there's a weird dependency on TogetherJS being already running
+    assert(TogetherJS.running && this.frontend.isPlayingDemo);
+
+    // i think it may be important to grab the TogetherJS session HERE
+    // every time you play (not globally); but i should verify that later
+    var sess = TogetherJS.require("session");
+    var evts = this.events;
+
+    // for manual debugging:
+    window.sess = sess;
+    window.evts = evts;
+
+    if (evts.length <= 0) {
+      $("#togetherjsStatus").html("DONE playing recording");
+      TogetherJS(); // toggles off
+      return;
+    }
+
+    function playEvent(i) {
+      var msg = evts[i];
+      // seems weird but we need both sess.hub.emit() and
+      // TogetherJS._onmessage() in order to gracefully handle
+      // both built-in TogetherJS events and custom OPT app events:
+      // copied-pasted from lib/togetherjs/togetherjs/togetherjsPackage.js
+      // around line 1870
+      try {
+        sess.hub.emit(msg.type, msg);
+      } catch (e) {
+        console.warn(e);
+        // let it go! let it go!
+      }
+
+      try {
+        TogetherJS._onmessage(msg);
+      } catch (e) {
+        console.warn(e);
+        // let it go! let it go!
+      }
+
+      // however, TogetherJS._onmessage mangles up the type fields
+      // (UGH!), so we need to restore them back to their original
+      // form to ensure idempotence. copied from session.appSend()
+      var type = msg.type;
+      if (type.search(/^togetherjs\./) === 0) {
+        type = type.substr("togetherjs.".length);
+      } else if (type.search(/^app\./) === -1) {
+        type = "app." + type;
+      }
+      msg.type = type;
+    }
+
+    // to play the events trace in 'real time', set one timeout at a time,
+    // and as soon as that one starts executing, set the next timeout
+    var setAllTimeouts = (i) => {
+      assert(i > 0);
+      setTimeout(() => {
+        if (i >= evts.length - 1) {
+          $("#togetherjsStatus").html("DONE playing recording");
+          TogetherJS(); // toggles off
+          return;
+        }
+
+        setAllTimeouts(i+1); // set the next timeout right away before performing your action!
+        console.log("FIRE", i);
+        playEvent(i);
+      }, evts[i].ts - evts[i-1].ts);
+    };
+
+    // play the 0th event after a tiny delay (for some reason it doesn't
+    // work properly if you play it right away) ...
+    setTimeout(() => {playEvent(0);}, 100);
+    setAllTimeouts(1); // now start at index 1
+  }
+}
+
+class OptDemoRecorder {
+  frontend = null;
+  events = [];
+
+  curRecordingInitialCod = '';
+  curRecordingInitialState = null;
+
+  constructor(frontend) {
+    this.frontend = frontend;
+    this.curRecordingInitialCod = this.frontend.pyInputGetValue();
+    this.curRecordingInitialState = this.frontend.getAppState();
+  }
+
+  // TODO: the control flow is kinda convoluted since we must first do
+  // enterRecordingMode to activate TogetherJS, and then when TogetherJS
+  // is ready, then we call record(), and finally stopRecording(), which
+  // turns off TogetherJS ... likewise with enterPlaybackMode, etc.
+  enterRecordingMode() {
+    // TODO: fixme to sync to whatever curRecordingInitialState is
+    this.frontend.enterEditMode(); // always start recording in edit mode
+
+    this.frontend.isRecordingDemo = true; // TODO: unify everything into 1 boolean
+    TogetherJS.config('isDemoSession', true);
+    TogetherJS(); // activate TogetherJS as the last step to start the recording
+  }
+
+  record() {
+    assert(TogetherJS.running && this.frontend.isRecordingDemo && !this.frontend.isPlayingDemo);
+
+    TogetherJS.config('eventRecorderFunc', (msg) => {
+      msg.ts = new Date().getTime(); // augment with timestamp
+      msg.peer = {color: "#8d549f"}; // fake just enough of a peer object for downstream functions to work
+      msg.sameUrl = true;
+      if (shouldRecordEvent(msg)) { // TODO: move shouldRecordEvent into this class as a static method
+        this.events.push(msg);
+      }
+    });
+  }
+
+  stopRecording() {
+    this.frontend.isRecordingDemo = false;
+    TogetherJS.config('isDemoSession', false);
+    TogetherJS.config('eventRecorderFunc', null);
+  }
+
+  // only initialize the player. we need to call playFullSpeed() or other
+  // methods below to actually play the demo
+  enterPlaybackMode() {
+    // we need to do all this BEFORE TogetherJS initialize
+    this.frontend.enterEditMode(); // TODO: sync with curRecordingInitialState
+    this.frontend.pyInputSetValue(this.curRecordingInitialCod);
+
+    this.frontend.isPlayingDemo = true; // TODO: unify everything into 1 boolean
+    TogetherJS.config('isDemoSession', true);
+    TogetherJS(); // activate TogetherJS as the last step to start playback mode
+  }
+
+  playFullSpeed() {
+    assert(this.frontend.isPlayingDemo);
+
+    // TODO: create an OPTDemoVideo in the constructor ...
+    var demo = new OPTDemoVideo(this.frontend, this.events);
+    demo.play();
+  }
+
+  stopPlayback() {
+    this.frontend.isPlayingDemo = false;
+    TogetherJS.config('isDemoSession', false);
+    TogetherJS.config('eventRecorderFunc', null);
+  }
+}
+
 export class OptFrontendSharedSessions extends OptFrontend {
   executeCodeSignalFromRemote = false;
   togetherjsSyncRequested = false;
@@ -251,7 +417,11 @@ export class OptFrontendSharedSessions extends OptFrontend {
   wantsPublicHelp = false;
   isRecordingDemo = false;
   isPlayingDemo = false;
+
+  demoRecorder: OptDemoRecorder;
+
   curRecordingInitialCod = '';
+  curRecordingInitialState = null;
   curRecordingEvents = [];
 
   disableSharedSessions = false; // if we're on mobile/tablets, disable this entirely since it doesn't work on mobile
@@ -1146,10 +1316,14 @@ Get live help! (NEW!)
     this.wantsPublicHelp = false; // explicitly reset it
 
     // reset all recording-related stuff too!
-    this.isRecordingDemo = false;
-    this.isPlayingDemo = false;
-    TogetherJS.config('eventRecorderFunc', null);
-    TogetherJS.config('isDemoSession', false);
+    if (this.isRecordingDemo) {
+      this.demoRecorder.stopRecording();
+      assert(!this.isRecordingDemo);
+    }
+    if (this.isPlayingDemo) {
+      this.demoRecorder.stopPlayback();
+      assert(!this.isPlayingDemo);
+    }
   }
 
   startSharedSession(wantsPublicHelp) {
@@ -1160,25 +1334,19 @@ Get live help! (NEW!)
   }
 
   startRecording() {
-    this.enterEditMode(); // always start recording in edit mode
-
     $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
     $("#togetherjsStatus").html("Recording now ...");
-    this.isRecordingDemo = true; // TODO: unify everything into 1 boolean
-    TogetherJS.config('isDemoSession', true);
-    TogetherJS();
+
+    this.demoRecorder = new OptDemoRecorder(this);
+    this.demoRecorder.enterRecordingMode();
   }
 
   startPlayback() {
-    // we need to do all this BEFORE TogetherJS initialize
-    this.enterEditMode();
-    this.pyInputSetValue(this.curRecordingInitialCod);
-
     $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
-    $("#togetherjsStatus").html("Playing recording now ...");
-    this.isPlayingDemo = true; // TODO: unify everything into 1 boolean
-    TogetherJS.config('isDemoSession', true);
-    TogetherJS();
+    $("#togetherjsStatus").html("Playing recording ...");
+
+    assert(this.demoRecorder);
+    this.demoRecorder.enterPlaybackMode();
   }
 
   requestPublicHelpButtonClick() {
@@ -1326,7 +1494,11 @@ Get live help! (NEW!)
   initRecordDemo() {
     assert(TogetherJS.running && !this.wantsPublicHelp && this.isRecordingDemo && !this.isPlayingDemo); // TODO: refactor into a single boolean
 
+    this.demoRecorder.record(); // TODO: kind of a confusing control flow
+
+    /*
     this.curRecordingInitialCod = this.pyInputGetValue();
+    this.curRecordingInitialState = this.getAppState();
 
     this.curRecordingEvents = []; // reset it when you start a new recording
     TogetherJS.config('eventRecorderFunc', (msg) => {
@@ -1337,16 +1509,25 @@ Get live help! (NEW!)
         this.curRecordingEvents.push(msg);
       }
     });
+    */
   }
 
   initPlayDemo() {
     /* TODOs (from first hacking on it on 2018-01-01)
+    
+      - make the recorder/player a subclass of OptFrontendSharedSessions
+        with a separate html file and everything and special frontend tag
+        (this.originFrontendJsFile) so that we can diambiguate its log
+        entries in our server logs; otherwise it will look like people are
+        executing a ton of the same pieces of code when they're simply
+        demo code
 
       - abstract the playback mechanism into its own helper class so
         that we're able to selectively play back a previously-saved event
         stream (saved in, say, localStorage for testing purposes) and also
         have finer-grained control over the playing. maybe name the class
         TogetherJSEventPlayer or something
+        - working on it
 
       - we need to 'lock' the UI while the video is playing and only
         allow modifications once you push the 'pause' button and it's
@@ -1362,12 +1543,8 @@ Get live help! (NEW!)
         getAppState?) and then resume from there. my hunch is that
         getAppState() is your friend here for restoring states mid-playback
 
-      - things get kinda flaky if you *ALREADY* have code in the editor
+      - things sometimes get flaky if you *ALREADY* have code in the editor
         and then try to record a demo; sometimes it doesn't work properly.
-
-      - sometimes it's not good to skip the first event if it's not
-        something innocuous like a cursor-update or something; what if the
-        first event is someone writing code?
 
       - how can we best synchronize with my voice audio, since playback
         of events may lag a bit; make sure to set timeouts as precisely as
@@ -1377,8 +1554,6 @@ Get live help! (NEW!)
         - also, after an event like executeCode(), i should *pause* my
           voice a bit to give it time to finish executing, since some users may
           be on slow connections where it might take a few second to execute
-
-      - get this working better in live mode, which has some quirks
 
       - it would be nice to see a CURSOR in the Ace editor as the video
         is being played back ... right now the cursor doesn't visibly move
@@ -1393,75 +1568,16 @@ Get live help! (NEW!)
 
       - minor: set a more instructive username for the tutor's mouse pointer
 
+      - later: get this working better in live mode, which has some quirks
+
       - don't send events to the togetherjs when you're in recording or
         playback mode, so as not to overwhelm the logs. also it seems
         kinda silly that you need to connect to a remote server for this
         to work, since we don't require anything from the server
 
     */
-
     assert(TogetherJS.running && !this.wantsPublicHelp && !this.isRecordingDemo && this.isPlayingDemo); // TODO: refactor into a single boolean
-
-    var sess = TogetherJS.require("session"); // important to grab the session HERE and not globally
-    var evts = this.curRecordingEvents;
-
-    if (evts.length <= 0) {
-      $("#togetherjsStatus").html("DONE playing recording");
-      TogetherJS(); // toggles off
-      return;
-    }
-
-    function doit(i) {
-      var msg = evts[i];
-      // seems weird but we need both sess.hub.emit() and
-      // TogetherJS._onmessage() in order to gracefully handle
-      // both built-in TogetherJS events and custom OPT app events:
-      // copied-pasted from lib/togetherjs/togetherjs/togetherjsPackage.js
-      // around line 1870
-      try {
-        sess.hub.emit(msg.type, msg);
-      } catch (e) {
-        // let it go! let it go!
-      }
-
-      try {
-        TogetherJS._onmessage(msg);
-      } catch (e) {
-        // let it go! let it go!
-      }
-
-      // however, TogetherJS._onmessage mangles up the type fields
-      // (UGH!), so we need to restore them back to their original
-      // form to ensure idempotence. copied from session.appSend()
-      var type = msg.type;
-      if (type.search(/^togetherjs\./) === 0) {
-        type = type.substr("togetherjs.".length);
-      } else if (type.search(/^app\./) === -1) {
-        type = "app." + type;
-      }
-      msg.type = type;
-    }
-
-    // set one timeout at a time, and when that one starts executing,
-    // set the next timeout
-    var setAllTimeouts = (i) => {
-      setTimeout(() => {
-        if (i >= evts.length - 1) {
-          $("#togetherjsStatus").html("DONE playing recording");
-          TogetherJS(); // toggles off
-          return;
-        }
-
-        setAllTimeouts(i+1); // set the next timeout right away before performing your action!
-        console.log("FIRE", i);
-        doit(i);
-      }, evts[i].ts - evts[i-1].ts);
-    };
-    setAllTimeouts(1); // start at event #1 and ignore the 0th event ... it actually ends up working smoother
-
-    // for manual debugging:
-    window.sess = sess;
-    window.evts = evts;
+    this.demoRecorder.playFullSpeed();
   }
 
   appendTogetherJsFooter() {

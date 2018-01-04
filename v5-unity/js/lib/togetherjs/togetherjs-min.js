@@ -500,7 +500,7 @@
       }
     };
     proto.emit = function emit(name) {
-      console.log('proto.emit', name, this);
+      //console.log('proto.emit', name, this); // pgbovine - for debugging
       var offs = this._listenerOffs = [];
       if ((! this._listeners) || ! this._listeners[name]) {
         return;
