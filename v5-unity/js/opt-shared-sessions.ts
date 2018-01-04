@@ -227,50 +227,110 @@ function randomlyPickSurveyItem(key) {
 }
 
 
-// only record certain kinds of events in the recorder
-// see ../../v3/opt_togetherjs/server.js around line 460 for all
-function shouldRecordEvent(e) {
-  // do NOT record cursor-click since that's too much noise
 
-  return ((e.type == 'form-update') ||
-          (e.type == 'cursor-update') ||
-          (e.type == 'app.executeCode') ||
-          (e.type == 'app.updateOutput') ||
-          (e.type == 'pyCodeOutputDivScroll') ||
-          (e.type == 'app.hashchange'));
-}
+/* Record/replay TODOs (from first hacking on it on 2018-01-01)
+
+  - make the recorder/player a subclass of OptFrontendSharedSessions
+    with a separate html file and everything and special frontend tag
+    (this.originFrontendJsFile) so that we can diambiguate its log
+    entries in our server logs; otherwise it will look like people are
+    executing a ton of the same pieces of code when they're simply
+    demo code
+
+  - we need to 'lock' the UI while the video is playing and only
+    allow modifications once you push the 'pause' button and it's
+    gotten a chance to save state
+
+  - as an optimization, SAVE the trace entries in the logs as well
+    so that they can simply be replayed without hitting the OPT
+    server, which will solve the problem of extra/unpredictable lag
+    in the narration
+
+  - add VCR-style controls and scrubber for feature parity with
+    video players (but what does it mean to go "backwards" here, since
+    the togetherjs logs don't let you easily go backwards)
+
+  - no ability to pause the 'video' yet, and even more difficult, if
+    you pause and modify the code and want to 'resume' the video, you
+    need to restore the appState from when you paused (maybe with
+    getAppState?) and then resume from there. my hunch is that
+    getAppState() is your friend here for restoring states mid-playback
+
+  - things sometimes get flaky if you *ALREADY* have code in the editor
+    and then try to record a demo; sometimes it doesn't work properly.
+
+  - how can we best synchronize with my voice audio, since playback
+    of events may lag a bit; make sure to set timeouts as precisely as
+    possible in that case to prevent 'drift'; hopefully it's OK for the
+    short-ish video clips that i'll be recording, but drift may worsen
+    for longer clips
+    - also, after an event like executeCode(), i should *pause* my
+      voice a bit to give it time to finish executing, since some users may
+      be on slow connections where it might take a few second to execute
+
+  - it would be nice to see a CURSOR in the Ace editor as the video
+    is being played back ... right now the cursor doesn't visibly move
+    - maybe issue an app-specific cursor event to show the cursor's
+      position after each keystroke? this might be overkill, though.
+      - oh, OR take the delta from the form-update event object and
+        infer the cursor position from that, and then stick it into Ace;
+        that could work!
+    - also, it would be cool to get the user's current text block SELECTION
+      too (bonus)
+    - https://stackoverflow.com/questions/27625028/how-to-move-the-cursor-to-the-end-of-the-line-in-ace-editor
+
+  - minor: set a more instructive username for the tutor's mouse pointer
+
+  - later: get this working better in live mode, which has some quirks
+
+  - don't send events to the togetherjs when you're in recording or
+    playback mode, so as not to overwhelm the logs. also it seems
+    kinda silly that you need to connect to a remote server for this
+    to work, since we don't require anything from the server
+
+*/
 
 
 // represents a list of TogetherJS events that can be replayed, paused, etc.
 // within the context of the current OptFrontendSharedSessions app
-class OPTDemoVideo {
-  events = null;
-  frontend = null;
-  curIndex = 0;
+class OptDemoVideo {
+  events = [];
 
-  // TODO: maybe use getAppState to get the initial state of the recording
-  // (instead of simply its initial code)? that way, we can pull
-  // curRecordingInitialCod and curRecordingEvents into here or maybe
-  // into a parent class called something like OPTDemoRecorder, which
-  // creates and records OPTDemoVideo objects
+  // TODO: put initial app state in the demo video
 
-  constructor(frontend, events) {
-    this.frontend = frontend;
-    this.events = events;
+  constructor() {
+  }
+
+  // only record certain kinds of events in the recorder
+  // see ../../v3/opt_togetherjs/server.js around line 460 for all
+  static shouldRecordEvent(e) {
+    // do NOT record cursor-click since that's too much noise
+    return ((e.type == 'form-update') ||
+            (e.type == 'cursor-update') ||
+            (e.type == 'app.executeCode') ||
+            (e.type == 'app.updateOutput') ||
+            (e.type == 'pyCodeOutputDivScroll') ||
+            (e.type == 'app.hashchange'));
+  }
+
+  addEvent(msg) {
+    msg.ts = new Date().getTime(); // augment with timestamp
+    msg.peer = {color: "#8d549f"}; // fake just enough of a peer object for downstream functions to work
+    msg.sameUrl = true;
+    if (OptDemoVideo.shouldRecordEvent(msg)) { // TODO: move shouldRecordEvent into this class as a static method
+      this.events.push(msg);
+    }
   }
 
   play() {
-    // TODO: there's a weird dependency on TogetherJS being already running
-    assert(TogetherJS.running && this.frontend.isPlayingDemo);
-
     // i think it may be important to grab the TogetherJS session HERE
     // every time you play (not globally); but i should verify that later
     var sess = TogetherJS.require("session");
     var evts = this.events;
 
     // for manual debugging:
-    window.sess = sess;
-    window.evts = evts;
+    //window.sess = sess;
+    //window.evts = evts;
 
     if (evts.length <= 0) {
       $("#togetherjsStatus").html("DONE playing recording");
@@ -337,15 +397,21 @@ class OPTDemoVideo {
 
 class OptDemoRecorder {
   frontend = null;
-  events = [];
+  demoVideo: OptDemoVideo;
 
-  curRecordingInitialCod = '';
-  curRecordingInitialState = null;
+  curRecordingInitialCod = '';     // TODO: move into OptDemoVideo for it to be self-contained
+  curRecordingInitialState = null; // TODO: move into OptDemoVideo for it to be self-contained
 
-  constructor(frontend) {
+  // optionally initialize the recorder with a list of pre-loaded events
+  constructor(frontend, preloadedDemoVideo=undefined) {
     this.frontend = frontend;
     this.curRecordingInitialCod = this.frontend.pyInputGetValue();
-    this.curRecordingInitialState = this.frontend.getAppState();
+    this.curRecordingInitialState = this.frontend.getAppState(); // TODO: use me
+    if (preloadedDemoVideo) {
+      this.demoVideo = preloadedDemoVideo;
+    } else {
+      this.demoVideo = new OptDemoVideo();
+    }
   }
 
   // TODO: the control flow is kinda convoluted since we must first do
@@ -364,20 +430,19 @@ class OptDemoRecorder {
   record() {
     assert(TogetherJS.running && this.frontend.isRecordingDemo && !this.frontend.isPlayingDemo);
 
-    TogetherJS.config('eventRecorderFunc', (msg) => {
-      msg.ts = new Date().getTime(); // augment with timestamp
-      msg.peer = {color: "#8d549f"}; // fake just enough of a peer object for downstream functions to work
-      msg.sameUrl = true;
-      if (shouldRecordEvent(msg)) { // TODO: move shouldRecordEvent into this class as a static method
-        this.events.push(msg);
-      }
-    });
+    // set the TogetherJS eventRecorderFunc to this.demoVideo.addEvent
+    // (don't forget to bind it as 'this', ergh!)
+    TogetherJS.config('eventRecorderFunc', this.demoVideo.addEvent.bind(this.demoVideo));
   }
 
   stopRecording() {
     this.frontend.isRecordingDemo = false;
     TogetherJS.config('isDemoSession', false);
     TogetherJS.config('eventRecorderFunc', null);
+  }
+
+  getDemoVideo() {
+    return this.demoVideo;
   }
 
   // only initialize the player. we need to call playFullSpeed() or other
@@ -393,11 +458,8 @@ class OptDemoRecorder {
   }
 
   playFullSpeed() {
-    assert(this.frontend.isPlayingDemo);
-
-    // TODO: create an OPTDemoVideo in the constructor ...
-    var demo = new OPTDemoVideo(this.frontend, this.events);
-    demo.play();
+    assert(TogetherJS.running && this.frontend.isPlayingDemo);
+    this.demoVideo.play();
   }
 
   stopPlayback() {
@@ -406,6 +468,7 @@ class OptDemoRecorder {
     TogetherJS.config('eventRecorderFunc', null);
   }
 }
+
 
 export class OptFrontendSharedSessions extends OptFrontend {
   executeCodeSignalFromRemote = false;
@@ -419,10 +482,6 @@ export class OptFrontendSharedSessions extends OptFrontend {
   isPlayingDemo = false;
 
   demoRecorder: OptDemoRecorder;
-
-  curRecordingInitialCod = '';
-  curRecordingInitialState = null;
-  curRecordingEvents = [];
 
   disableSharedSessions = false; // if we're on mobile/tablets, disable this entirely since it doesn't work on mobile
   isIdle = false;
@@ -1493,89 +1552,10 @@ Get live help! (NEW!)
 
   initRecordDemo() {
     assert(TogetherJS.running && !this.wantsPublicHelp && this.isRecordingDemo && !this.isPlayingDemo); // TODO: refactor into a single boolean
-
-    this.demoRecorder.record(); // TODO: kind of a confusing control flow
-
-    /*
-    this.curRecordingInitialCod = this.pyInputGetValue();
-    this.curRecordingInitialState = this.getAppState();
-
-    this.curRecordingEvents = []; // reset it when you start a new recording
-    TogetherJS.config('eventRecorderFunc', (msg) => {
-      msg.ts = new Date().getTime(); // augment with timestamp
-      msg.peer = {color: "#8d549f"}; // fake just enough of a peer object for downstream functions to work
-      msg.sameUrl = true;
-      if (shouldRecordEvent(msg)) {
-        this.curRecordingEvents.push(msg);
-      }
-    });
-    */
+    this.demoRecorder.record();
   }
 
   initPlayDemo() {
-    /* TODOs (from first hacking on it on 2018-01-01)
-    
-      - make the recorder/player a subclass of OptFrontendSharedSessions
-        with a separate html file and everything and special frontend tag
-        (this.originFrontendJsFile) so that we can diambiguate its log
-        entries in our server logs; otherwise it will look like people are
-        executing a ton of the same pieces of code when they're simply
-        demo code
-
-      - abstract the playback mechanism into its own helper class so
-        that we're able to selectively play back a previously-saved event
-        stream (saved in, say, localStorage for testing purposes) and also
-        have finer-grained control over the playing. maybe name the class
-        TogetherJSEventPlayer or something
-        - working on it
-
-      - we need to 'lock' the UI while the video is playing and only
-        allow modifications once you push the 'pause' button and it's
-        gotten a chance to save state
-
-      - add VCR-style controls and scrubber for feature parity with
-        video players (but what does it mean to go "backwards" here, since
-        the togetherjs logs don't let you easily go backwards)
-
-      - no ability to pause the 'video' yet, and even more difficult, if
-        you pause and modify the code and want to 'resume' the video, you
-        need to restore the appState from when you paused (maybe with
-        getAppState?) and then resume from there. my hunch is that
-        getAppState() is your friend here for restoring states mid-playback
-
-      - things sometimes get flaky if you *ALREADY* have code in the editor
-        and then try to record a demo; sometimes it doesn't work properly.
-
-      - how can we best synchronize with my voice audio, since playback
-        of events may lag a bit; make sure to set timeouts as precisely as
-        possible in that case to prevent 'drift'; hopefully it's OK for the
-        short-ish video clips that i'll be recording, but drift may worsen
-        for longer clips
-        - also, after an event like executeCode(), i should *pause* my
-          voice a bit to give it time to finish executing, since some users may
-          be on slow connections where it might take a few second to execute
-
-      - it would be nice to see a CURSOR in the Ace editor as the video
-        is being played back ... right now the cursor doesn't visibly move
-        - maybe issue an app-specific cursor event to show the cursor's
-          position after each keystroke? this might be overkill, though.
-          - oh, OR take the delta from the form-update event object and
-            infer the cursor position from that, and then stick it into Ace;
-            that could work!
-        - also, it would be cool to get the user's current text block SELECTION
-          too (bonus)
-        - https://stackoverflow.com/questions/27625028/how-to-move-the-cursor-to-the-end-of-the-line-in-ace-editor
-
-      - minor: set a more instructive username for the tutor's mouse pointer
-
-      - later: get this working better in live mode, which has some quirks
-
-      - don't send events to the togetherjs when you're in recording or
-        playback mode, so as not to overwhelm the logs. also it seems
-        kinda silly that you need to connect to a remote server for this
-        to work, since we don't require anything from the server
-
-    */
     assert(TogetherJS.running && !this.wantsPublicHelp && !this.isRecordingDemo && this.isPlayingDemo); // TODO: refactor into a single boolean
     this.demoRecorder.playFullSpeed();
   }
