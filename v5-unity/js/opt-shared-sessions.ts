@@ -241,13 +241,6 @@ function randomlyPickSurveyItem(key) {
     allow modifications once you push the 'pause' button and it's
     gotten a chance to save state
 
-  - as an optimization, SAVE the trace entries in the logs as well
-    so that they can simply be replayed without hitting the OPT
-    server, which will solve the problem of extra/unpredictable lag
-    in the narration
-    - see trace caching code in:
-      ~/Dropbox/online-python-tutor/opt-git/OnlinePythonTutor/v3/js/opt-office-mix.js
-
   - add VCR-style controls and scrubber for feature parity with
     video players (but what does it mean to go "backwards" here, since
     the togetherjs logs don't let you easily go backwards)
@@ -266,9 +259,6 @@ function randomlyPickSurveyItem(key) {
     possible in that case to prevent 'drift'; hopefully it's OK for the
     short-ish video clips that i'll be recording, but drift may worsen
     for longer clips
-    - also, after an event like executeCode(), i should *pause* my
-      voice a bit to give it time to finish executing, since some users may
-      be on slow connections where it might take a few second to execute
 
   - it would be nice to see a CURSOR in the Ace editor as the video
     is being played back ... right now the cursor doesn't visibly move
@@ -281,7 +271,7 @@ function randomlyPickSurveyItem(key) {
       too (bonus)
     - https://stackoverflow.com/questions/27625028/how-to-move-the-cursor-to-the-end-of-the-line-in-ace-editor
 
-  - be able to stop playback in the middle withuot the timer getting all
+  - be able to stop playback in the middle without the timer getting all
     weird and loopy
 
   - minor: set a more instructive username for the tutor's mouse pointer
@@ -353,6 +343,24 @@ class OptDemoVideo {
     assert(!this.isFrozen);
     this.traceCache = this.frontend.traceCache;
     this.isFrozen = true;
+  }
+
+  startPlayback() {
+    assert(this.isFrozen);
+    assert(this.initialAppState);
+    assert(!TogetherJS.running); // do this before TogetherJS is initialized
+
+    // do this first!!!
+    this.frontend.pyInputSetValue(this.initialAppState.code);
+    this.frontend.setToggleOptions(this.initialAppState);
+
+    if (this.initialAppState.mode == 'display') {
+      // we *should* get a cache hit in traceCache so this won't go to the server
+      this.frontend.executeCode(this.initialAppState.curInstr);
+    } else {
+      assert(this.initialAppState.mode == 'edit');
+      this.frontend.enterEditMode();
+    }
   }
 
   play() {
@@ -476,20 +484,7 @@ class OptDemoRecorder {
 
   enterPlaybackMode() {
     // we need to do all this BEFORE TogetherJS is ready:
-    assert(this.demoVideo.initialAppState);
-
-    // do this first!!!
-    this.frontend.pyInputSetValue(this.demoVideo.initialAppState.code);
-    this.frontend.setToggleOptions(this.demoVideo.initialAppState);
-
-    if (this.demoVideo.initialAppState.mode == 'display') {
-      // we *should* get a cache hit in traceCache so this won't go to the server
-      this.frontend.executeCode(this.demoVideo.initialAppState.curInstr);
-    } else {
-      assert(this.demoVideo.initialAppState.mode == 'edit');
-      this.frontend.enterEditMode();
-    }
-
+    this.demoVideo.startPlayback();
     this.frontend.isPlayingDemo = true;
     TogetherJS.config('isDemoSession', true);
     TogetherJS(); // activate TogetherJS as the last step to start playback mode
