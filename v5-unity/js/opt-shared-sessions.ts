@@ -230,6 +230,15 @@ function randomlyPickSurveyItem(key) {
 
 /* Record/replay TODOs (from first hacking on it on 2018-01-01)
 
+  - wait, is there even a need for OptDemoRecorder?!? seems like it's
+    now a thin wrapper around OptDemoVideo
+    - maybe we make a distinction that OptDemoVideo shouldn't know
+      anything about the frontend or affect the GUI at all?!?
+    - on second thought, maybe just eliminate OptDemoRecorder altogether
+      since we will use OptDemoVideo to both record and replay itself
+
+  - test serializing and deserializing OptDemoVideo objects
+
   - make the recorder/player a subclass of OptFrontendSharedSessions
     with a separate html file and everything and special frontend tag
     (this.originFrontendJsFile) so that we can diambiguate its log
@@ -303,8 +312,19 @@ class OptDemoVideo {
   isFrozen = false; // set to true after you finish recording to 'freeze'
                     // this tape and not allow any further modifications
 
-  constructor(frontend) {
+  constructor(frontend, serializedJsonStr=null) {
     this.frontend = frontend;
+
+    // initialize from an existing JSON string created with serializeJSON()
+    if (serializedJsonStr) {
+      var obj = JSON.parse(serializedJsonStr);
+
+      this.initialAppState = obj.initialAppState;
+      this.events = obj.events;
+      this.traceCache = obj.traceCache;
+
+      this.isFrozen = true; // freeze it!
+    }
   }
 
   // only record certain kinds of events in the recorder
@@ -435,6 +455,16 @@ class OptDemoVideo {
     // work properly if you play it right away) ...
     setTimeout(() => {playEvent(0);}, 100);
     setAllTimeouts(1); // now start at index 1
+  }
+
+  // serialize the current state to JSON:
+  serializeJSON() {
+    assert(this.isFrozen);
+
+    var ret = {initialAppState: this.initialAppState,
+               events: this.events,
+               traceCache: this.traceCache};
+    return JSON.stringify(ret);
   }
 }
 
