@@ -279,6 +279,9 @@ function randomlyPickSurveyItem(key) {
       too (bonus)
     - https://stackoverflow.com/questions/27625028/how-to-move-the-cursor-to-the-end-of-the-line-in-ace-editor
 
+  - be able to stop playback in the middle withuot the timer getting all
+    weird and loopy
+
   - minor: set a more instructive username for the tutor's mouse pointer
 
   - later: get this working better in live mode, which has some quirks
@@ -294,11 +297,12 @@ function randomlyPickSurveyItem(key) {
 // represents a list of TogetherJS events that can be replayed, paused, etc.
 // within the context of the current OptFrontendSharedSessions app
 class OptDemoVideo {
+  frontend: OptFrontendSharedSessions;
+  initialAppState; // from getAppState()
   events = [];
 
-  // TODO: put initial app state in the demo video
-
-  constructor() {
+  constructor(frontend) {
+    this.frontend = frontend;
   }
 
   // only record certain kinds of events in the recorder
@@ -320,6 +324,10 @@ class OptDemoVideo {
     if (OptDemoVideo.shouldRecordEvent(msg)) { // TODO: move shouldRecordEvent into this class as a static method
       this.events.push(msg);
     }
+  }
+
+  startNewRecording() {
+    this.initialAppState = this.frontend.getAppState();
   }
 
   play() {
@@ -396,33 +404,29 @@ class OptDemoVideo {
 }
 
 class OptDemoRecorder {
-  frontend = null;
+  frontend : OptFrontendSharedSessions;
   demoVideo: OptDemoVideo;
-
-  curRecordingInitialCod = '';     // TODO: move into OptDemoVideo for it to be self-contained
-  curRecordingInitialState = null; // TODO: move into OptDemoVideo for it to be self-contained
 
   // optionally initialize the recorder with a list of pre-loaded events
   constructor(frontend, preloadedDemoVideo=undefined) {
     this.frontend = frontend;
-    this.curRecordingInitialCod = this.frontend.pyInputGetValue();
-    this.curRecordingInitialState = this.frontend.getAppState(); // TODO: use me
     if (preloadedDemoVideo) {
       this.demoVideo = preloadedDemoVideo;
     } else {
-      this.demoVideo = new OptDemoVideo();
+      this.demoVideo = new OptDemoVideo(frontend);
     }
   }
 
-  // TODO: the control flow is kinda convoluted since we must first do
-  // enterRecordingMode to activate TogetherJS, and then when TogetherJS
-  // is ready, then we call record(), and finally stopRecording(), which
-  // turns off TogetherJS ... likewise with enterPlaybackMode, etc.
+  // control flow is kinda convoluted since we must first do enterRecordingMode
+  // to activate TogetherJS, and then when TogetherJS is ready sometime later,
+  // we must call record(), and finally stopRecording(), which turns off
+  // TogetherJS ... likewise with enterPlaybackMode, etc.
   enterRecordingMode() {
-    // TODO: fixme to sync to whatever curRecordingInitialState is
+    // TODO: not necessarily ...
     this.frontend.enterEditMode(); // always start recording in edit mode
 
-    this.frontend.isRecordingDemo = true; // TODO: unify everything into 1 boolean
+    this.demoVideo.startNewRecording();
+    this.frontend.isRecordingDemo = true;
     TogetherJS.config('isDemoSession', true);
     TogetherJS(); // activate TogetherJS as the last step to start the recording
   }
@@ -445,14 +449,14 @@ class OptDemoRecorder {
     return this.demoVideo;
   }
 
-  // only initialize the player. we need to call playFullSpeed() or other
-  // methods below to actually play the demo
   enterPlaybackMode() {
-    // we need to do all this BEFORE TogetherJS initialize
-    this.frontend.enterEditMode(); // TODO: sync with curRecordingInitialState
-    this.frontend.pyInputSetValue(this.curRecordingInitialCod);
+    // we need to do all this BEFORE TogetherJS is ready:
+    assert(this.demoVideo.initialAppState);
+    // TODO: sync with the rest of this.demoVideo.initialAppState
+    this.frontend.enterEditMode();
+    this.frontend.pyInputSetValue(this.demoVideo.initialAppState.code);
 
-    this.frontend.isPlayingDemo = true; // TODO: unify everything into 1 boolean
+    this.frontend.isPlayingDemo = true;
     TogetherJS.config('isDemoSession', true);
     TogetherJS(); // activate TogetherJS as the last step to start playback mode
   }
