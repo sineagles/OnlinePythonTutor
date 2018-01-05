@@ -287,6 +287,9 @@ function randomlyPickSurveyItem(key) {
   - minor: set a more instructive username for the tutor's mouse pointer
 
   - later: get this working better in live mode, which has some quirks
+    - especially note handleUncaughtException in opt-live.ts since it
+      currently doesn't call super.handleUncaughtException() so that might
+      interfere with cache-related stuff
 
   - don't send events to the togetherjs when you're in recording or
     playback mode, so as not to overwhelm the logs. also it seems
@@ -996,6 +999,10 @@ Get live help! (NEW!)
   finishSuccessfulExecution() {
     assert (this.myVisualizer);
 
+    if (this.isRecordingDemo) {
+      this.traceCacheAdd(); // add to cache only if we're recording a demo
+    }
+
     this.myVisualizer.add_pytutor_hook("end_updateOutput", (args) => {
       if (this.updateOutputSignalFromRemote) {
         return [true]; // die early; no more hooks should run after this one!
@@ -1015,6 +1022,15 @@ Get live help! (NEW!)
     // and sync any new elements that are now inside myVisualizer
     if (TogetherJS.running) {
       TogetherJS.reinitialize();
+    }
+  }
+
+  handleUncaughtException(trace: any[]) {
+    super.handleUncaughtException(trace); // do this first
+
+    // do this even if execution fails
+    if (this.isRecordingDemo) {
+      this.traceCacheAdd(); // add to cache only if we're recording a demo
     }
   }
 

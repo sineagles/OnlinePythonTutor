@@ -481,6 +481,8 @@ export abstract class AbstractBaseFrontend {
             s1.rawInputLstJSON == s2.rawInputLstJSON);
   }
 
+  // SILENTLY fail without doing anything if the current app state is
+  // already in the cache
   traceCacheAdd() {
     // should only be called if you currently have a working trace;
     // otherwise it's useless
@@ -491,7 +493,8 @@ export abstract class AbstractBaseFrontend {
     for (var i = 0; i < this.traceCache.length; i++) {
       var e = this.traceCache[i];
       if (AbstractBaseFrontend.appStateEqForCache(e[0], appState)) {
-        assert(false); // rage quit!
+        console.warn("traceCacheAdd silently failed, entry already in cache");
+        return;
       }
     }
 

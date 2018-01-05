@@ -438,6 +438,9 @@ export class OptLiveFrontend extends OptFrontendSharedSessions {
                            text: trace[0].exception_msg}]);
       }
     }
+
+    // TODO: should we call super.handleUncaughtException()? demo
+    // recording might require this to work properly with traceCache
   }
 
   // need to override the version in opt-frontend-common.ts
