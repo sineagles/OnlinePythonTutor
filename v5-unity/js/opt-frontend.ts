@@ -68,6 +68,12 @@ export class OptFrontend extends AbstractBaseFrontend {
   originFrontendJsFile: string = 'opt-frontend.js';
   pyInputAceEditor = undefined; // Ace editor object that contains the user's code
 
+  // a cache where each element is a pair:
+  // [appState, cached execution trace]
+  // that way, if you execute the same code with the same settings again and
+  // get a cache hit, then there's no need to make a server call
+  traceCache = [];
+
   // some subclasses use these, so put them in the superclass
   activateSyntaxErrorSurvey: boolean = true;
   activateRuntimeErrorSurvey: boolean = true;
@@ -715,6 +721,46 @@ export class OptFrontend extends AbstractBaseFrontend {
       this.executeCode(this.preseededCurInstr); // will switch to 'display' mode
     }
     $.bbq.removeState(); // clean up the URL no matter what
+  }
+
+  // return whether two states match, except don't worry about mode or curInstr
+  static appStateEqForCache(s1, s2) {
+    assert(s1.origin == s2.origin); // sanity check!
+    return (s1.code == s2.code &&
+            s1.cumulative == s2.cumulative &&
+            s1.heapPrimitives == s1.heapPrimitives &&
+            s1.textReferences == s2.textReferences &&
+            s1.py == s2.py &&
+            s1.rawInputLstJSON == s2.rawInputLstJSON);
+  }
+
+  // manage traceCache
+  traceCacheAdd() {
+    // should only be called if you currently have a working trace;
+    // otherwise it's useless
+    assert(this.myVisualizer && this.myVisualizer.curTrace);
+    var appState = this.getAppState();
+
+    // make sure nothing in the cache currently matches appState
+    for (var i = 0; i < this.traceCache.length; i++) {
+      var e = this.traceCache[i];
+      if (OptFrontend.appStateEqForCache(e[0], appState)) {
+        assert(false); // rage quit!
+      }
+    }
+
+    this.traceCache.push([appState, this.myVisualizer.curTrace]);
+    console.log('traceCacheAdd', this.traceCache);
+  }
+
+  traceCacheGet(appState) {
+    for (var i = 0; i < this.traceCache.length; i++) {
+      var e = this.traceCache[i];
+      if (OptFrontend.appStateEqForCache(e[0], appState)) {
+        return e[1];
+      }
+    }
+    return null;
   }
 
 } // END class OptFrontend
