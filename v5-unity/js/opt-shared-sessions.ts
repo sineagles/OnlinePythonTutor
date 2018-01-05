@@ -245,6 +245,8 @@ function randomlyPickSurveyItem(key) {
     so that they can simply be replayed without hitting the OPT
     server, which will solve the problem of extra/unpredictable lag
     in the narration
+    - see trace caching code in:
+      ~/Dropbox/online-python-tutor/opt-git/OnlinePythonTutor/v3/js/opt-office-mix.js
 
   - add VCR-style controls and scrubber for feature parity with
     video players (but what does it mean to go "backwards" here, since
@@ -328,6 +330,10 @@ class OptDemoVideo {
 
   startNewRecording() {
     this.initialAppState = this.frontend.getAppState();
+    // augment with the current execution trace if we're in display mode
+    if (this.initialAppState.mode == "display") {
+      this.initialAppState.cachedTrace = this.frontend.myVisualizer.curTrace;
+    }
   }
 
   play() {
@@ -422,9 +428,6 @@ class OptDemoRecorder {
   // we must call record(), and finally stopRecording(), which turns off
   // TogetherJS ... likewise with enterPlaybackMode, etc.
   enterRecordingMode() {
-    // TODO: not necessarily ...
-    this.frontend.enterEditMode(); // always start recording in edit mode
-
     this.demoVideo.startNewRecording();
     this.frontend.isRecordingDemo = true;
     TogetherJS.config('isDemoSession', true);
@@ -452,9 +455,18 @@ class OptDemoRecorder {
   enterPlaybackMode() {
     // we need to do all this BEFORE TogetherJS is ready:
     assert(this.demoVideo.initialAppState);
-    // TODO: sync with the rest of this.demoVideo.initialAppState
-    this.frontend.enterEditMode();
-    this.frontend.pyInputSetValue(this.demoVideo.initialAppState.code);
+
+    if (this.demoVideo.initialAppState.mode == 'display') {
+      // TODO: use cachedTrace to *instantly* simulate an execution without
+      // hitting the server
+      assert(this.demoVideo.initialAppState.cachedTrace);
+      console.warn("DISPLAY!", this.demoVideo.initialAppState.cachedTrace);
+    } else {
+      assert(this.demoVideo.initialAppState.mode == 'edit');
+      this.frontend.enterEditMode();
+      this.frontend.pyInputSetValue(this.demoVideo.initialAppState.code);
+      // TODO: set all options toggles to match initialAppState too
+    }
 
     this.frontend.isPlayingDemo = true;
     TogetherJS.config('isDemoSession', true);
