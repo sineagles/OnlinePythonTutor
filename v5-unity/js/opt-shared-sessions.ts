@@ -230,8 +230,6 @@ function randomlyPickSurveyItem(key) {
 
 /* Record/replay TODOs (from first hacking on it on 2018-01-01)
 
-  - test serializing and deserializing OptDemoVideo objects
-
   - make the recorder/player a subclass of OptFrontendSharedSessions
     with a separate html file and everything and special frontend tag
     (this.originFrontendJsFile) so that we can diambiguate its log
@@ -308,13 +306,18 @@ class OptDemoVideo {
   constructor(frontend, serializedJsonStr=null) {
     this.frontend = frontend;
 
-    // initialize from an existing JSON string created with serializeJSON()
+    // initialize from an existing JSON string created with serializeToJSON()
     if (serializedJsonStr) {
       var obj = JSON.parse(serializedJsonStr);
 
       this.initialAppState = obj.initialAppState;
       this.events = obj.events;
       this.traceCache = obj.traceCache;
+
+      // VERY IMPORTANT -- set the traceCache entry of the frontend so
+      // that it can actually be used. #tricky!
+      // TODO: this is kind of a gross abstraction violation, eergh
+      this.frontend.traceCache = this.traceCache;
 
       this.isFrozen = true; // freeze it!
     }
@@ -337,7 +340,7 @@ class OptDemoVideo {
     msg.ts = new Date().getTime(); // augment with timestamp
     msg.peer = {color: "#8d549f"}; // fake just enough of a peer object for downstream functions to work
     msg.sameUrl = true;
-    if (OptDemoVideo.shouldRecordEvent(msg)) { // TODO: move shouldRecordEvent into this class as a static method
+    if (OptDemoVideo.shouldRecordEvent(msg)) {
       this.events.push(msg);
     }
   }
@@ -374,6 +377,9 @@ class OptDemoVideo {
     this.frontend.isRecordingDemo = false;
     TogetherJS.config('isDemoSession', false);
     TogetherJS.config('eventRecorderFunc', null);
+
+    // STENT - save to localStorage to test it
+    localStorage['demoVideo'] = this.serializeToJSON();
   }
 
   startPlayback() {
@@ -480,7 +486,7 @@ class OptDemoVideo {
   }
 
   // serialize the current state to JSON:
-  serializeJSON() {
+  serializeToJSON() {
     assert(this.isFrozen);
 
     var ret = {initialAppState: this.initialAppState,
@@ -1435,6 +1441,15 @@ Get live help! (NEW!)
   startPlayback() {
     $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
     $("#togetherjsStatus").html("Playing recording ...");
+
+
+    // temporary test for debugging only! load an existing one
+    if (!this.demoVideo) {
+      var savedVideoJson = localStorage['demoVideo'];
+      if (savedVideoJson) {
+        this.demoVideo = new OptDemoVideo(this, savedVideoJson);
+      }
+    }
 
     assert(this.demoVideo);
     this.demoVideo.startPlayback();

@@ -2729,6 +2729,13 @@ define('peers',["util", "session", "storage", "require", "templates"], function 
       peer = Peer(id, {fromHelloMessage: message});
       return peer;
     }
+    // pgbovine - fail-soft required for properly replaying demos:
+    // if you can't find a peer with that id, just return YOURSELF
+    if (!peer) {
+      console.warn("No peer with id:", id, "... returning peers.Self");
+      return peers.Self;
+    }
+
     assert(peer, "No peer with id:", id);
     if (message &&
         (message.type == "hello" || message.type == "hello-back" ||
