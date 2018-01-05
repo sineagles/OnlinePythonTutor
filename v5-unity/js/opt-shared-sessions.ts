@@ -464,14 +464,13 @@ class OptDemoRecorder {
     // we need to do all this BEFORE TogetherJS is ready:
     assert(this.demoVideo.initialAppState);
 
+    // do this first!!!
     this.frontend.pyInputSetValue(this.demoVideo.initialAppState.code);
     this.frontend.setToggleOptions(this.demoVideo.initialAppState);
 
     if (this.demoVideo.initialAppState.mode == 'display') {
-      // TODO: use cachedTrace to *instantly* simulate an execution without
-      // hitting the server
-      //assert(this.demoVideo.initialAppState.cachedTrace);
-      //console.warn("DISPLAY!", this.demoVideo.initialAppState.cachedTrace);
+      // we *should* get a cache hit in traceCache so this won't go to the server
+      this.frontend.executeCode(this.demoVideo.initialAppState.curInstr);
     } else {
       assert(this.demoVideo.initialAppState.mode == 'edit');
       this.frontend.enterEditMode();
