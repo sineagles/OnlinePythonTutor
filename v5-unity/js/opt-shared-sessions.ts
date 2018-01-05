@@ -230,13 +230,6 @@ function randomlyPickSurveyItem(key) {
 
 /* Record/replay TODOs (from first hacking on it on 2018-01-01)
 
-  - wait, is there even a need for OptDemoRecorder?!? seems like it's
-    now a thin wrapper around OptDemoVideo
-    - maybe we make a distinction that OptDemoVideo shouldn't know
-      anything about the frontend or affect the GUI at all?!?
-    - on second thought, maybe just eliminate OptDemoRecorder altogether
-      since we will use OptDemoVideo to both record and replay itself
-
   - test serializing and deserializing OptDemoVideo objects
 
   - make the recorder/player a subclass of OptFrontendSharedSessions
@@ -349,28 +342,46 @@ class OptDemoVideo {
     }
   }
 
-  startNewRecording() {
+  // do this BEFORE TogetherJS gets initialized
+  startRecording() {
     assert(!this.isFrozen);
+    assert(!TogetherJS.running);
     this.frontend.traceCacheClear();
     this.initialAppState = this.frontend.getAppState();
     // cache the current trace if we're in display mode
     if (this.initialAppState.mode == "display") {
       this.frontend.traceCacheAdd();
     }
+
+    this.frontend.isRecordingDemo = true;
+    TogetherJS.config('isDemoSession', true);
+    TogetherJS(); // activate TogetherJS as the last step to start the recording
   }
 
-  finishRecording() {
+  record() {
+    assert(TogetherJS.running && this.frontend.isRecordingDemo && !this.frontend.isPlayingDemo);
+
+    // set the TogetherJS eventRecorderFunc to this.demoVideo.addEvent
+    // (don't forget to bind it as 'this', ergh!)
+    TogetherJS.config('eventRecorderFunc', this.addEvent.bind(this));
+  }
+
+  stopRecording() {
     assert(!this.isFrozen);
     this.traceCache = this.frontend.traceCache;
     this.isFrozen = true;
+
+    this.frontend.isRecordingDemo = false;
+    TogetherJS.config('isDemoSession', false);
+    TogetherJS.config('eventRecorderFunc', null);
   }
 
   startPlayback() {
     assert(this.isFrozen);
-    assert(this.initialAppState);
     assert(!TogetherJS.running); // do this before TogetherJS is initialized
 
     // do this first!!!
+    assert(this.initialAppState);
     this.frontend.pyInputSetValue(this.initialAppState.code);
     this.frontend.setToggleOptions(this.initialAppState);
 
@@ -381,10 +392,15 @@ class OptDemoVideo {
       assert(this.initialAppState.mode == 'edit');
       this.frontend.enterEditMode();
     }
+
+    this.frontend.isPlayingDemo = true;
+    TogetherJS.config('isDemoSession', true);
+    TogetherJS(); // activate TogetherJS as the last step to start playback mode
   }
 
   play() {
     assert(this.isFrozen);
+    assert(TogetherJS.running && this.frontend.isPlayingDemo);
 
     // i think it may be important to grab the TogetherJS session HERE
     // every time you play (not globally); but i should verify that later
@@ -457,6 +473,12 @@ class OptDemoVideo {
     setAllTimeouts(1); // now start at index 1
   }
 
+  stopPlayback() {
+    this.frontend.isPlayingDemo = false;
+    TogetherJS.config('isDemoSession', false);
+    TogetherJS.config('eventRecorderFunc', null);
+  }
+
   // serialize the current state to JSON:
   serializeJSON() {
     assert(this.isFrozen);
@@ -467,71 +489,6 @@ class OptDemoVideo {
     return JSON.stringify(ret);
   }
 }
-
-class OptDemoRecorder {
-  frontend : OptFrontendSharedSessions;
-  demoVideo: OptDemoVideo;
-
-  // optionally initialize the recorder with a list of pre-loaded events
-  constructor(frontend, preloadedDemoVideo=undefined) {
-    this.frontend = frontend;
-    if (preloadedDemoVideo) {
-      this.demoVideo = preloadedDemoVideo;
-    } else {
-      this.demoVideo = new OptDemoVideo(frontend);
-    }
-  }
-
-  // control flow is kinda convoluted since we must first do enterRecordingMode
-  // to activate TogetherJS, and then when TogetherJS is ready sometime later,
-  // we must call record(), and finally stopRecording(), which turns off
-  // TogetherJS ... likewise with enterPlaybackMode, etc.
-  enterRecordingMode() {
-    this.demoVideo.startNewRecording();
-    this.frontend.isRecordingDemo = true;
-    TogetherJS.config('isDemoSession', true);
-    TogetherJS(); // activate TogetherJS as the last step to start the recording
-  }
-
-  record() {
-    assert(TogetherJS.running && this.frontend.isRecordingDemo && !this.frontend.isPlayingDemo);
-
-    // set the TogetherJS eventRecorderFunc to this.demoVideo.addEvent
-    // (don't forget to bind it as 'this', ergh!)
-    TogetherJS.config('eventRecorderFunc', this.demoVideo.addEvent.bind(this.demoVideo));
-  }
-
-  stopRecording() {
-    this.demoVideo.finishRecording();
-    this.frontend.isRecordingDemo = false;
-    TogetherJS.config('isDemoSession', false);
-    TogetherJS.config('eventRecorderFunc', null);
-  }
-
-  getDemoVideo() {
-    return this.demoVideo;
-  }
-
-  enterPlaybackMode() {
-    // we need to do all this BEFORE TogetherJS is ready:
-    this.demoVideo.startPlayback();
-    this.frontend.isPlayingDemo = true;
-    TogetherJS.config('isDemoSession', true);
-    TogetherJS(); // activate TogetherJS as the last step to start playback mode
-  }
-
-  playFullSpeed() {
-    assert(TogetherJS.running && this.frontend.isPlayingDemo);
-    this.demoVideo.play();
-  }
-
-  stopPlayback() {
-    this.frontend.isPlayingDemo = false;
-    TogetherJS.config('isDemoSession', false);
-    TogetherJS.config('eventRecorderFunc', null);
-  }
-}
-
 
 export class OptFrontendSharedSessions extends OptFrontend {
   executeCodeSignalFromRemote = false;
@@ -544,7 +501,7 @@ export class OptFrontendSharedSessions extends OptFrontend {
   isRecordingDemo = false;
   isPlayingDemo = false;
 
-  demoRecorder: OptDemoRecorder;
+  demoVideo: OptDemoVideo;
 
   disableSharedSessions = false; // if we're on mobile/tablets, disable this entirely since it doesn't work on mobile
   isIdle = false;
@@ -1432,11 +1389,10 @@ Get live help! (NEW!)
     this.activateEurekaSurvey = false;
     $("#eureka_survey").remove(); // if a survey is already displayed on-screen, then kill it
 
-    // TODO: simplify this into a single boolean instead of ~3 separate ones
     if (this.isRecordingDemo) {
-      this.initRecordDemo();
+      this.demoVideo.record();
     } else if (this.isPlayingDemo) {
-      this.initPlayDemo();
+      this.demoVideo.play();
     } else if (this.wantsPublicHelp) {
       this.initRequestPublicHelp();
     } else {
@@ -1452,11 +1408,11 @@ Get live help! (NEW!)
 
     // reset all recording-related stuff too!
     if (this.isRecordingDemo) {
-      this.demoRecorder.stopRecording();
+      this.demoVideo.stopRecording();
       assert(!this.isRecordingDemo);
     }
     if (this.isPlayingDemo) {
-      this.demoRecorder.stopPlayback();
+      this.demoVideo.stopPlayback();
       assert(!this.isPlayingDemo);
     }
   }
@@ -1472,16 +1428,16 @@ Get live help! (NEW!)
     $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
     $("#togetherjsStatus").html("Recording now ...");
 
-    this.demoRecorder = new OptDemoRecorder(this);
-    this.demoRecorder.enterRecordingMode();
+    this.demoVideo = new OptDemoVideo(this);
+    this.demoVideo.startRecording();
   }
 
   startPlayback() {
     $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
     $("#togetherjsStatus").html("Playing recording ...");
 
-    assert(this.demoRecorder);
-    this.demoRecorder.enterPlaybackMode();
+    assert(this.demoVideo);
+    this.demoVideo.startPlayback();
   }
 
   requestPublicHelpButtonClick() {
@@ -1624,16 +1580,6 @@ Get live help! (NEW!)
 
     this.appendTogetherJsFooter();
     this.redrawConnectors(); // update all arrows at the end
-  }
-
-  initRecordDemo() {
-    assert(TogetherJS.running && !this.wantsPublicHelp && this.isRecordingDemo && !this.isPlayingDemo); // TODO: refactor into a single boolean
-    this.demoRecorder.record();
-  }
-
-  initPlayDemo() {
-    assert(TogetherJS.running && !this.wantsPublicHelp && !this.isRecordingDemo && this.isPlayingDemo); // TODO: refactor into a single boolean
-    this.demoRecorder.playFullSpeed();
   }
 
   appendTogetherJsFooter() {
