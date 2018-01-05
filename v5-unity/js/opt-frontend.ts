@@ -355,6 +355,7 @@ export class OptFrontend extends AbstractBaseFrontend {
     this.pyInputAceEditor.setValue(dat.rtrim() /* kill trailing spaces */,
                                    -1 /* do NOT select after setting text */);
     $('#urlOutput,#urlOutputShortened,#embedCodeOutput').val('');
+    this.pyInputAceEditor.resize(true); // force the editor to refresh its contents
     this.clearFrontendError();
     // also scroll to top to make the UI more usable on smaller monitors
     // TODO: this has a global impact on the document, so breaks modularity?

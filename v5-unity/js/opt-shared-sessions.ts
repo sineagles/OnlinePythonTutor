@@ -309,6 +309,9 @@ class OptDemoVideo {
   frontend: OptFrontendSharedSessions;
   initialAppState; // from getAppState()
   events = [];
+  traceCache;
+  isFrozen = false; // set to true after you finish recording to 'freeze'
+                    // this tape and not allow any further modifications
 
   constructor(frontend) {
     this.frontend = frontend;
@@ -327,6 +330,7 @@ class OptDemoVideo {
   }
 
   addEvent(msg) {
+    assert(!this.isFrozen);
     msg.ts = new Date().getTime(); // augment with timestamp
     msg.peer = {color: "#8d549f"}; // fake just enough of a peer object for downstream functions to work
     msg.sameUrl = true;
@@ -336,6 +340,7 @@ class OptDemoVideo {
   }
 
   startNewRecording() {
+    assert(!this.isFrozen);
     this.frontend.traceCacheClear();
     this.initialAppState = this.frontend.getAppState();
     // cache the current trace if we're in display mode
@@ -344,7 +349,15 @@ class OptDemoVideo {
     }
   }
 
+  finishRecording() {
+    assert(!this.isFrozen);
+    this.traceCache = this.frontend.traceCache;
+    this.isFrozen = true;
+  }
+
   play() {
+    assert(this.isFrozen);
+
     // i think it may be important to grab the TogetherJS session HERE
     // every time you play (not globally); but i should verify that later
     var sess = TogetherJS.require("session");
@@ -451,6 +464,7 @@ class OptDemoRecorder {
   }
 
   stopRecording() {
+    this.demoVideo.finishRecording();
     this.frontend.isRecordingDemo = false;
     TogetherJS.config('isDemoSession', false);
     TogetherJS.config('eventRecorderFunc', null);
