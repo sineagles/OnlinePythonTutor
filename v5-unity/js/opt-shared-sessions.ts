@@ -333,10 +333,10 @@ class OptDemoVideo {
   }
 
   startNewRecording() {
+    this.frontend.traceCacheClear();
     this.initialAppState = this.frontend.getAppState();
-    // augment with the current execution trace if we're in display mode
+    // cache the current trace if we're in display mode
     if (this.initialAppState.mode == "display") {
-      //this.initialAppState.cachedTrace = this.frontend.myVisualizer.curTrace;
       this.frontend.traceCacheAdd();
     }
   }
@@ -461,32 +461,14 @@ class OptDemoRecorder {
     // we need to do all this BEFORE TogetherJS is ready:
     assert(this.demoVideo.initialAppState);
 
-    this.frontend.setToggleOptions(this.demoVideo.initialAppState);
     this.frontend.pyInputSetValue(this.demoVideo.initialAppState.code);
+    this.frontend.setToggleOptions(this.demoVideo.initialAppState);
 
     if (this.demoVideo.initialAppState.mode == 'display') {
       // TODO: use cachedTrace to *instantly* simulate an execution without
       // hitting the server
       //assert(this.demoVideo.initialAppState.cachedTrace);
       //console.warn("DISPLAY!", this.demoVideo.initialAppState.cachedTrace);
-
-      /*
-      grossly copied-and-pasted from executeCodeAndCreateViz
-
-      // TODO: what if there's a syntax error so we don't want to switch
-      // to display mode?!?
-
-          this.myVisualizer = new ExecutionVisualizer(outputDiv, dataFromBackend, frontendOptionsObj);
-          // SUPER HACK -- slip in backendOptionsObj as an extra field
-          // NB: why do we do this? for more detailed logging?
-          (this.myVisualizer as any).backendOptionsObj = backendOptionsObj;
-          this.finishSuccessfulExecution(); // TODO: should we also run this if we're calling runTestCaseCallback?
-
-
-      this.myVisualizer = new ExecutionVisualizer(outputDiv, dataFromBackend, frontendOptionsObj);
-
-      */
-
     } else {
       assert(this.demoVideo.initialAppState.mode == 'edit');
       this.frontend.enterEditMode();
