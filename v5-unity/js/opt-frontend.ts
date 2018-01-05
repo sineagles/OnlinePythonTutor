@@ -355,7 +355,6 @@ export class OptFrontend extends AbstractBaseFrontend {
     this.pyInputAceEditor.setValue(dat.rtrim() /* kill trailing spaces */,
                                    -1 /* do NOT select after setting text */);
     $('#urlOutput,#urlOutputShortened,#embedCodeOutput').val('');
-    this.pyInputAceEditor.resize(true); // force the editor to refresh its contents
     this.clearFrontendError();
     // also scroll to top to make the UI more usable on smaller monitors
     // TODO: this has a global impact on the document, so breaks modularity?
@@ -566,6 +565,10 @@ export class OptFrontend extends AbstractBaseFrontend {
       this.myVisualizer = null; // yikes!
 
       $(document).scrollTop(0); // scroll to top to make UX better on small monitors
+
+      // *after* the editor is shown, force it to refresh its contents
+      // (using the misleadingly-named resize(true) method)
+      this.pyInputAceEditor.resize(true);
 
       var s: any = { mode: 'edit' };
       // keep these persistent so that they survive page reloads
