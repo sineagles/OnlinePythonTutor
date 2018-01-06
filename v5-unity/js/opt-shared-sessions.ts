@@ -382,11 +382,7 @@ class OptDemoVideo {
     localStorage['demoVideo'] = this.serializeToJSON();
   }
 
-  startPlayback() {
-    assert(this.isFrozen);
-    assert(!TogetherJS.running); // do this before TogetherJS is initialized
-
-    // do this first!!!
+  setInitialAppState() {
     assert(this.initialAppState);
     this.frontend.pyInputSetValue(this.initialAppState.code);
     this.frontend.setToggleOptions(this.initialAppState);
@@ -398,10 +394,52 @@ class OptDemoVideo {
       assert(this.initialAppState.mode == 'edit');
       this.frontend.enterEditMode();
     }
+  }
+
+  startPlayback() {
+    assert(this.isFrozen);
+    assert(!TogetherJS.running); // do this before TogetherJS is initialized
+
+    this.setInitialAppState(); // do this first!!!
 
     this.frontend.isPlayingDemo = true;
     TogetherJS.config('isDemoSession', true);
     TogetherJS(); // activate TogetherJS as the last step to start playback mode
+  }
+
+  static playEvent(msg, session) {
+    console.log("playEvent", msg);
+    //this.frontend.pyInputAceEditor.resize(true);
+
+    // seems weird but we need both session.hub.emit() and
+    // TogetherJS._onmessage() in order to gracefully handle
+    // both built-in TogetherJS events and custom OPT app events:
+    // copied-pasted from lib/togetherjs/togetherjs/togetherjsPackage.js
+    // around line 1870
+    try {
+      session.hub.emit(msg.type, msg);
+    } catch (e) {
+      console.warn(e);
+      // let it go! let it go!
+    }
+
+    try {
+      TogetherJS._onmessage(msg);
+    } catch (e) {
+      console.warn(e);
+      // let it go! let it go!
+    }
+
+    // however, TogetherJS._onmessage mangles up the type fields
+    // (UGH!), so we need to restore them back to their original
+    // form to ensure idempotence. copied from session.appSend()
+    var type = msg.type;
+    if (type.search(/^togetherjs\./) === 0) {
+      type = type.substr("togetherjs.".length);
+    } else if (type.search(/^app\./) === -1) {
+      type = "app." + type;
+    }
+    msg.type = type;
   }
 
   play() {
@@ -423,38 +461,6 @@ class OptDemoVideo {
       return;
     }
 
-    function playEvent(i) {
-      var msg = evts[i];
-      // seems weird but we need both sess.hub.emit() and
-      // TogetherJS._onmessage() in order to gracefully handle
-      // both built-in TogetherJS events and custom OPT app events:
-      // copied-pasted from lib/togetherjs/togetherjs/togetherjsPackage.js
-      // around line 1870
-      try {
-        sess.hub.emit(msg.type, msg);
-      } catch (e) {
-        console.warn(e);
-        // let it go! let it go!
-      }
-
-      try {
-        TogetherJS._onmessage(msg);
-      } catch (e) {
-        console.warn(e);
-        // let it go! let it go!
-      }
-
-      // however, TogetherJS._onmessage mangles up the type fields
-      // (UGH!), so we need to restore them back to their original
-      // form to ensure idempotence. copied from session.appSend()
-      var type = msg.type;
-      if (type.search(/^togetherjs\./) === 0) {
-        type = type.substr("togetherjs.".length);
-      } else if (type.search(/^app\./) === -1) {
-        type = "app." + type;
-      }
-      msg.type = type;
-    }
 
     // to play the events trace in 'real time', set one timeout at a time,
     // and as soon as that one starts executing, set the next timeout
@@ -469,14 +475,32 @@ class OptDemoVideo {
 
         setAllTimeouts(i+1); // set the next timeout right away before performing your action!
         console.log("FIRE", i);
-        playEvent(i);
+        OptDemoVideo.playEvent(evts[i], sess);
       }, evts[i].ts - evts[i-1].ts);
     };
 
     // play the 0th event after a tiny delay (for some reason it doesn't
     // work properly if you play it right away) ...
-    setTimeout(() => {playEvent(0);}, 100);
+    setTimeout(() => {OptDemoVideo.playEvent(evts[0], sess);}, 100);
     setAllTimeouts(1); // now start at index 1
+  }
+
+  playFirstNSteps(n: number) {
+    assert(this.isFrozen);
+    assert(TogetherJS.running && this.frontend.isPlayingDemo);
+
+    // i think it may be important to grab the TogetherJS session HERE
+    // every time you play (not globally); but i should verify that later
+    var sess = TogetherJS.require("session");
+    var evts = this.events;
+
+    this.setInitialAppState(); // reset app state to the initial one
+    for (var i = 0; i < n; i++) {
+      OptDemoVideo.playEvent(evts[i], sess);
+    }
+
+    $("#togetherjsStatus").html("DONE playing recording to step " + n);
+    //TogetherJS(); // toggles off - STENT: don't toggle it off yet!
   }
 
   stopPlayback() {
@@ -1399,6 +1423,9 @@ Get live help! (NEW!)
       this.demoVideo.record();
     } else if (this.isPlayingDemo) {
       this.demoVideo.play();
+      // STENT for debugging only
+      //console.log('see window.demoVideo');
+      //window.demoVideo = this.demoVideo;
     } else if (this.wantsPublicHelp) {
       this.initRequestPublicHelp();
     } else {
@@ -1441,7 +1468,6 @@ Get live help! (NEW!)
   startPlayback() {
     $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
     $("#togetherjsStatus").html("Playing recording ...");
-
 
     // temporary test for debugging only! load an existing one
     if (!this.demoVideo) {
