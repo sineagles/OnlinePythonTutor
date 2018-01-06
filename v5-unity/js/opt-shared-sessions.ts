@@ -496,7 +496,6 @@ class OptDemoVideo {
     setAllTimeouts(1); // now start at index 1
   }
 
-  // still zonks out if you call it TWICE with the same params
   playFirstNSteps(n: number) {
     assert(this.isFrozen);
     assert(TogetherJS.running && this.frontend.isPlayingDemo);
