@@ -8858,6 +8858,8 @@ define('forms',["jquery", "util", "session", "elementFinder", "eventMaker", "tem
     buildTrackers();
   }
 
+  TogetherJS.config('setInit', setInit); // pgbovine - expose this function to outside callers
+
   session.on("reinitialize", setInit);
 
   session.on("ui-ready", setInit);

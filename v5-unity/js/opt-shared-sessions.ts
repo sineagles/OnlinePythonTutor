@@ -303,6 +303,8 @@ class OptDemoVideo {
   isFrozen = false; // set to true after you finish recording to 'freeze'
                     // this tape and not allow any further modifications
 
+  origIgnoreForms;  // for interfacing with TogetherJS
+
   constructor(frontend, serializedJsonStr=null) {
     this.frontend = frontend;
 
@@ -402,6 +404,15 @@ class OptDemoVideo {
 
     this.setInitialAppState(); // do this first!!!
 
+    // save the original value of ignoreForms
+    this.origIgnoreForms = TogetherJS.config.get('ignoreForms');
+    // set this to true, which will have TogetherJS ignore ALL FORM
+    // EVENTS, which means that it will ignore events fired on the Ace
+    // editor (which are form-update events or somethin') ... if we
+    // don't do that, then spurious events will get fired durin playback
+    // and weird stuff will happen
+    TogetherJS.config('ignoreForms', true);
+
     this.frontend.isPlayingDemo = true;
     TogetherJS.config('isDemoSession', true);
     TogetherJS(); // activate TogetherJS as the last step to start playback mode
@@ -485,6 +496,7 @@ class OptDemoVideo {
     setAllTimeouts(1); // now start at index 1
   }
 
+  // still zonks out if you call it TWICE with the same params
   playFirstNSteps(n: number) {
     assert(this.isFrozen);
     assert(TogetherJS.running && this.frontend.isPlayingDemo);
@@ -495,6 +507,17 @@ class OptDemoVideo {
     var evts = this.events;
 
     this.setInitialAppState(); // reset app state to the initial one
+
+    // OK this is super subtle but important. you want to call setInit
+    // defined deep in the bowels of lib/togetherjs/togetherjs/togetherjsPackage.js
+    // why are we calling it right now? because we need to clear the
+    // edit history that TogetherJS captures to start us over with a
+    // clean slate so that we can start replaying events from the start
+    // of the trace. otherwise form-update events in the Ace editor
+    // won't work.
+    var setInit = TogetherJS.config.get('setInit');
+    setInit();
+
     for (var i = 0; i < n; i++) {
       OptDemoVideo.playEvent(evts[i], sess);
     }
@@ -505,6 +528,7 @@ class OptDemoVideo {
 
   stopPlayback() {
     this.frontend.isPlayingDemo = false;
+    TogetherJS.config('ignoreForms', this.origIgnoreForms); // restore its original value
     TogetherJS.config('isDemoSession', false);
     TogetherJS.config('eventRecorderFunc', null);
   }
@@ -1422,10 +1446,10 @@ Get live help! (NEW!)
     if (this.isRecordingDemo) {
       this.demoVideo.record();
     } else if (this.isPlayingDemo) {
-      this.demoVideo.play();
+      //this.demoVideo.play();
       // STENT for debugging only
-      //console.log('see window.demoVideo');
-      //window.demoVideo = this.demoVideo;
+      console.log('see window.demoVideo');
+      window.demoVideo = this.demoVideo;
     } else if (this.wantsPublicHelp) {
       this.initRequestPublicHelp();
     } else {
