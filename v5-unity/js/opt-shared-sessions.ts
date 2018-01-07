@@ -305,6 +305,7 @@ class OptDemoVideo {
                     // this tape and not allow any further modifications
 
   origIgnoreForms;  // for interfacing with TogetherJS
+  fps = 30; // frames per second for setInterval-based playback
 
   constructor(frontend, serializedJsonStr=null) {
     this.frontend = frontend;
@@ -323,6 +324,7 @@ class OptDemoVideo {
       this.frontend.traceCache = this.traceCache;
 
       this.isFrozen = true; // freeze it!
+      this.addFrameNumbers();
     }
   }
 
@@ -375,7 +377,8 @@ class OptDemoVideo {
   stopRecording() {
     assert(!this.isFrozen);
     this.traceCache = this.frontend.traceCache;
-    this.isFrozen = true;
+    this.isFrozen = true; // freeze it!
+    this.addFrameNumbers();
 
     this.frontend.isRecordingDemo = false;
     TogetherJS.config('isDemoSession', false);
@@ -454,6 +457,7 @@ class OptDemoVideo {
     msg.type = type;
   }
 
+  // this method uses a chain of setTimeouts fired one after another
   play() {
     assert(this.isFrozen);
     assert(TogetherJS.running && this.frontend.isPlayingDemo);
@@ -497,6 +501,8 @@ class OptDemoVideo {
     setAllTimeouts(1); // now start at index 1
   }
 
+  // this method *instantaneously* plays all steps from 0 to n-1
+  // (so everything it calls should work SYNCHRONOUSLY)
   playFirstNSteps(n: number) {
     assert(this.isFrozen);
     assert(TogetherJS.running && this.frontend.isPlayingDemo);
@@ -523,8 +529,27 @@ class OptDemoVideo {
     }
 
     //$("#togetherjsStatus").html("DONE playing recording to step " + n);
-    console.log("DONE playing to step", n);
+    console.log("DONE playFirstNSteps", n);
     //TogetherJS(); // toggles off - STENT: don't toggle it off yet!
+  }
+
+  // given a frame number, convert to the number of the first step that
+  // takes place AFTER the given frame number. we can pass this into
+  // playFirstNSteps since that will play only until the frame *before* it
+  frameToStepNumber(n) {
+    assert(this.isFrozen && this.events[0].frameNum);
+    var foundIndex = -1;
+    for (var i = 0; i < this.events.length; i++) {
+      if (n < this.events[i].frameNum) {
+        foundIndex = i;
+        break;
+      }
+    }
+
+    if (foundIndex < 0) {
+      foundIndex = this.events.length;
+    }
+    return foundIndex;
   }
 
   stopPlayback() {
@@ -542,6 +567,33 @@ class OptDemoVideo {
                events: this.events,
                traceCache: this.traceCache};
     return JSON.stringify(ret);
+  }
+
+  getFrameDiff(a, b) {
+    assert(a <= b);
+    return Math.floor(((b - a) / 1000) * this.fps);
+  }
+
+  // add a frameNum field for each entry in this.events
+  addFrameNumbers() {
+    assert(this.isFrozen && this.events.length > 0);
+    var firstTs = this.events[0].ts;
+    for (var i = 0; i < this.events.length; i++) {
+      var elt = this.events[i];
+      // add 1 so that the first frameNum starts at 1 instead of 0
+      elt.frameNum = this.getFrameDiff(firstTs, elt.ts) + 1;
+    }
+  }
+
+  // how many frames should there be in the animation?
+  getTotalNumFrames() {
+    assert(this.isFrozen && this.events.length > 0);
+
+    var firstTs = this.events[0].ts;
+    var lastTs = this.events[this.events.length-1].ts;
+
+    // add 1 at the end for extra padding
+    return this.getFrameDiff(firstTs, lastTs) + 1;
   }
 }
 
@@ -1504,7 +1556,7 @@ Get live help! (NEW!)
     $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
 
     // TODO: make this code cleaner
-    $("#togetherjsStatus").html('<div>Playing recording ...</div><div id="playbackSlider"/>');
+    $("#togetherjsStatus").html('<div>Playing recording ...</div><div id="playbackSlider"/><div style="margin-top: 20px;" id="timeSlider"/>');
 
     // temporary test for debugging only! load an existing one
     if (!this.demoVideo) {
@@ -1522,7 +1574,7 @@ Get live help! (NEW!)
     sliderDiv.slider({
       min: 0, max: this.demoVideo.events.length-1, step: 1,
       slide: (evt, ui) => {
-        console.log("playbackSlider slide", ui.value);
+        //console.log("playbackSlider slide", ui.value);
         this.demoVideo.playFirstNSteps(ui.value);
       }
     });
@@ -1532,8 +1584,35 @@ Get live help! (NEW!)
     sliderDiv
       .find(".ui-slider-handle")
       .unbind('keydown')
-      .css('width', '0.8em')
-      .css('height', '1.4em');
+      .css('width', '0.6em')
+      .css('height', '1.5em');
+
+
+    var timeSliderDiv = $('#timeSlider');
+    timeSliderDiv.css('width', '700px');
+
+    var curStep = -1;
+
+    timeSliderDiv.slider({
+      min: 0, max: this.demoVideo.getTotalNumFrames(), step: 1,
+      slide: (evt, ui) => {
+        console.log("timeSlider slide", ui.value);
+        // avoid unnecessary duplicate calls
+        var step = this.demoVideo.frameToStepNumber(ui.value);
+        if (step != curStep) {
+          this.demoVideo.playFirstNSteps(step);
+          curStep = step;
+        }
+      }
+    });
+
+    // disable keyboard actions on the slider itself (to prevent double-firing
+    // of events), and make skinnier and taller
+    timeSliderDiv
+      .find(".ui-slider-handle")
+      .unbind('keydown')
+      .css('width', '0.6em')
+      .css('height', '1.5em');
 
     this.demoVideo.startPlayback();
   }
