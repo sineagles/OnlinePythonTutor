@@ -521,7 +521,8 @@ class OptDemoVideo {
       OptDemoVideo.playEvent(evts[i], sess);
     }
 
-    $("#togetherjsStatus").html("DONE playing recording to step " + n);
+    //$("#togetherjsStatus").html("DONE playing recording to step " + n);
+    console.log("DONE playing to step", n);
     //TogetherJS(); // toggles off - STENT: don't toggle it off yet!
   }
 
@@ -1490,7 +1491,9 @@ Get live help! (NEW!)
 
   startPlayback() {
     $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
-    $("#togetherjsStatus").html("Playing recording ...");
+
+    // TODO: make this code cleaner
+    $("#togetherjsStatus").html('<div>Playing recording ...</div><div id="playbackSlider"/>');
 
     // temporary test for debugging only! load an existing one
     if (!this.demoVideo) {
@@ -1501,6 +1504,26 @@ Get live help! (NEW!)
     }
 
     assert(this.demoVideo);
+
+    var sliderDiv = $('#playbackSlider');
+    sliderDiv.css('width', '700px');
+
+    sliderDiv.slider({
+      min: 0, max: this.demoVideo.events.length-1, step: 1,
+      slide: (evt, ui) => {
+        console.log("playbackSlider slide", ui.value);
+        this.demoVideo.playFirstNSteps(ui.value);
+      }
+    });
+
+    // disable keyboard actions on the slider itself (to prevent double-firing
+    // of events), and make skinnier and taller
+    sliderDiv
+      .find(".ui-slider-handle")
+      .unbind('keydown')
+      .css('width', '0.8em')
+      .css('height', '1.4em');
+
     this.demoVideo.startPlayback();
   }
 
