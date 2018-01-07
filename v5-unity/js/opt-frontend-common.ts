@@ -424,7 +424,7 @@ export abstract class AbstractBaseFrontend {
         var appState = this.getAppState();
         var cachedTrace = this.traceCacheGet(appState);
         if (cachedTrace) {
-          console.log("CACHE HIT!", appState);
+          //console.log("CACHE HIT!", appState);
           callbackWrapper({code: (appState as any).code, trace: cachedTrace});
           return; // return early without going to the server at all!
         }

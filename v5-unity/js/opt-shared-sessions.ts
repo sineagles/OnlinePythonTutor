@@ -275,6 +275,7 @@ function randomlyPickSurveyItem(key) {
     weird and loopy
 
   - minor: set a more instructive username for the tutor's mouse pointer
+    - and also a better and more consistent COLOR
 
   - later: get this working better in live mode, which has some quirks
     - especially note handleUncaughtException in opt-live.ts since it
@@ -419,7 +420,7 @@ class OptDemoVideo {
   }
 
   static playEvent(msg, session) {
-    console.log("playEvent", msg);
+    //console.log("playEvent", msg);
     //this.frontend.pyInputAceEditor.resize(true);
 
     // seems weird but we need both session.hub.emit() and
@@ -1200,7 +1201,6 @@ Get live help! (NEW!)
     TogetherJS.hub.on("updateOutput", this.updateOutputTogetherJsHandler.bind(this));
 
     TogetherJS.hub.on("executeCode", (msg) => {
-      console.log('TogetherJS.hub.on("executeCode" ...)');
       if (!msg.sameUrl) return; // make sure we're on the same page
       if (this.isExecutingCode) {
         return;
@@ -1221,7 +1221,6 @@ Get live help! (NEW!)
         return;
       }
 
-      console.log("TogetherJS RECEIVE hashchange", msg.appMode);
       if (msg.appMode != this.appMode) {
         this.updateAppDisplay(msg.appMode);
 
