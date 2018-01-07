@@ -1070,7 +1070,19 @@ Get live help! (NEW!)
     // VERY SUBTLE -- reinitialize TogetherJS at the END so that it can detect
     // and sync any new elements that are now inside myVisualizer
     if (TogetherJS.running) {
-      TogetherJS.reinitialize();
+      // TogetherJS.reinitialize() is ASYNCHRONOUS so the signal handler runs
+      // way too late when we're playing a demo all at once using playFirstNSteps()
+      // because all calls must be synchronous. in that case, use the
+      // synchronous "equivalent":
+      if (this.isPlayingDemo) {
+        var setInit = TogetherJS.config.get('setInit');
+        setInit(); // this is synchronous so it happens instantly
+                   // TODO: does this do everything we need or do we
+                   // need to pull out more functionality from the handler
+                   // of TogetherJS.reinitialize()?
+      } else {
+        TogetherJS.reinitialize();
+      }
     }
   }
 
