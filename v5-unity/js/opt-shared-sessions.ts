@@ -230,6 +230,10 @@ function randomlyPickSurveyItem(key) {
 
 /* Record/replay TODOs (from first hacking on it on 2018-01-01)
 
+  - look into how JS timers work:
+  https://johnresig.com/blog/how-javascript-timers-work/
+  https://developers.google.com/web/updates/2015/08/using-requestidlecallback
+
   - make the recorder/player a subclass of OptFrontendSharedSessions
     with a separate html file and everything and special frontend tag
     (this.originFrontendJsFile) so that we can diambiguate its log
@@ -240,16 +244,6 @@ function randomlyPickSurveyItem(key) {
   - we need to 'lock' the UI while the video is playing and only
     allow modifications once you push the 'pause' button and it's
     gotten a chance to save state
-
-  - add VCR-style controls and scrubber for feature parity with
-    video players (but what does it mean to go "backwards" here, since
-    the togetherjs logs don't let you easily go backwards)
-
-  - no ability to pause the 'video' yet, and even more difficult, if
-    you pause and modify the code and want to 'resume' the video, you
-    need to restore the appState from when you paused (maybe with
-    getAppState?) and then resume from there. my hunch is that
-    getAppState() is your friend here for restoring states mid-playback
 
   - things sometimes get flaky if you *ALREADY* have code in the editor
     and then try to record a demo; sometimes it doesn't work properly.
@@ -272,7 +266,7 @@ function randomlyPickSurveyItem(key) {
     - https://stackoverflow.com/questions/27625028/how-to-move-the-cursor-to-the-end-of-the-line-in-ace-editor
 
   - be able to stop playback in the middle without the timer getting all
-    weird and loopy
+    weird and (infinitely) loopy
 
   - minor: set a more instructive username for the tutor's mouse pointer
     - and also a better and more consistent COLOR
