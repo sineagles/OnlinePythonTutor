@@ -230,10 +230,6 @@ function randomlyPickSurveyItem(key) {
 
 /* Record/replay TODOs (from first hacking on it on 2018-01-01)
 
-  - look into how JS timers work:
-  https://johnresig.com/blog/how-javascript-timers-work/
-  https://developers.google.com/web/updates/2015/08/using-requestidlecallback
-
   - make the recorder/player a subclass of OptFrontendSharedSessions
     with a separate html file and everything and special frontend tag
     (this.originFrontendJsFile) so that we can diambiguate its log
@@ -288,6 +284,39 @@ function randomlyPickSurveyItem(key) {
 */
 
 
+// polyfill from https://gist.github.com/paulirish/1579671
+//
+// http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+// http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
+// requestAnimationFrame polyfill by Erik Möller. fixes from Paul Irish and Tino Zijdel
+//
+// MIT license
+(function() {
+    var lastTime = 0;
+    var vendors = ['ms', 'moz', 'webkit', 'o'];
+    for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+        (window as any).requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
+        (window as any).cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame'] 
+                                   || window[vendors[x]+'CancelRequestAnimationFrame'];
+    }
+
+    if (!window.requestAnimationFrame)
+        (window as any).requestAnimationFrame = function(callback, element) {
+            var currTime = new Date().getTime();
+            var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+            var id = window.setTimeout(function() { callback(currTime + timeToCall); }, 
+              timeToCall);
+            lastTime = currTime + timeToCall;
+            return id;
+        };
+
+    if (!window.cancelAnimationFrame)
+        (window as any).cancelAnimationFrame = function(id) {
+            clearTimeout(id);
+        };
+}());
+
+
 // represents a list of TogetherJS events that can be replayed, paused, etc.
 // within the context of the current OptFrontendSharedSessions app
 class OptDemoVideo {
@@ -302,6 +331,7 @@ class OptDemoVideo {
   fps = 30; // frames per second for setInterval-based playback
 
   sess; // the current live TogetherJS session object
+
 
   constructor(frontend, serializedJsonStr=null) {
     this.frontend = frontend;
@@ -397,6 +427,18 @@ class OptDemoVideo {
       assert(this.initialAppState.mode == 'edit');
       this.frontend.enterEditMode();
     }
+
+
+    // OK this is super subtle but important. you want to call setInit
+    // defined deep in the bowels of lib/togetherjs/togetherjs/togetherjsPackage.js
+    // why are we calling it right now? because we need to clear the
+    // edit history that TogetherJS captures to start us over with a
+    // clean slate so that we can start replaying events from the start
+    // of the trace. otherwise form-update events in the Ace editor
+    // won't work. we need setInit since it's *synchronous* and executes
+    // instantly rather than waiting on an async event queue.
+    var setInit = TogetherJS.config.get('setInit');
+    setInit();
   }
 
   startPlayback() {
@@ -426,6 +468,39 @@ class OptDemoVideo {
 
     // STENT for debugging only
     window.demoVideo = this;
+
+
+    var totalFrames = this.getTotalNumFrames();
+
+    // experimental
+    // adapted from http://www.javascriptkit.com/javatutors/requestanimationframe.shtml
+    var starttime = -1;
+    var rafHelper = (timestamp) => {
+      var diff_ms = timestamp - starttime;
+      var diff_sec = diff_ms / 1000;
+      console.log(diff_sec);
+
+      var frameNum = this.secondsToFrameNum(diff_sec);
+
+      // should trigger the slider's 'change' event
+      $("#timeSlider").slider("value", frameNum);
+
+      // keep going until you're out of frames!
+      if (frameNum < totalFrames) {
+        requestAnimationFrame(rafHelper);
+      }
+    }
+
+    this.setInitialAppState(); // reset app state to the initial one
+
+    // add a minor delay before starting this, which seems to work
+    // better than starting right away #weird:
+    setTimeout(() => {
+      requestAnimationFrame((timestamp) => {
+        starttime = timestamp;
+        rafHelper(timestamp);
+      });
+    }, 100);
   }
 
   playEvent(msg) {
@@ -463,7 +538,22 @@ class OptDemoVideo {
     msg.type = type;
   }
 
+  playStep(i: number) {
+    assert(i >= 0 && i < this.events.length);
+    this.playEvent(this.events[i]);
+  }
+
+  // play all steps from [lower, upper], inclusive
+  playStepRange(lower: number, upper: number) {
+    console.log('playStepRange', lower, upper);
+    assert(lower <= upper);
+    for (var i = lower; i <= upper; i++) {
+      this.playStep(i);
+    }
+  }
+
   // this method uses a chain of setTimeouts fired one after another
+  // TODO: deprecate me soon
   play() {
     assert(this.isFrozen);
     assert(TogetherJS.running && this.frontend.isPlayingDemo);
@@ -472,20 +562,14 @@ class OptDemoVideo {
 
     this.setInitialAppState(); // reset app state to the initial one
 
-    // for manual debugging:
-    //window.sess = sess;
-    //window.evts = evts;
-
     if (evts.length <= 0) {
-      //$("#togetherjsStatus").html("DONE playing recording");
-      //TogetherJS(); // toggles off
-      // DONE!
       return;
     }
 
-
     // to play the events trace in 'real time', set one timeout at a time,
     // and as soon as that one starts executing, set the next timeout
+    //
+    // TODO: replace this with requestAnimationFrame
     var setAllTimeouts = (i) => {
       assert(i > 0);
       setTimeout(() => {
@@ -498,48 +582,33 @@ class OptDemoVideo {
 
         setAllTimeouts(i+1); // set the next timeout right away before performing your action!
         console.log("FIRE", i);
-        this.playEvent(evts[i]);
+        this.playStep(i);
       }, evts[i].ts - evts[i-1].ts);
     };
 
     // play the 0th event after a tiny delay (for some reason it doesn't
     // work properly if you play it right away) ...
-    setTimeout(() => {this.playEvent(evts[0]);}, 100);
+    setTimeout(() => {this.playStep(0);}, 100);
     setAllTimeouts(1); // now start at index 1
   }
 
-  // this method *instantaneously* plays all steps from 0 to n-1
+  // this method *instantaneously* plays all steps from 0 to n
   // (so everything it calls should work SYNCHRONOUSLY)
   playFirstNSteps(n: number) {
+    console.log('playFirstNSteps', n);
     assert(this.isFrozen);
     assert(TogetherJS.running && this.frontend.isPlayingDemo);
-
-    var evts = this.events;
-
+    assert(n >= 0 && n < this.events.length);
     this.setInitialAppState(); // reset app state to the initial one
 
-    // OK this is super subtle but important. you want to call setInit
-    // defined deep in the bowels of lib/togetherjs/togetherjs/togetherjsPackage.js
-    // why are we calling it right now? because we need to clear the
-    // edit history that TogetherJS captures to start us over with a
-    // clean slate so that we can start replaying events from the start
-    // of the trace. otherwise form-update events in the Ace editor
-    // won't work.
-    var setInit = TogetherJS.config.get('setInit');
-    setInit();
-
-    for (var i = 0; i < n; i++) {
-      this.playEvent(evts[i]);
+    // go up to n, inclusive!
+    for (var i = 0; i <= n; i++) {
+      this.playStep(i);
     }
-
-    //$("#togetherjsStatus").html("DONE playing recording to step " + n);
-    console.log("DONE playFirstNSteps", n);
-    //TogetherJS(); // toggles off - STENT: don't toggle it off yet!
   }
 
-  // given a frame number, convert to the number of the first step that
-  // takes place AFTER the given frame number. we can pass this into
-  // playFirstNSteps since that will play only until the frame *before* it
+  // given a frame number, convert it to the step number (i.e., index in
+  // this.events) that takes place right BEFORE that given frame.
   frameToStepNumber(n) {
     assert(this.isFrozen && this.events[0].frameNum);
     var foundIndex = -1;
@@ -551,9 +620,12 @@ class OptDemoVideo {
     }
 
     if (foundIndex < 0) {
-      foundIndex = this.events.length;
+      return this.events.length - 1;
+    } else if (foundIndex == 0) {
+      return 0; // TODO: kinda weird that we return 0 for foundIndex being 0 or 1
+    } else {
+      return foundIndex - 1; // subtract 1 to get the step right BEFORE the found one
     }
-    return foundIndex;
   }
 
   stopPlayback() {
@@ -599,6 +671,10 @@ class OptDemoVideo {
 
     // add 1 at the end for extra padding
     return this.getFrameDiff(firstTs, lastTs) + 1;
+  }
+
+  secondsToFrameNum(secs) {
+    return Math.floor(secs * this.fps);
   }
 }
 
@@ -1596,16 +1672,61 @@ Get live help! (NEW!)
     var curStep = -1;
 
     timeSliderDiv.slider({
-      min: 0, max: this.demoVideo.getTotalNumFrames(), step: 1,
+      min: 0,
+      max: this.demoVideo.getTotalNumFrames(),
+      step: 1,
+
+      // triggers only when the user *manually* slides, *not* when the
+      // value has been changed programmatically
       slide: (evt, ui) => {
         console.log("timeSlider slide", ui.value);
         // avoid unnecessary duplicate calls
         var step = this.demoVideo.frameToStepNumber(ui.value);
-        if (step != curStep) {
+
+        if (step == curStep) {
+          return; // do nothing!
+        } else if (step > curStep) {
+          // as an optimization, simply play ahead from the current step
+          // rather than playing all steps from 0 to step again from scratch
+          this.demoVideo.playStepRange(curStep+1, step);
+        } else {
+          // if we're stepping backwards, then we have no choice but to
+          // play everything from scratch because we can't "undo" actions
+          assert(step >= 0 && step < curStep);
           this.demoVideo.playFirstNSteps(step);
-          curStep = step;
+        }
+        curStep = step;
+      },
+
+      change: (evt, ui) => {
+        // this is SUPER subtle. if this value was changed programmatically,
+        // then evt.originalEvent will be undefined. however, if this value
+        // was changed by a user-initiated event, then this code should be
+        // executed ...
+        if ((evt as any).originalEvent) {
+          // slider value was changed by a user interaction; don't do anything
+          // since the 'slide' event handler should already take care of it
+        } else {
+          // slider value was changed programmatically, so take only 1 step
+          // since we're assuming that requestAnimationFrame has been
+          // used to schedule periodic changes to the slider ...
+          var step = this.demoVideo.frameToStepNumber(ui.value);
+          console.log('SLIDE', ui.value, step, curStep);
+          if (step == curStep) {
+            return; // do nothing!
+          } else {
+            assert(step > curStep); // we must be going UP, never down
+
+            // we may "skip" steps in between frames if multiple steps
+            // occurred within one frame, so we need to play a range of steps
+            // starting at the one right after curStep (since curStep has
+            // already been played in a prior iteration):
+            this.demoVideo.playStepRange(curStep+1, step);
+            curStep = step;
+          }
         }
       }
+
     });
 
     // disable keyboard actions on the slider itself (to prevent double-firing
