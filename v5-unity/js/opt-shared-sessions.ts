@@ -409,8 +409,6 @@ class OptDemoVideo {
     assert(this.isFrozen);
     assert(!TogetherJS.running); // do this before TogetherJS is initialized
 
-    this.setInitialAppState(); // do this first!!!
-
     // save the original value of ignoreForms
     this.origIgnoreForms = TogetherJS.config.get('ignoreForms');
     // set this to true, which will have TogetherJS ignore ALL FORM
@@ -478,13 +476,16 @@ class OptDemoVideo {
 
     var evts = this.events;
 
+    this.setInitialAppState(); // reset app state to the initial one
+
     // for manual debugging:
     //window.sess = sess;
     //window.evts = evts;
 
     if (evts.length <= 0) {
-      $("#togetherjsStatus").html("DONE playing recording");
-      TogetherJS(); // toggles off
+      //$("#togetherjsStatus").html("DONE playing recording");
+      //TogetherJS(); // toggles off
+      // DONE!
       return;
     }
 
@@ -495,8 +496,9 @@ class OptDemoVideo {
       assert(i > 0);
       setTimeout(() => {
         if (i >= evts.length - 1) {
-          $("#togetherjsStatus").html("DONE playing recording");
-          TogetherJS(); // toggles off
+          //$("#togetherjsStatus").html("DONE playing recording");
+          //TogetherJS(); // toggles off
+          // DONE!
           return;
         }
 
