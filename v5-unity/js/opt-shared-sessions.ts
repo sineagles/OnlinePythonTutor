@@ -307,6 +307,8 @@ class OptDemoVideo {
   origIgnoreForms;  // for interfacing with TogetherJS
   fps = 30; // frames per second for setInterval-based playback
 
+  sess; // the current live TogetherJS session object
+
   constructor(frontend, serializedJsonStr=null) {
     this.frontend = frontend;
 
@@ -366,7 +368,8 @@ class OptDemoVideo {
     TogetherJS(); // activate TogetherJS as the last step to start the recording
   }
 
-  record() {
+  // this is run as soon as TogetherJS is ready in recording mode
+  recordTogetherJsReady() {
     assert(TogetherJS.running && this.frontend.isRecordingDemo && !this.frontend.isPlayingDemo);
 
     // set the TogetherJS eventRecorderFunc to this.demoVideo.addEvent
@@ -422,8 +425,19 @@ class OptDemoVideo {
     TogetherJS(); // activate TogetherJS as the last step to start playback mode
   }
 
-  static playEvent(msg, session) {
-    //console.log("playEvent", msg);
+  // this is run as soon as TogetherJS is ready in playback mode
+  playbackTogetherJsReady() {
+    assert(TogetherJS.running && this.frontend.isPlayingDemo && !this.frontend.isRecordingDemo);
+
+    // initialize the session here
+    this.sess = TogetherJS.require("session");
+
+    // STENT for debugging only
+    window.demoVideo = this;
+  }
+
+  playEvent(msg) {
+    assert(this.sess && this.frontend.isPlayingDemo);
     //this.frontend.pyInputAceEditor.resize(true);
 
     // seems weird but we need both session.hub.emit() and
@@ -432,7 +446,7 @@ class OptDemoVideo {
     // copied-pasted from lib/togetherjs/togetherjs/togetherjsPackage.js
     // around line 1870
     try {
-      session.hub.emit(msg.type, msg);
+      this.sess.hub.emit(msg.type, msg);
     } catch (e) {
       console.warn(e);
       // let it go! let it go!
@@ -462,9 +476,6 @@ class OptDemoVideo {
     assert(this.isFrozen);
     assert(TogetherJS.running && this.frontend.isPlayingDemo);
 
-    // i think it may be important to grab the TogetherJS session HERE
-    // every time you play (not globally); but i should verify that later
-    var sess = TogetherJS.require("session");
     var evts = this.events;
 
     // for manual debugging:
@@ -491,13 +502,13 @@ class OptDemoVideo {
 
         setAllTimeouts(i+1); // set the next timeout right away before performing your action!
         console.log("FIRE", i);
-        OptDemoVideo.playEvent(evts[i], sess);
+        this.playEvent(evts[i]);
       }, evts[i].ts - evts[i-1].ts);
     };
 
     // play the 0th event after a tiny delay (for some reason it doesn't
     // work properly if you play it right away) ...
-    setTimeout(() => {OptDemoVideo.playEvent(evts[0], sess);}, 100);
+    setTimeout(() => {this.playEvent(evts[0]);}, 100);
     setAllTimeouts(1); // now start at index 1
   }
 
@@ -507,9 +518,6 @@ class OptDemoVideo {
     assert(this.isFrozen);
     assert(TogetherJS.running && this.frontend.isPlayingDemo);
 
-    // i think it may be important to grab the TogetherJS session HERE
-    // every time you play (not globally); but i should verify that later
-    var sess = TogetherJS.require("session");
     var evts = this.events;
 
     this.setInitialAppState(); // reset app state to the initial one
@@ -525,7 +533,7 @@ class OptDemoVideo {
     setInit();
 
     for (var i = 0; i < n; i++) {
-      OptDemoVideo.playEvent(evts[i], sess);
+      this.playEvent(evts[i]);
     }
 
     //$("#togetherjsStatus").html("DONE playing recording to step " + n);
@@ -553,6 +561,7 @@ class OptDemoVideo {
   }
 
   stopPlayback() {
+    this.sess = null;
     this.frontend.isPlayingDemo = false;
     TogetherJS.config('ignoreForms', this.origIgnoreForms); // restore its original value
     TogetherJS.config('isDemoSession', false);
@@ -1507,12 +1516,9 @@ Get live help! (NEW!)
     $("#eureka_survey").remove(); // if a survey is already displayed on-screen, then kill it
 
     if (this.isRecordingDemo) {
-      this.demoVideo.record();
+      this.demoVideo.recordTogetherJsReady();
     } else if (this.isPlayingDemo) {
-      //this.demoVideo.play();
-      // STENT for debugging only
-      console.log('see window.demoVideo');
-      window.demoVideo = this.demoVideo;
+      this.demoVideo.playbackTogetherJsReady();
     } else if (this.wantsPublicHelp) {
       this.initRequestPublicHelp();
     } else {
