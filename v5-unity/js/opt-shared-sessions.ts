@@ -240,6 +240,8 @@ function randomlyPickSurveyItem(key) {
   - we need to 'lock' the UI while the video is playing and only
     allow modifications once you push the 'pause' button and it's
     gotten a chance to save state
+    - as soon as you UNPAUSE, always play up until the current step to
+      refresh the display and erase the user's edits
 
   - things sometimes get flaky if you *ALREADY* have code in the editor
     and then try to record a demo; sometimes it doesn't work properly.
@@ -467,10 +469,12 @@ class OptDemoVideo {
     this.sess = TogetherJS.require("session");
 
     // STENT for debugging only
-    window.demoVideo = this;
+    (window as any).demoVideo = this;
 
 
     var totalFrames = this.getTotalNumFrames();
+
+    window.ticksExecuted = 0; // temp
 
     // experimental
     // adapted from http://www.javascriptkit.com/javatutors/requestanimationframe.shtml
@@ -482,12 +486,21 @@ class OptDemoVideo {
 
       var frameNum = this.secondsToFrameNum(diff_sec);
 
-      // should trigger the slider's 'change' event
-      $("#timeSlider").slider("value", frameNum);
-
       // keep going until you're out of frames!
-      if (frameNum < totalFrames) {
+      if (frameNum <= totalFrames) {
         requestAnimationFrame(rafHelper);
+        $("#timeSlider").slider("value", frameNum); // triggers slider 'change' event
+        window.ticksExecuted++;
+
+        // hack to throttle the frame rate to approximately this.fps
+        // (maybe necessary later if things seem too slow)
+        /*
+        setTimeout(() => {
+          requestAnimationFrame(rafHelper);
+          $("#timeSlider").slider("value", frameNum); // triggers slider 'change' event
+          window.ticksExecuted++;
+        }, 1000 / this.fps);
+        */
       }
     }
 
@@ -1633,10 +1646,9 @@ Get live help! (NEW!)
   startPlayback() {
     $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
 
-    // TODO: make this code cleaner
-    $("#togetherjsStatus").html('<div>Playing recording ...</div><div id="playbackSlider"/><div style="margin-top: 20px;" id="timeSlider"/>');
+    $("#togetherjsStatus").html('<div>Playing recording ...</div><div style="margin-top: 20px;" id="timeSlider"/>');
 
-    // temporary test for debugging only! load an existing one
+    // temp. test for debugging only! load an existing video from localStorage
     if (!this.demoVideo) {
       var savedVideoJson = localStorage['demoVideo'];
       if (savedVideoJson) {
@@ -1645,26 +1657,6 @@ Get live help! (NEW!)
     }
 
     assert(this.demoVideo);
-
-    var sliderDiv = $('#playbackSlider');
-    sliderDiv.css('width', '700px');
-
-    sliderDiv.slider({
-      min: 0, max: this.demoVideo.events.length-1, step: 1,
-      slide: (evt, ui) => {
-        //console.log("playbackSlider slide", ui.value);
-        this.demoVideo.playFirstNSteps(ui.value);
-      }
-    });
-
-    // disable keyboard actions on the slider itself (to prevent double-firing
-    // of events), and make skinnier and taller
-    sliderDiv
-      .find(".ui-slider-handle")
-      .unbind('keydown')
-      .css('width', '0.6em')
-      .css('height', '1.5em');
-
 
     var timeSliderDiv = $('#timeSlider');
     timeSliderDiv.css('width', '700px');
@@ -1679,10 +1671,9 @@ Get live help! (NEW!)
       // triggers only when the user *manually* slides, *not* when the
       // value has been changed programmatically
       slide: (evt, ui) => {
-        console.log("timeSlider slide", ui.value);
-        // avoid unnecessary duplicate calls
         var step = this.demoVideo.frameToStepNumber(ui.value);
 
+        // avoid unnecessary duplicate calls
         if (step == curStep) {
           return; // do nothing!
         } else if (step > curStep) {
@@ -1698,6 +1689,8 @@ Get live help! (NEW!)
         curStep = step;
       },
 
+      // triggers both when user manually finishes sliding, and also
+      // when the slider's value is set programmatically
       change: (evt, ui) => {
         // this is SUPER subtle. if this value was changed programmatically,
         // then evt.originalEvent will be undefined. however, if this value
@@ -1707,11 +1700,12 @@ Get live help! (NEW!)
           // slider value was changed by a user interaction; don't do anything
           // since the 'slide' event handler should already take care of it
         } else {
-          // slider value was changed programmatically, so take only 1 step
-          // since we're assuming that requestAnimationFrame has been
-          // used to schedule periodic changes to the slider ...
+          // slider value was changed programmatically, so we're
+          // assuming that requestAnimationFrame has been used to schedule
+          // periodic changes to the slider
           var step = this.demoVideo.frameToStepNumber(ui.value);
-          console.log('SLIDE', ui.value, step, curStep);
+
+          // avoid unnecessary duplicate calls
           if (step == curStep) {
             return; // do nothing!
           } else {
@@ -1726,7 +1720,6 @@ Get live help! (NEW!)
           }
         }
       }
-
     });
 
     // disable keyboard actions on the slider itself (to prevent double-firing
