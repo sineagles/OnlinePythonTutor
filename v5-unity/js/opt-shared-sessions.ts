@@ -243,6 +243,8 @@ function randomlyPickSurveyItem(key) {
     - as soon as you UNPAUSE, always play up until the current step to
       refresh the display and erase the user's edits
 
+  - when you're playing and scrub, match the behavior of YouTube
+
   - things sometimes get flaky if you *ALREADY* have code in the editor
     and then try to record a demo; sometimes it doesn't work properly.
 
@@ -333,6 +335,7 @@ class OptDemoVideo {
   fps = 30; // frames per second for setInterval-based playback
 
   currentFrame = 0; // for play/pause
+  currentStep = 0;  // a 'step' is an index into events, whereas a 'frame' is an animation frame
   isPaused = false;
 
   sess; // the current live TogetherJS session object
@@ -432,6 +435,8 @@ class OptDemoVideo {
       this.frontend.enterEditMode();
     }
 
+    this.currentFrame = 0;
+    this.currentStep = 0;
 
     // OK this is super subtle but important. you want to call setInit
     // defined deep in the bowels of lib/togetherjs/togetherjs/togetherjsPackage.js
@@ -463,18 +468,24 @@ class OptDemoVideo {
     TogetherJS(); // activate TogetherJS as the last step to start playback mode
   }
 
+  // set a timer to play in real time starting at this.currentFrame
   playFromCurrentFrame() {
     assert(TogetherJS.running && this.frontend.isPlayingDemo);
-    this.isPaused = false;
     var totalFrames = this.getTotalNumFrames();
+    // if we're at the VERY end, then loop back to the very beginning
+    if (this.currentFrame >= totalFrames) {
+      this.setInitialAppState();
+    }
 
     var startingFrame = this.currentFrame;
+    this.isPaused = false;
 
-    // play the first N steps to get up to our current frame
-    // TODO: it's kinda klunky to convert "video" frames to steps
-    // (which are indices to entries in this.events)
+    // play the first N steps to get up to right before this.currentFrame
+    // TODO: it's kinda klunky to convert "video" frames to steps, which
+    // which are actually indices into this.events
     if (startingFrame > 0) {
-      this.playFirstNSteps(this.frameToStepNumber(startingFrame));
+      var step = this.frameToStepNumber(startingFrame);
+      this.playFirstNSteps(step);
     }
 
     var starttime = -1;
@@ -485,20 +496,19 @@ class OptDemoVideo {
 
       var diff_ms = timestamp - starttime;
       var diff_sec = diff_ms / 1000;
-      console.log(diff_sec);
+      //console.log(diff_sec);
 
       // don't forget to add this to startingFrame!
-      var frameNum = (this.secondsToFrameNum(diff_sec) + startingFrame);
+      var frameNum = (this.secondsToFrames(diff_sec) + startingFrame);
 
       // keep going until you're out of frames!
       if (frameNum <= totalFrames) {
-        this.currentFrame = frameNum;
-
         requestAnimationFrame(rafHelper);
+        this.currentFrame = frameNum;
 
         // TODO: this is an abstraction violation since OptDemoVideo
         // shouldn't know about #timeSlider, which is part of the GUI!
-        // (maybe string this through a callback?)
+        // (maybe tunnel this through a callback?)
         $("#timeSlider").slider("value", frameNum); // triggers slider 'change' event
 
         // hack to throttle the frame rate to approximately this.fps
@@ -509,10 +519,15 @@ class OptDemoVideo {
           // do stuff here!
         }, 1000 / this.fps);
         */
+      } else {
+        // TODO: this is an abstraction violation since OptDemoVideo
+        // shouldn't know about #demoPlayBtn, which is part of the GUI!
+        // (maybe tunnel this through a callback?)
+        $("#demoPlayBtn").click(); // <-- refactor me, this is gross
       }
     }
 
-    // start it off!
+    // kick it off!
     requestAnimationFrame((timestamp) => {
       starttime = timestamp;
       rafHelper(timestamp);
@@ -575,6 +590,7 @@ class OptDemoVideo {
   playStep(i: number) {
     assert(i >= 0 && i < this.events.length);
     this.playEvent(this.events[i]);
+    this.currentStep = i; // very important!!!
   }
 
   // play all steps from [lower, upper], inclusive
@@ -584,46 +600,6 @@ class OptDemoVideo {
     for (var i = lower; i <= upper; i++) {
       this.playStep(i);
     }
-  }
-
-  // this method uses a chain of setTimeouts fired one after another
-  // TODO: deprecated
-  playDeprecated() {
-    assert(this.isFrozen);
-    assert(TogetherJS.running && this.frontend.isPlayingDemo);
-
-    var evts = this.events;
-
-    this.setInitialAppState(); // reset app state to the initial one
-
-    if (evts.length <= 0) {
-      return;
-    }
-
-    // to play the events trace in 'real time', set one timeout at a time,
-    // and as soon as that one starts executing, set the next timeout
-    //
-    // TODO: replace this with requestAnimationFrame
-    var setAllTimeouts = (i) => {
-      assert(i > 0);
-      setTimeout(() => {
-        if (i >= evts.length - 1) {
-          //$("#togetherjsStatus").html("DONE playing recording");
-          //TogetherJS(); // toggles off
-          // DONE!
-          return;
-        }
-
-        setAllTimeouts(i+1); // set the next timeout right away before performing your action!
-        console.log("FIRE", i);
-        this.playStep(i);
-      }, evts[i].ts - evts[i-1].ts);
-    };
-
-    // play the 0th event after a tiny delay (for some reason it doesn't
-    // work properly if you play it right away) ...
-    setTimeout(() => {this.playStep(0);}, 100);
-    setAllTimeouts(1); // now start at index 1
   }
 
   // this method *instantaneously* plays all steps from 0 to n
@@ -661,6 +637,27 @@ class OptDemoVideo {
       return foundIndex - 1; // subtract 1 to get the step right BEFORE the found one
     }
   }
+
+  jumpToFrame(frame) {
+    assert(this.currentStep >= 0);
+    this.currentFrame = frame;
+    var step = this.frameToStepNumber(frame);
+
+    // avoid unnecessary calls
+    if (step == this.currentStep) {
+      return; // do nothing!
+    } else if (step > this.currentStep) {
+      // as an optimization, simply play ahead from the current step
+      // rather than playing all steps from 0 to step again from scratch
+      this.playStepRange(this.currentStep + 1, step);
+    } else {
+      // if we're stepping backwards, then we have no choice but to
+      // play everything from scratch because we can't "undo" actions
+      assert(step >= 0 && step < this.currentStep);
+      this.playFirstNSteps(step);
+    }
+  }
+
 
   stopPlayback() {
     this.sess = null;
@@ -707,7 +704,7 @@ class OptDemoVideo {
     return this.getFrameDiff(firstTs, lastTs) + 1;
   }
 
-  secondsToFrameNum(secs) {
+  secondsToFrames(secs) {
     return Math.floor(secs * this.fps);
   }
 }
@@ -1697,8 +1694,6 @@ Get live help! (NEW!)
     var timeSliderDiv = $('#timeSlider');
     timeSliderDiv.css('width', '700px');
 
-    var curStep = -1;
-
     timeSliderDiv.slider({
       min: 0,
       max: this.demoVideo.getTotalNumFrames(),
@@ -1707,24 +1702,7 @@ Get live help! (NEW!)
       // triggers only when the user *manually* slides, *not* when the
       // value has been changed programmatically
       slide: (evt, ui) => {
-        this.demoVideo.currentFrame = ui.value; // refactor me!!!
-
-        var step = this.demoVideo.frameToStepNumber(ui.value);
-
-        // avoid unnecessary duplicate calls
-        if (step == curStep) {
-          return; // do nothing!
-        } else if (step > curStep) {
-          // as an optimization, simply play ahead from the current step
-          // rather than playing all steps from 0 to step again from scratch
-          this.demoVideo.playStepRange(curStep+1, step);
-        } else {
-          // if we're stepping backwards, then we have no choice but to
-          // play everything from scratch because we can't "undo" actions
-          assert(step >= 0 && step < curStep);
-          this.demoVideo.playFirstNSteps(step);
-        }
-        curStep = step;
+        this.demoVideo.jumpToFrame(ui.value);
       },
 
       // triggers both when user manually finishes sliding, and also
@@ -1738,26 +1716,10 @@ Get live help! (NEW!)
           // slider value was changed by a user interaction; don't do anything
           // since the 'slide' event handler should already take care of it
         } else {
-          this.demoVideo.currentFrame = ui.value; // refactor me!!!
-
           // slider value was changed programmatically, so we're
           // assuming that requestAnimationFrame has been used to schedule
           // periodic changes to the slider
-          var step = this.demoVideo.frameToStepNumber(ui.value);
-
-          // avoid unnecessary duplicate calls
-          if (step == curStep) {
-            return; // do nothing!
-          } else {
-            assert(step > curStep); // we must be going UP, never down
-
-            // we may "skip" steps in between frames if multiple steps
-            // occurred within one frame, so we need to play a range of steps
-            // starting at the one right after curStep (since curStep has
-            // already been played in a prior iteration):
-            this.demoVideo.playStepRange(curStep+1, step);
-            curStep = step;
-          }
+          this.demoVideo.jumpToFrame(ui.value);
         }
       }
     });
