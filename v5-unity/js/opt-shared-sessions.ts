@@ -479,6 +479,7 @@ class OptDemoVideo {
     }
 
     var startingFrame = this.currentFrame;
+    console.log('playFromCurrentFrame', startingFrame, 'totalFrames', totalFrames);
 
     // play the first N steps to get up to right before this.currentFrame
     // TODO: it's kinda klunky to convert "video" frames to steps, which
@@ -528,6 +529,7 @@ class OptDemoVideo {
     }
 
     // kick it off!
+    this.isPaused = false; // unpause me!
     this.rafTimerId = requestAnimationFrame((timestamp) => {
       starttime = timestamp;
       rafHelper(timestamp);
