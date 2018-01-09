@@ -611,7 +611,7 @@ class OptDemoVideo {
   // this method *instantaneously* plays all steps from 0 to n
   // (so everything it calls should work SYNCHRONOUSLY)
   playFirstNSteps(n: number) {
-    console.log('playFirstNSteps', n, 'curStep', this.currentStep);
+    console.log('playFirstNSteps', n, 'curStep', this.currentStep, 'curFrame', this.currentFrame);
     assert(this.isFrozen);
     assert(TogetherJS.running && this.frontend.isPlayingDemo);
     assert(n >= 0 && n < this.events.length);
@@ -621,6 +621,7 @@ class OptDemoVideo {
     for (var i = 0; i <= n; i++) {
       this.playStep(i);
     }
+    console.log('DONE playFirstNSteps', n, 'curStep', this.currentStep, 'curFrame', this.currentFrame);
   }
 
   // given a frame number, convert it to the step number (i.e., index in
@@ -646,12 +647,11 @@ class OptDemoVideo {
 
   jumpToFrame(frame) {
     assert(this.currentStep >= 0);
-    this.currentFrame = frame;
     var step = this.frameToStepNumber(frame);
 
     // avoid unnecessary calls
     if (step == this.currentStep) {
-      return; // do nothing!
+      // do nothing! pass thru
     } else if (step > this.currentStep) {
       // as an optimization, simply play ahead from the current step
       // rather than playing all steps from 0 to step again from scratch
@@ -662,6 +662,7 @@ class OptDemoVideo {
       assert(step >= 0 && step < this.currentStep);
       this.playFirstNSteps(step);
     }
+    this.currentFrame = frame; // do this at the VERY END after all the dust clears
   }
 
 
