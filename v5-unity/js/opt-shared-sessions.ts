@@ -332,8 +332,10 @@ class OptDemoVideo {
   origIgnoreForms;  // for interfacing with TogetherJS
   fps = 30; // frames per second for setInterval-based playback
 
-  sess; // the current live TogetherJS session object
+  currentFrame = 0; // for play/pause
+  isPaused = false;
 
+  sess; // the current live TogetherJS session object
 
   constructor(frontend, serializedJsonStr=null) {
     this.frontend = frontend;
@@ -461,6 +463,67 @@ class OptDemoVideo {
     TogetherJS(); // activate TogetherJS as the last step to start playback mode
   }
 
+  playFromCurrentFrame() {
+    assert(TogetherJS.running && this.frontend.isPlayingDemo);
+    this.isPaused = false;
+    var totalFrames = this.getTotalNumFrames();
+
+    var startingFrame = this.currentFrame;
+
+    // play the first N steps to get up to our current frame
+    // TODO: it's kinda klunky to convert "video" frames to steps
+    // (which are indices to entries in this.events)
+    if (startingFrame > 0) {
+      this.playFirstNSteps(this.frameToStepNumber(startingFrame));
+    }
+
+    var starttime = -1;
+    var rafHelper = (timestamp) => {
+      if (this.isPaused) {
+        return;
+      }
+
+      var diff_ms = timestamp - starttime;
+      var diff_sec = diff_ms / 1000;
+      console.log(diff_sec);
+
+      // don't forget to add this to startingFrame!
+      var frameNum = (this.secondsToFrameNum(diff_sec) + startingFrame);
+
+      // keep going until you're out of frames!
+      if (frameNum <= totalFrames) {
+        this.currentFrame = frameNum;
+
+        requestAnimationFrame(rafHelper);
+
+        // TODO: this is an abstraction violation since OptDemoVideo
+        // shouldn't know about #timeSlider, which is part of the GUI!
+        // (maybe string this through a callback?)
+        $("#timeSlider").slider("value", frameNum); // triggers slider 'change' event
+
+        // hack to throttle the frame rate to approximately this.fps
+        // (maybe necessary later if things seem too slow)
+        /*
+        setTimeout(() => {
+          requestAnimationFrame(rafHelper);
+          // do stuff here!
+        }, 1000 / this.fps);
+        */
+      }
+    }
+
+    // start it off!
+    requestAnimationFrame((timestamp) => {
+      starttime = timestamp;
+      rafHelper(timestamp);
+    });
+  }
+
+  pause() {
+    assert(TogetherJS.running && this.frontend.isPlayingDemo);
+    this.isPaused = true;
+  }
+
   // this is run as soon as TogetherJS is ready in playback mode
   playbackTogetherJsReady() {
     assert(TogetherJS.running && this.frontend.isPlayingDemo && !this.frontend.isRecordingDemo);
@@ -471,49 +534,7 @@ class OptDemoVideo {
     // STENT for debugging only
     (window as any).demoVideo = this;
 
-
-    var totalFrames = this.getTotalNumFrames();
-
-    window.ticksExecuted = 0; // temp
-
-    // experimental
-    // adapted from http://www.javascriptkit.com/javatutors/requestanimationframe.shtml
-    var starttime = -1;
-    var rafHelper = (timestamp) => {
-      var diff_ms = timestamp - starttime;
-      var diff_sec = diff_ms / 1000;
-      console.log(diff_sec);
-
-      var frameNum = this.secondsToFrameNum(diff_sec);
-
-      // keep going until you're out of frames!
-      if (frameNum <= totalFrames) {
-        requestAnimationFrame(rafHelper);
-        $("#timeSlider").slider("value", frameNum); // triggers slider 'change' event
-        window.ticksExecuted++;
-
-        // hack to throttle the frame rate to approximately this.fps
-        // (maybe necessary later if things seem too slow)
-        /*
-        setTimeout(() => {
-          requestAnimationFrame(rafHelper);
-          $("#timeSlider").slider("value", frameNum); // triggers slider 'change' event
-          window.ticksExecuted++;
-        }, 1000 / this.fps);
-        */
-      }
-    }
-
     this.setInitialAppState(); // reset app state to the initial one
-
-    // add a minor delay before starting this, which seems to work
-    // better than starting right away #weird:
-    setTimeout(() => {
-      requestAnimationFrame((timestamp) => {
-        starttime = timestamp;
-        rafHelper(timestamp);
-      });
-    }, 100);
   }
 
   playEvent(msg) {
@@ -566,8 +587,8 @@ class OptDemoVideo {
   }
 
   // this method uses a chain of setTimeouts fired one after another
-  // TODO: deprecate me soon
-  play() {
+  // TODO: deprecated
+  playDeprecated() {
     assert(this.isFrozen);
     assert(TogetherJS.running && this.frontend.isPlayingDemo);
 
@@ -1646,7 +1667,8 @@ Get live help! (NEW!)
   startPlayback() {
     $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
 
-    $("#togetherjsStatus").html('<div>Playing recording ...</div><div style="margin-top: 20px;" id="timeSlider"/>');
+    $("#togetherjsStatus").html(`<div><button id="demoPlayBtn">Play</button></div>
+                                  <div style="margin-top: 10px;" id="timeSlider"/>`);
 
     // temp. test for debugging only! load an existing video from localStorage
     if (!this.demoVideo) {
@@ -1657,6 +1679,20 @@ Get live help! (NEW!)
     }
 
     assert(this.demoVideo);
+
+    $("#demoPlayBtn").data('status', 'paused');
+    $("#demoPlayBtn").click(() => {
+      var me = $("#demoPlayBtn");
+      if (me.data('status') == 'paused') {
+        me.data('status', 'playing')
+        me.html('Pause');
+        this.demoVideo.playFromCurrentFrame();
+      } else {
+        me.data('status', 'paused')
+        me.html('Play');
+        this.demoVideo.pause();
+      }
+    });
 
     var timeSliderDiv = $('#timeSlider');
     timeSliderDiv.css('width', '700px');
@@ -1671,6 +1707,8 @@ Get live help! (NEW!)
       // triggers only when the user *manually* slides, *not* when the
       // value has been changed programmatically
       slide: (evt, ui) => {
+        this.demoVideo.currentFrame = ui.value; // refactor me!!!
+
         var step = this.demoVideo.frameToStepNumber(ui.value);
 
         // avoid unnecessary duplicate calls
@@ -1700,6 +1738,8 @@ Get live help! (NEW!)
           // slider value was changed by a user interaction; don't do anything
           // since the 'slide' event handler should already take care of it
         } else {
+          this.demoVideo.currentFrame = ui.value; // refactor me!!!
+
           // slider value was changed programmatically, so we're
           // assuming that requestAnimationFrame has been used to schedule
           // periodic changes to the slider
@@ -1730,7 +1770,8 @@ Get live help! (NEW!)
       .css('width', '0.6em')
       .css('height', '1.5em');
 
-    this.demoVideo.startPlayback();
+
+    this.demoVideo.startPlayback(); // do this last
   }
 
   requestPublicHelpButtonClick() {
