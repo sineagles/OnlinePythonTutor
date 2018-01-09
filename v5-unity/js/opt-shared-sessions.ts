@@ -336,7 +336,8 @@ class OptDemoVideo {
 
   currentFrame = 0; // for play/pause
   currentStep = 0;  // a 'step' is an index into events, whereas a 'frame' is an animation frame
-  isPaused = false;
+  isPaused = false;  // is playback currently paused?
+  rafTimerId = undefined;
 
   sess; // the current live TogetherJS session object
 
@@ -478,7 +479,6 @@ class OptDemoVideo {
     }
 
     var startingFrame = this.currentFrame;
-    this.isPaused = false;
 
     // play the first N steps to get up to right before this.currentFrame
     // TODO: it's kinda klunky to convert "video" frames to steps, which
@@ -503,7 +503,7 @@ class OptDemoVideo {
 
       // keep going until you're out of frames!
       if (frameNum <= totalFrames) {
-        requestAnimationFrame(rafHelper);
+        this.rafTimerId = requestAnimationFrame(rafHelper);
         this.currentFrame = frameNum;
 
         // TODO: this is an abstraction violation since OptDemoVideo
@@ -515,7 +515,7 @@ class OptDemoVideo {
         // (maybe necessary later if things seem too slow)
         /*
         setTimeout(() => {
-          requestAnimationFrame(rafHelper);
+          this.rafTimerId = requestAnimationFrame(rafHelper);
           // do stuff here!
         }, 1000 / this.fps);
         */
@@ -528,7 +528,7 @@ class OptDemoVideo {
     }
 
     // kick it off!
-    requestAnimationFrame((timestamp) => {
+    this.rafTimerId = requestAnimationFrame((timestamp) => {
       starttime = timestamp;
       rafHelper(timestamp);
     });
@@ -537,6 +537,10 @@ class OptDemoVideo {
   pause() {
     assert(TogetherJS.running && this.frontend.isPlayingDemo);
     this.isPaused = true;
+    if (this.rafTimerId) {
+      cancelAnimationFrame(this.rafTimerId);
+      this.rafTimerId = undefined;
+    }
   }
 
   // this is run as soon as TogetherJS is ready in playback mode
@@ -595,7 +599,7 @@ class OptDemoVideo {
 
   // play all steps from [lower, upper], inclusive
   playStepRange(lower: number, upper: number) {
-    console.log('playStepRange', lower, upper);
+    console.log('playStepRange', lower, upper, 'curStep:', this.currentStep);
     assert(lower <= upper);
     for (var i = lower; i <= upper; i++) {
       this.playStep(i);
@@ -605,7 +609,7 @@ class OptDemoVideo {
   // this method *instantaneously* plays all steps from 0 to n
   // (so everything it calls should work SYNCHRONOUSLY)
   playFirstNSteps(n: number) {
-    console.log('playFirstNSteps', n);
+    console.log('playFirstNSteps', n, 'curStep', this.currentStep);
     assert(this.isFrozen);
     assert(TogetherJS.running && this.frontend.isPlayingDemo);
     assert(n >= 0 && n < this.events.length);
@@ -1702,7 +1706,15 @@ Get live help! (NEW!)
       // triggers only when the user *manually* slides, *not* when the
       // value has been changed programmatically
       slide: (evt, ui) => {
-        this.demoVideo.jumpToFrame(ui.value);
+        if (this.demoVideo.rafTimerId) {
+          // emulate YouTube by 'jumping' to the given frame and
+          // resuming playback from there
+          this.demoVideo.pause();
+          this.demoVideo.jumpToFrame(ui.value);
+          this.demoVideo.playFromCurrentFrame();
+        } else {
+          this.demoVideo.jumpToFrame(ui.value);
+        }
       },
 
       // triggers both when user manually finishes sliding, and also
