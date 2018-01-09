@@ -240,10 +240,15 @@ function randomlyPickSurveyItem(key) {
   - we need to 'lock' the UI while the video is playing and only
     allow modifications once you push the 'pause' button and it's
     gotten a chance to save state
+    - maybe just set Ace editor to read-only? is that enough?
     - as soon as you UNPAUSE, always play up until the current step to
       refresh the display and erase the user's edits
 
-  - when you're playing and scrub, match the behavior of YouTube
+  - refactor the code so that OptDemoVideo doesn't have to know about
+    GUI elements
+
+  - make sure the Play/Pause button toggle status is always in sync with
+    playback activites
 
   - things sometimes get flaky if you *ALREADY* have code in the editor
     and then try to record a demo; sometimes it doesn't work properly.
@@ -264,9 +269,6 @@ function randomlyPickSurveyItem(key) {
     - also, it would be cool to get the user's current text block SELECTION
       too (bonus)
     - https://stackoverflow.com/questions/27625028/how-to-move-the-cursor-to-the-end-of-the-line-in-ace-editor
-
-  - be able to stop playback in the middle without the timer getting all
-    weird and (infinitely) loopy
 
   - minor: set a more instructive username for the tutor's mouse pointer
     - and also a better and more consistent COLOR
