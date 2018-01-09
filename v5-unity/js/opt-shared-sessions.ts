@@ -621,7 +621,6 @@ class OptDemoVideo {
     for (var i = 0; i <= n; i++) {
       this.playStep(i);
     }
-    console.log('DONE playFirstNSteps', n, 'curStep', this.currentStep, 'curFrame', this.currentFrame);
   }
 
   // given a frame number, convert it to the step number (i.e., index in
@@ -1701,6 +1700,8 @@ Get live help! (NEW!)
     var timeSliderDiv = $('#timeSlider');
     timeSliderDiv.css('width', '700px');
 
+    var interruptedPlaying = false; // did we yank the slider while the video was playing?
+
     timeSliderDiv.slider({
       min: 0,
       max: this.demoVideo.getTotalNumFrames(),
@@ -1711,13 +1712,12 @@ Get live help! (NEW!)
       slide: (evt, ui) => {
         if (this.demoVideo.rafTimerId) {
           // emulate YouTube by 'jumping' to the given frame and
-          // resuming playback from there
+          // pausing, then resuming playback when you let go (see
+          // 'change' event handler)
           this.demoVideo.pause();
-          this.demoVideo.jumpToFrame(ui.value);
-          this.demoVideo.playFromCurrentFrame();
-        } else {
-          this.demoVideo.jumpToFrame(ui.value);
+          interruptedPlaying = true;
         }
+        this.demoVideo.jumpToFrame(ui.value);
       },
 
       // triggers both when user manually finishes sliding, and also
@@ -1728,8 +1728,14 @@ Get live help! (NEW!)
         // was changed by a user-initiated event, then this code should be
         // executed ...
         if ((evt as any).originalEvent) {
-          // slider value was changed by a user interaction; don't do anything
-          // since the 'slide' event handler should already take care of it
+          // slider value was changed by a user interaction; only do
+          // something special if interruptedPlaying is on, in which
+          // case resume playback. this happens AFTER a user-initiated
+          // 'slide' event is done:
+          if (interruptedPlaying) {
+            this.demoVideo.playFromCurrentFrame();
+            interruptedPlaying = false;
+          }
         } else {
           // slider value was changed programmatically, so we're
           // assuming that requestAnimationFrame has been used to schedule
