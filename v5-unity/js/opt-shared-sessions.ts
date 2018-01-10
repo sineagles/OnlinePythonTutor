@@ -247,9 +247,6 @@ function randomlyPickSurveyItem(key) {
   - refactor the code so that OptDemoVideo doesn't have to know about
     GUI elements
 
-  - make sure the Play/Pause button toggle status is always in sync with
-    playback activites
-
   - things sometimes get flaky if you *ALREADY* have code in the editor
     and then try to record a demo; sometimes it doesn't work properly.
 
@@ -523,10 +520,7 @@ class OptDemoVideo {
         }, 1000 / this.fps);
         */
       } else {
-        // TODO: this is an abstraction violation since OptDemoVideo
-        // shouldn't know about #demoPlayBtn, which is part of the GUI!
-        // (maybe tunnel this through a callback?)
-        $("#demoPlayBtn").click(); // <-- refactor me, this is gross
+        this.frontend.setPlayPauseButton('paused');
       }
     }
 
@@ -1669,6 +1663,20 @@ Get live help! (NEW!)
     this.demoVideo.startRecording();
   }
 
+  setPlayPauseButton(state) {
+    var me = $("#demoPlayBtn");
+    if (state == 'playing') {
+      me.data('status', 'playing')
+      me.html('Pause');
+      this.demoVideo.playFromCurrentFrame();
+    } else {
+      assert(state == 'paused');
+      me.data('status', 'paused')
+      me.html('Play');
+      this.demoVideo.pause();
+    }
+  }
+
   startPlayback() {
     $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
 
@@ -1689,13 +1697,10 @@ Get live help! (NEW!)
     $("#demoPlayBtn").click(() => {
       var me = $("#demoPlayBtn");
       if (me.data('status') == 'paused') {
-        me.data('status', 'playing')
-        me.html('Pause');
-        this.demoVideo.playFromCurrentFrame();
+        this.setPlayPauseButton('playing');
       } else {
-        me.data('status', 'paused')
-        me.html('Play');
-        this.demoVideo.pause();
+        assert(me.data('status') == 'playing');
+        this.setPlayPauseButton('paused');
       }
     });
 
@@ -1704,9 +1709,11 @@ Get live help! (NEW!)
 
     var interruptedPlaying = false; // did we yank the slider while the video was playing?
 
+    var totalNumFrames = this.demoVideo.getTotalNumFrames();
+
     timeSliderDiv.slider({
       min: 0,
-      max: this.demoVideo.getTotalNumFrames(),
+      max: totalNumFrames,
       step: 1,
 
       // triggers only when the user *manually* slides, *not* when the
@@ -1735,7 +1742,12 @@ Get live help! (NEW!)
           // case resume playback. this happens AFTER a user-initiated
           // 'slide' event is done:
           if (interruptedPlaying) {
-            this.demoVideo.playFromCurrentFrame();
+            // literally an edge case -- if we've slid to the VERY END,
+            // don't resume playing since that will wrap back around to
+            // the beginning
+            if (ui.value < totalNumFrames) {
+              this.demoVideo.playFromCurrentFrame();
+            }
             interruptedPlaying = false;
           }
         } else {
