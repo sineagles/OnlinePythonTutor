@@ -1747,6 +1747,9 @@ Get live help! (NEW!)
             // the beginning
             if (ui.value < totalNumFrames) {
               this.demoVideo.playFromCurrentFrame();
+            } else {
+              // if we've slide the slider to the very end, pause it!
+              this.setPlayPauseButton('paused');
             }
             interruptedPlaying = false;
           }
