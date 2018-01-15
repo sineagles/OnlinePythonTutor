@@ -295,7 +295,6 @@ potentially useful links:
 http://air.ghost.io/recording-to-an-audio-file-using-html5-and-js/
 http://audior.ec/blog/recording-mp3-using-only-html5-and-javascript-recordmp3-js/
 https://developers.google.com/web/fundamentals/media/recording-audio/
-http://audior.ec/blog/recording-mp3-using-only-html5-and-javascript-recordmp3-js/
 https://www.html5rocks.com/en/tutorials/getusermedia/intro/
 https://developer.github.com/v3/gists/
 
