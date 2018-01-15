@@ -269,6 +269,12 @@ function randomlyPickSurveyItem(key) {
 
   - minor: set a more instructive username for the tutor's mouse pointer
     - and also a better and more consistent COLOR
+      - #0095DD may be good (matches chat window header background)
+
+  - minor: save UI adjustment preferences such as the width of the code
+    pane or visualizer pane so that when the video replays, it will
+    preserve those widths instead of always setting them back to the
+    defaults, which is helpful for users with smaller monitors
 
   - later: get this working better in live mode, which has some quirks
     - especially note handleUncaughtException in opt-live.ts since it
@@ -283,6 +289,15 @@ function randomlyPickSurveyItem(key) {
       server so that we don't need a server at all? this seems crucial
       both for performance and for being able to ship tutorials as
       self-contained packages
+
+potentially useful links:
+
+http://air.ghost.io/recording-to-an-audio-file-using-html5-and-js/
+http://audior.ec/blog/recording-mp3-using-only-html5-and-javascript-recordmp3-js/
+https://developers.google.com/web/fundamentals/media/recording-audio/
+http://audior.ec/blog/recording-mp3-using-only-html5-and-javascript-recordmp3-js/
+https://www.html5rocks.com/en/tutorials/getusermedia/intro/
+https://developer.github.com/v3/gists/
 
 */
 
