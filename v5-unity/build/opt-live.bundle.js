@@ -22585,6 +22585,7 @@ var OptFrontend = (function (_super) {
             // finally push a final entry with the current timestamp delta
             var curTs = new Date().getTime();
             encodedUh.push([this.myVisualizer.curInstr, curTs - firstTs]);
+<<<<<<< HEAD
         }
         return encodedUh;
     };
@@ -22674,6 +22675,97 @@ var OptFrontend = (function (_super) {
                 this.pyInputSetValue(CPP_BLANK_TEMPLATE);
             }
         }
+=======
+        }
+        return encodedUh;
+    };
+    // this feature was deployed on 2015-09-17, so check logs for
+    // viz_interaction.py
+    OptFrontend.prototype.submitUpdateHistory = function (why) {
+        if (this.myVisualizer) {
+            var encodedUh = this.compressUpdateHistoryList();
+            var encodedUhJSON = JSON.stringify(encodedUh);
+            var myArgs = { session_uuid: this.sessionUUID,
+                user_uuid: this.userUUID,
+                updateHistoryJSON: encodedUhJSON };
+            if (why) {
+                myArgs.why = why;
+            }
+            $.get('viz_interaction.py', myArgs, function (dat) { });
+        }
+    };
+    OptFrontend.prototype.initAceEditor = function (height) {
+        var _this = this;
+        pytutor_1.assert(!this.pyInputAceEditor);
+        this.pyInputAceEditor = ace.edit('codeInputPane');
+        var s = this.pyInputAceEditor.getSession();
+        // tab -> 4 spaces
+        s.setTabSize(4);
+        s.setUseSoftTabs(true);
+        // disable extraneous indicators:
+        s.setFoldStyle('manual'); // no code folding indicators
+        s.getDocument().setNewLineMode('unix'); // canonicalize all newlines to unix format
+        this.pyInputAceEditor.setHighlightActiveLine(false);
+        this.pyInputAceEditor.setShowPrintMargin(false);
+        this.pyInputAceEditor.setBehavioursEnabled(false);
+        this.pyInputAceEditor.$blockScrolling = Infinity; // kludgy to shut up weird warnings
+        // auto-grow height as fit
+        this.pyInputAceEditor.setOptions({ minLines: 18, maxLines: 1000 });
+        $('#codeInputPane').css('width', '700px');
+        $('#codeInputPane').css('height', height + 'px'); // VERY IMPORTANT so that it works on I.E., ugh!
+        this.initDeltaObj();
+        this.pyInputAceEditor.on('change', function (e) {
+            // 2017-11-21: convert all tabs to 4 spaces so that when you paste
+            // in code from somewhere else that contains tabs, instantly
+            // change all those tabs to spaces. note that all uses of 'tab' key
+            // within the Ace editor on this page will result in spaces (i.e.,
+            // "soft tabs")
+            var curVal = _this.pyInputGetValue();
+            if (curVal.indexOf('\t') >= 0) {
+                _this.pyInputSetValue(curVal.replace(exports.allTabsRE, '    '));
+                console.log("Converted all tabs to spaces");
+            }
+            $.doTimeout('pyInputAceEditorChange', CODE_SNAPSHOT_DEBOUNCE_MS, _this.snapshotCodeDiff.bind(_this)); // debounce
+            _this.clearFrontendError();
+            s.clearAnnotations();
+        });
+        // don't do real-time syntax checks:
+        // https://github.com/ajaxorg/ace/wiki/Syntax-validation
+        s.setOption("useWorker", false);
+        this.setAceMode();
+        this.pyInputAceEditor.focus();
+    };
+    OptFrontend.prototype.setAceMode = function () {
+        var selectorVal = $('#pythonVersionSelector').val();
+        var mod;
+        var tabSize = 2;
+        var editorVal = $.trim(this.pyInputGetValue());
+        if (editorVal === JAVA_BLANK_TEMPLATE || editorVal === CPP_BLANK_TEMPLATE) {
+            editorVal = '';
+            this.pyInputSetValue(editorVal);
+        }
+        if (selectorVal === 'java') {
+            mod = 'java';
+            if (editorVal === '') {
+                this.pyInputSetValue(JAVA_BLANK_TEMPLATE);
+            }
+        }
+        else if (selectorVal === 'js') {
+            mod = 'javascript';
+        }
+        else if (selectorVal === 'ts') {
+            mod = 'typescript';
+        }
+        else if (selectorVal === 'ruby') {
+            mod = 'ruby';
+        }
+        else if (selectorVal === 'c' || selectorVal == 'cpp') {
+            mod = 'c_cpp';
+            if (editorVal === '') {
+                this.pyInputSetValue(CPP_BLANK_TEMPLATE);
+            }
+        }
+>>>>>>> master
         else {
             pytutor_1.assert(selectorVal === '2' || selectorVal == '3');
             mod = 'python';
@@ -22723,6 +22815,7 @@ var OptFrontend = (function (_super) {
         if (this.pyInputAceEditor && $.trim(this.pyInputGetValue()) == '') {
             this.setFronendError(["Type in some code to visualize."]);
             return;
+<<<<<<< HEAD
         }
         _super.prototype.executeCodeFromScratch.call(this);
     };
@@ -22790,6 +22883,75 @@ var OptFrontend = (function (_super) {
                 return [false]; // pass through to let other hooks keep handling
             });
         }
+=======
+        }
+        _super.prototype.executeCodeFromScratch.call(this);
+    };
+    OptFrontend.prototype.executeCode = function (forceStartingInstr, forceRawInputLst) {
+        if (forceStartingInstr === void 0) { forceStartingInstr = 0; }
+        if (forceRawInputLst === void 0) { forceRawInputLst = undefined; }
+        // if you're in display mode, kick back into edit mode before executing
+        // or else the display might not refresh properly ... ugh krufty
+        if (this.appMode != 'edit') {
+            this.enterEditMode();
+        }
+        if (forceRawInputLst !== undefined && forceRawInputLst !== null) {
+            this.rawInputLst = forceRawInputLst;
+        }
+        var backendOptionsObj = this.getBaseBackendOptionsObj();
+        var frontendOptionsObj = this.getBaseFrontendOptionsObj();
+        frontendOptionsObj.startingInstruction = forceStartingInstr;
+        this.snapshotCodeDiff(); // do ONE MORE snapshot before we execute, or else
+        // we'll miss a diff if the user hits Visualize Execution
+        // very shortly after finishing coding
+        if (this.deltaObj) {
+            this.deltaObj.executeTime = new Date().getTime();
+        }
+        this.executeCodeAndCreateViz(this.pyInputGetValue(), $('#pythonVersionSelector').val(), backendOptionsObj, frontendOptionsObj, 'pyOutputPane');
+        this.initDeltaObj(); // clear deltaObj to start counting over again
+    };
+    OptFrontend.prototype.finishSuccessfulExecution = function () {
+        var _this = this;
+        this.enterDisplayMode(); // do this first!
+        if (this.myVisualizer) {
+            this.myVisualizer.add_pytutor_hook("end_updateOutput", function (args) {
+                // TODO: implement for codeopticon
+                // debounce to compress a bit ... 250ms feels "right"
+                $.doTimeout('updateOutputLogEvent', 250, function () {
+                    var obj = { type: 'updateOutput', step: args.myViz.curInstr,
+                        curline: args.myViz.curLineNumber,
+                        prevline: args.myViz.prevLineNumber };
+                    // optional fields
+                    if (args.myViz.curLineExceptionMsg) {
+                        obj.exception = args.myViz.curLineExceptionMsg;
+                    }
+                    if (args.myViz.curLineIsReturn) {
+                        obj.curLineIsReturn = true;
+                    }
+                    if (args.myViz.prevLineIsReturn) {
+                        obj.prevLineIsReturn = true;
+                    }
+                    _this.logEventCodeopticon(obj);
+                });
+                // 2014-05-25: implemented more detailed tracing for surveys
+                if (args.myViz.creationTime) {
+                    var curTs = new Date().getTime();
+                    var uh = args.myViz.updateHistory;
+                    pytutor_1.assert(uh.length > 0); // should already be seeded with an initial value
+                    if (uh.length > 1) {
+                        var lastTs = uh[uh.length - 1][1];
+                        // (debounce entries that are less than 1 second apart to
+                        // compress the logs a bit when there's rapid scrubbing or scrolling)
+                        if ((curTs - lastTs) < 1000) {
+                            uh.pop(); // get rid of last entry before pushing a new entry
+                        }
+                    }
+                    uh.push([args.myViz.curInstr, curTs]);
+                }
+                return [false]; // pass through to let other hooks keep handling
+            });
+        }
+>>>>>>> master
         // 2014-05-25: implemented more detailed tracing for surveys
         this.myVisualizer.creationTime = new Date().getTime();
         // each element will be a two-element list consisting of:
@@ -22888,9 +23050,12 @@ var OptFrontend = (function (_super) {
             this.submitUpdateHistory('editMode');
             this.myVisualizer = null; // yikes!
             $(document).scrollTop(0); // scroll to top to make UX better on small monitors
+<<<<<<< HEAD
             // *after* the editor is shown, force it to refresh its contents
             // (using the misleadingly-named resize(true) method)
             this.pyInputAceEditor.resize(true);
+=======
+>>>>>>> master
             var s = { mode: 'edit' };
             // keep these persistent so that they survive page reloads
             // keep these persistent so that they survive page reloads
@@ -23024,6 +23189,7 @@ var OptFrontend = (function (_super) {
             pytutor_1.assert(false); // TODO: this won't currently work with Webpack, so fix it later
             codeopticonSession = queryStrOptions.codeopticonSession; // GLOBAL defined in codeopticon-learner.js
             codeopticonUsername = queryStrOptions.codeopticonUsername; // GLOBAL defined in codeopticon-learner.js
+<<<<<<< HEAD
         }
         if ((queryStrOptions.appMode == 'display' ||
             queryStrOptions.appMode == 'visualize' /* deprecated */) &&
@@ -24393,10 +24559,1078 @@ var OptFrontendSharedSessions = (function (_super) {
             if (savedVideoJson) {
                 this.demoVideo = new OptDemoVideo(this, savedVideoJson);
             }
+=======
+        }
+        if ((queryStrOptions.appMode == 'display' ||
+            queryStrOptions.appMode == 'visualize' /* deprecated */) &&
+            queryStrOptions.preseededCode /* jump to 'display' mode only with preseeded code */) {
+            this.executeCode(this.preseededCurInstr); // will switch to 'display' mode
+        }
+        $.bbq.removeState(); // clean up the URL no matter what
+    };
+    return OptFrontend;
+}(opt_frontend_common_1.AbstractBaseFrontend));
+exports.OptFrontend = OptFrontend; // END class OptFrontend
+
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
+/* 34 */
+/***/ (function(module, exports, __webpack_require__) {
+
+__webpack_require__(1)(__webpack_require__(48))
+
+/***/ }),
+/* 35 */
+/***/ (function(module, exports, __webpack_require__) {
+
+__webpack_require__(1)(__webpack_require__(49))
+
+/***/ }),
+/* 36 */
+/***/ (function(module, exports, __webpack_require__) {
+
+__webpack_require__(1)(__webpack_require__(50))
+
+/***/ }),
+/* 37 */
+/***/ (function(module, exports, __webpack_require__) {
+
+__webpack_require__(1)(__webpack_require__(51))
+
+/***/ }),
+/* 38 */
+/***/ (function(module, exports, __webpack_require__) {
+
+__webpack_require__(1)(__webpack_require__(52))
+
+/***/ }),
+/* 39 */
+/***/ (function(module, exports, __webpack_require__) {
+
+__webpack_require__(1)(__webpack_require__(53))
+
+/***/ }),
+/* 40 */
+/***/ (function(module, exports, __webpack_require__) {
+
+__webpack_require__(1)(__webpack_require__(54))
+
+/***/ }),
+/* 41 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(jQuery, $) {// Python Tutor: https://github.com/pgbovine/OnlinePythonTutor/
+// Copyright (C) Philip Guo (philip@pgbovine.net)
+// LICENSE: https://github.com/pgbovine/OnlinePythonTutor/blob/master/LICENSE.txt
+
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
+// Implements shared sessions (a.k.a. Codechella)
+// VERY IMPORTANT to grab the value of togetherjsInUrl before loading
+// togetherjs-min.js, since loading that file deletes #togetherjs from URL
+// NB: kinda gross global
+//
+// if this is true, this means that you JOINED SOMEONE ELSE'S SESSION
+// rather than starting your own session
+var togetherjsInUrl = !!(window.location.hash.match(/togetherjs=/)); // turn into bool
+if (togetherjsInUrl) {
+    console.log("togetherjsInUrl!");
+}
+else {
+    // if you're *not* loading a URL with togetherjs in it (i.e., joining into
+    // an existing session), then do this hack at the VERY BEGINNING before
+    // loading togetherjs-min.js to prevent TogetherJS from annoyingly
+    // auto-starting when, say, you're in a shared session and reload
+    // your browser (which can lead to weird interactions with the help queue)
+    console.log("NOT togetherjsInUrl!");
+    window.TogetherJSConfig_noAutoStart = true;
+}
+__webpack_require__(42);
+__webpack_require__(44); // https://momentjs.com/
+__webpack_require__(46); // http://hgoebl.github.io/mobile-detect.js/ https://github.com/hgoebl/mobile-detect.js
+exports.TogetherJS = window.TogetherJS;
+var opt_frontend_common_1 = __webpack_require__(7);
+var opt_frontend_1 = __webpack_require__(33);
+var pytutor_1 = __webpack_require__(5);
+// copy-pasta from // https://github.com/kidh0/jquery.idle
+/**
+ *  File: jquery.idle.js
+ *  Title:  JQuery Idle.
+ *  A dead simple jQuery plugin that executes a callback function if the user is idle.
+ *  About: Author
+ *  Henrique Boaventura (hboaventura@gmail.com).
+ *  About: Version
+ *  1.2.7
+ *  About: License
+ *  Copyright (C) 2013, Henrique Boaventura (hboaventura@gmail.com).
+ *  MIT License:
+ *  Permission is hereby granted, free of charge, to any person obtaining a copy
+ *  of this software and associated documentation files (the "Software"), to deal
+ *  in the Software without restriction, including without limitation the rights
+ *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *  copies of the Software, and to permit persons to whom the Software is
+ *  furnished to do so, subject to the following conditions:
+ *  - The above copyright notice and this permission notice shall be included in all
+ *    copies or substantial portions of the Software.
+ *  - THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *    SOFTWARE.
+ **/
+/*jslint browser: true */
+/*global jQuery: false */
+(function ($) {
+    'use strict';
+    $.fn.idle = function (options) {
+        var defaults = {
+            idle: 60000,
+            events: 'mousemove keydown mousedown touchstart',
+            onIdle: function () { },
+            onActive: function () { },
+            onHide: function () { },
+            onShow: function () { },
+            keepTracking: true,
+            startAtIdle: false,
+            recurIdleCall: false
+        }, idle = options.startAtIdle || false, visible = !options.startAtIdle || true, settings = $.extend({}, defaults, options), lastId = null, resetTimeout, timeout;
+        //event to clear all idle events
+        $(this).on("idle:stop", {}, function (event) {
+            $(this).off(settings.events);
+            settings.keepTracking = false;
+            resetTimeout(lastId, settings);
+        });
+        resetTimeout = function (id, settings) {
+            if (idle) {
+                idle = false;
+                settings.onActive.call();
+            }
+            clearTimeout(id);
+            if (settings.keepTracking) {
+                return timeout(settings);
+            }
+        };
+        timeout = function (settings) {
+            var timer = (settings.recurIdleCall ? setInterval : setTimeout), id;
+            id = timer(function () {
+                idle = true;
+                settings.onIdle.call();
+            }, settings.idle);
+            return id;
+        };
+        return this.each(function () {
+            lastId = timeout(settings);
+            $(this).on(settings.events, function (e) {
+                lastId = resetTimeout(lastId, settings);
+            });
+            if (settings.onShow || settings.onHide) {
+                $(document).on("visibilitychange webkitvisibilitychange mozvisibilitychange msvisibilitychange", function () {
+                    if (document.hidden || document.webkitHidden || document.mozHidden || document.msHidden) {
+                        if (visible) {
+                            visible = false;
+                            settings.onHide.call();
+                        }
+                    }
+                    else {
+                        if (!visible) {
+                            visible = true;
+                            settings.onShow.call();
+                        }
+                    }
+                });
+            }
+        });
+    };
+}(jQuery));
+// "Get live help!" survey versions
+// initial pilot version: deployed on 2017-11-10, taken down on 2017-11-13
+// deployed a single version of the survey to EVERYONE who requested or
+// volunteered to help in the server logs under the /survey endpoint, i recorded
+// *ONLY* those people who made a non-null response (for the most part) ...
+// which is unlike subsequent versions, which record ALL impressions, even null
+// responses, so that we can know approximately how many times each survey
+// question got deployed and can thus get a rough response rate
+/*
+var liveHelpSurvey = {
+  requestHelp:   [{prompt: 'You are now on the help queue. Please support our research by answering below: Why did you decide to ask for help at this time? What motivated you to click the "Get live help" button?',
+                  v: 'r1'}],
+  volunteerHelp: [{prompt: "Thanks for volunteering! You're about to join a live chat session. Please support our research by answering below: Why did you decide to volunteer at this time? What motivated you to click on this help link?",
+                  v: 'h1'}],
+};
+*/
+// second version, deployed on 2017-11-13. randomly select one of these
+// questions to ask whenever a user triggers the survey, but save their
+// responses in localStorage so that when they return, it will ask them
+// a different question. starting from this version, th server logs
+// under the /survey endpoint will record *all* responses to the survey,
+// even null responses, since we can use that data to calculate survey
+// response rates.
+var liveHelpSurvey = {
+    requestHelp: [{ prompt: 'You\'re now on the help queue. Support our research by answering below:\n\nWhy did you decide to ask for help at this time? What motivated you to click the "Get live help" button?',
+            v: 'r2a' },
+        { prompt: 'You\'re now on the help queue. Support our research by answering below:\n\nWhy are you asking for help anonymously on this website? Are there people you know around you who can help as well?',
+            v: 'r2b' },
+        { prompt: 'You\'re now on the help queue. Support our research by answering below:\n\nHow did you first find this website? What are you currently using this website for?',
+            v: 'r2c' },
+    ],
+    volunteerHelp: [{ prompt: "Thanks for volunteering! Support our research by answering below:\n\nWhy did you decide to volunteer at this time? What motivated you to click on this help link?",
+            v: 'h2a' },
+        { prompt: "Thanks for volunteering! Support our research by answering below:\n\nWhat is your current profession (e.g., student, teaching assistant, instructor)? Why are you using this website?",
+            v: 'h2b' },
+        { prompt: "Thanks for volunteering! Support our research by answering below:\n\nWhat kind of code are you working on right now? What made you decide to stop coding and volunteer at this time?",
+            v: 'h2c' },
+    ]
+};
+// randomly picks a survey item from liveHelpSurvey and mutates
+// localStorage to record that this has been randomly picked, so it won't
+// be picked again during the next call
+function randomlyPickSurveyItem(key) {
+    var lst = liveHelpSurvey[key];
+    var filteredLst = [];
+    // filter lst down to filteredLst to find all elements whose version
+    // numbers 'v' does NOT already exist in localStorage
+    if (opt_frontend_common_1.supports_html5_storage()) {
+        lst.forEach(function (e) {
+            if (!localStorage.getItem(e.v)) {
+                filteredLst.push(e);
+            }
+        });
+    }
+    else {
+        filteredLst = lst;
+    }
+    // if ALL entries have been filtered out, then reset everything and
+    // start from scratch:
+    if (filteredLst.length == 0) {
+        if (opt_frontend_common_1.supports_html5_storage()) {
+            lst.forEach(function (e) {
+                localStorage.removeItem(e.v);
+            });
+        }
+        filteredLst = lst;
+    }
+    // now randomly pick an entry and show it:
+    // random number in [0, filteredLst.length)
+    var randInt = Math.floor(Math.random() * filteredLst.length);
+    var randomEntry = filteredLst[randInt];
+    if (opt_frontend_common_1.supports_html5_storage()) {
+        localStorage.setItem(randomEntry.v, '1');
+    }
+    return randomEntry;
+}
+var OptFrontendSharedSessions = (function (_super) {
+    __extends(OptFrontendSharedSessions, _super);
+    function OptFrontendSharedSessions(params) {
+        var _this = this;
+        if (params === void 0) { params = {}; }
+        _super.call(this, params);
+        this.executeCodeSignalFromRemote = false;
+        this.togetherjsSyncRequested = false;
+        this.pendingCodeOutputScrollTop = null;
+        this.updateOutputSignalFromRemote = false;
+        this.wantsPublicHelp = false;
+        this.disableSharedSessions = false; // if we're on mobile/tablets, disable this entirely since it doesn't work on mobile
+        this.isIdle = false;
+        this.peopleIveKickedOut = []; // #savage
+        this.fullCodeSnapshots = []; // a list of full snapshots of code taken at given times, with:
+        this.curPeekSnapshotIndex = -1; // current index you're peeking at inside of fullCodeSnapshots, -1 if not peeking at anything
+        this.initTogetherJS();
+        this.pyInputAceEditor.getSession().on("change", function (e) {
+            // unfortunately, Ace doesn't detect whether a change was caused
+            // by a setValue call
+            if (exports.TogetherJS.running) {
+                exports.TogetherJS.send({ type: "codemirror-edit" });
+            }
+        });
+        // NB: don't sync changeScrollTop for Ace since I can't get it working yet
+        //this.pyInputAceEditor.getSession().on('changeScrollTop', () => {
+        //  if (typeof TogetherJS !== 'undefined' && TogetherJS.running) {
+        //    $.doTimeout('codeInputScroll', 100, function() { // debounce
+        //      // note that this will send a signal back and forth both ways
+        //      // (there's no easy way to prevent this), but it shouldn't keep
+        //      // bouncing back and forth indefinitely since no the second signal
+        //      // causes no additional scrolling
+        //      TogetherJS.send({type: "codeInputScroll",
+        //                       scrollTop: pyInputGetScrollTop()});
+        //    });
+        //  }
+        //});
+        var md = new MobileDetect(window.navigator.userAgent);
+        if (md.mobile()) {
+            this.disableSharedSessions = true;
+        }
+        if (this.disableSharedSessions) {
+            return; // early exit, so we don't do any other initialization below here ...
+        }
+        var ssDiv = "\n\n<button id=\"requestHelpBtn\" type=\"button\" class=\"togetherjsBtn\" style=\"margin-bottom: 6pt; font-weight: bold;\">\nGet live help! (NEW!)\n</button>\n\n<div id=\"ssDiv\">\n  <button id=\"sharedSessionBtn\" type=\"button\" class=\"togetherjsBtn\" style=\"font-size: 9pt;\">\n  Start private chat session\n  </button>\n  <div style=\"margin-top: 5px; font-size: 8pt;\">\n  <a href=\"https://www.youtube.com/watch?v=oDY7ScMPtqI\" target=\"_blank\">How do I use this?</a>\n  </div>\n</div>\n\n<div id=\"sharedSessionDisplayDiv\" style=\"display: none; margin-right: 5px;\">\n  <button id=\"stopTogetherJSBtn\" type=\"button\" class=\"togetherjsBtn\">\n  Stop this chat session\n  </button>\n\n  <div style=\"width: 200px; font-size: 8pt; color: #666; margin-top: 8px;\">\n  Note that your chat logs and code may be recorded, anonymized, and\n  analyzed for our research.\n  </div>\n</div>\n";
+        var togetherJsDiv = "\n<div id=\"togetherjsStatus\">\n  <div id=\"publicHelpQueue\"></div>\n</div>\n";
+        $("td#headerTdLeft").append(ssDiv);
+        $("td#headerTdRight").append(togetherJsDiv);
+        // do this all after creating the DOM elements above dynamically:
+        $("#sharedSessionBtn").click(this.startSharedSession.bind(this, false));
+        $("#stopTogetherJSBtn").click(exports.TogetherJS); // toggles off
+        $("#requestHelpBtn").click(this.requestPublicHelpButtonClick.bind(this));
+        // jquery.idle:
+        $(document).idle({
+            onIdle: function () {
+                _this.isIdle = true;
+                console.log('I\'m idle');
+            },
+            onActive: function () {
+                _this.isIdle = false; // set this first!
+                console.log('I\'m back!');
+                // update the help queue as soon as you're back:
+                _this.getHelpQueue();
+                // ... and maybe snappy snapshot it
+                _this.periodicMaybeTakeSnapshot();
+            },
+            idle: 60 * 1000 // 1-minute timeout by default for idleness
+        });
+        // polling every 5 seconds seems reasonable; note that you won't
+        // send an HTTP request to the server when this.isIdle is true, to conserve
+        // resources and get a more accurate indicator of who is active at
+        // the moment
+        setInterval(this.getHelpQueue.bind(this), 5 * 1000);
+        this.getHelpQueue(); // call it once on page load
+        // update this pretty frequently; doesn't require any ajax calls:
+        setInterval(this.updateModerationPanel.bind(this), 2 * 1000);
+        // take a snapshot every 30 seconds or so if you're in a TogetherJS
+        // session and not idle
+        setInterval(this.periodicMaybeTakeSnapshot.bind(this), 30 * 1000);
+        setInterval(this.periodicMaybeChatNudge.bind(this), 60 * 1000);
+        // add an additional listener in addition to whatever the superclasses added
+        window.addEventListener("hashchange", function (e) {
+            if (exports.TogetherJS.running && !_this.isExecutingCode) {
+                exports.TogetherJS.send({ type: "hashchange",
+                    appMode: _this.appMode,
+                    codeInputScrollTop: _this.pyInputGetScrollTop(),
+                    myAppState: _this.getAppState() });
+            }
+        });
+        // shut down TogetherJS if it's still running
+        // (use 'on' to add an additional listener in addition to whatever event
+        // handlers the superclasses already added)
+        $(window).on('beforeunload', function () {
+            if (exports.TogetherJS.running) {
+                exports.TogetherJS();
+            }
+        });
+        $(window).on('unload', function () {
+            if (exports.TogetherJS.running) {
+                exports.TogetherJS();
+            }
+        });
+    }
+    OptFrontendSharedSessions.prototype.langToEnglish = function (lang) {
+        if (lang === '2') {
+            return 'Python2';
+        }
+        else if (lang === '3') {
+            return 'Python3';
+        }
+        else if (lang === 'java') {
+            return 'Java';
+        }
+        else if (lang === 'js') {
+            return 'JavaScript';
+        }
+        else if (lang === 'ts') {
+            return 'TypeScript';
+        }
+        else if (lang === 'ruby') {
+            return 'Ruby';
+        }
+        else if (lang === 'c') {
+            return 'C';
+        }
+        else if (lang === 'cpp') {
+            return 'C++';
+        }
+        return '???'; // fail soft, even though this shouldn't ever happen
+    };
+    OptFrontendSharedSessions.prototype.getHelpQueue = function () {
+        var _this = this;
+        // VERY IMPORTANT: to avoid overloading the server, don't send these
+        // requests when you're idle
+        if (this.isIdle) {
+            $("#publicHelpQueue").empty(); // clear when idle so that you don't have stale results
+            return; // return early!
+        }
+        var ghqUrl = exports.TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/getHelpQueue";
+        $.ajax({
+            url: ghqUrl,
+            dataType: "json",
+            data: { user_uuid: this.userUUID },
+            error: function () {
+                console.log('/getHelpQueue error');
+                if (_this.wantsPublicHelp) {
+                    $("#publicHelpQueue").html('ERROR: help server is down. If you had previously asked for help, something is wrong; stop this session and try again later.');
+                }
+                else {
+                    $("#publicHelpQueue").empty(); // avoid showing stale results
+                }
+            },
+            success: function (resp) {
+                var displayEmptyQueueMsg = false;
+                var me = _this;
+                if (resp && resp.length > 0) {
+                    $("#publicHelpQueue").empty();
+                    var myShareId = exports.TogetherJS.shareId();
+                    var regularEntries = [];
+                    var grayedOutEntries = [];
+                    var idleTimeoutMs = 3 * 60 * 1000; // 3 minutes seems reasonable
+                    resp.forEach(function (e) {
+                        // sometimes there are bogus incomplete entries on the queue. if
+                        // there's not even a URL, then nobody can join the chat,
+                        // so skip right away at the VERY BEGINNING:
+                        if (!e.url) {
+                            return;
+                        }
+                        // if there's no username, then something else is wrong, so punt as well ...
+                        if (!e.username) {
+                            return;
+                        }
+                        // when testing on localhost, we sometimes use the
+                        // production TogetherJS chat server, but we don't want to
+                        // show localhost entries on the global queue for people on
+                        // the real site since there's no way they can jump in to join
+                        //
+                        // i.e., if your browser isn't on localhost but the URL of
+                        // the help queue entry is on localhost, then *don't* display it
+                        if ((window.location.href.indexOf('localhost') < 0) &&
+                            (e.url.indexOf('localhost') >= 0)) {
+                            return;
+                        }
+                        // use moment.js to generate human-readable relative times:
+                        var d = new Date();
+                        var timeSinceCreationStr = moment(d.valueOf() - e.timeSinceCreation).fromNow();
+                        var timeSinceLastMsgStr = moment(d.valueOf() - e.timeSinceLastMsg).fromNow();
+                        var langName = _this.langToEnglish(e.lang);
+                        var curStr = e.username;
+                        if (e.country && e.city) {
+                            // print 'region' (i.e., state) for US addresses:
+                            if (e.country === "United States" && e.region) {
+                                curStr += ' from ' + e.city + ', ' + e.region + ', US needs help with ' + langName;
+                            }
+                            else {
+                                curStr += ' from ' + e.city + ', ' + e.country + ' needs help with ' + langName;
+                            }
+                        }
+                        else if (e.country) {
+                            curStr += ' from ' + e.country + ' needs help with ' + langName;
+                        }
+                        else if (e.city) {
+                            curStr += ' from ' + e.city + ' needs help with ' + langName;
+                        }
+                        else {
+                            curStr += ' needs help with ' + langName;
+                        }
+                        if (e.id === myShareId) {
+                            curStr += ' - <span class="redBold">this is you!</span>';
+                        }
+                        else {
+                            // only display this if there's *currently* more than 1
+                            // person in the session AND more than 1 person has chatted.
+                            if ((e.numClients > 1) && (e.numChatters > 1)) {
+                                if (e.numChatters < e.numClients) {
+                                    curStr += ' - ' + String(e.numChatters) + ' people chatting';
+                                }
+                                else {
+                                    curStr += ' - ' + String(e.numClients) + ' people chatting';
+                                }
+                            }
+                            curStr += " - <a class=\"gotoHelpLink\" data-id=\"" + e.id + "\" href=\"" + e.url + "\" target=\"_blank\">click to help</a>";
+                        }
+                        if (e.timeSinceLastMsg < idleTimeoutMs) {
+                            curStr += ' <span class="helpQueueSmallText">(active ' + timeSinceLastMsgStr + ', requested ' + timeSinceCreationStr + ') </span>';
+                            regularEntries.push(curStr);
+                        }
+                        else {
+                            curStr += ' <span class="helpQueueSmallText">(IDLE: last active ' + timeSinceLastMsgStr + ', requested ' + timeSinceCreationStr + ') </span>';
+                            grayedOutEntries.push(curStr);
+                        }
+                    });
+                    if ((regularEntries.length + grayedOutEntries.length) > 0) {
+                        if (!_this.wantsPublicHelp) {
+                            $("#publicHelpQueue").html('<div style="margin-bottom: 5px;">These Python Tutor users are asking for help right now. Please volunteer to help!</div>');
+                        }
+                        else {
+                            // if i'm asking for public help and am currently on the
+                            // queue, eliminate this redundant message:
+                            $("#publicHelpQueue").html('');
+                        }
+                        regularEntries.forEach(function (e) {
+                            $("#publicHelpQueue").append('<li>' + e + '</li>');
+                            $("#publicHelpQueue a.gotoHelpLink").last().css('font-weight', 'bold');
+                        });
+                        // gray it out to make it not look as prominent
+                        grayedOutEntries.forEach(function (e) {
+                            $("#publicHelpQueue").append('<li style="color: #888;">' + e + '</li>');
+                        });
+                        // add these handlers AFTER the respective DOM nodes have been added above:
+                        $(".gotoHelpLink").click(function () {
+                            var surveyItem = randomlyPickSurveyItem('volunteerHelp');
+                            var miniSurveyResponse = prompt(surveyItem.prompt);
+                            // always log every impression, even if miniSurveyResponse is blank,
+                            // since we can know how many times that survey question was ever seen:
+                            var idToJoin = $(this).attr('data-id');
+                            var surveyUrl = exports.TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/survey";
+                            $.ajax({
+                                url: surveyUrl,
+                                dataType: "json",
+                                data: { id: idToJoin, user_uuid: me.userUUID, kind: 'volunteerHelp', v: surveyItem.v, response: miniSurveyResponse },
+                                success: function () { },
+                                error: function () { },
+                            });
+                            return true; // ALWAYS cause the link to be clicked
+                        });
+                    }
+                    else {
+                        displayEmptyQueueMsg = true;
+                    }
+                }
+                else {
+                    displayEmptyQueueMsg = true;
+                }
+                if (displayEmptyQueueMsg) {
+                    if (_this.wantsPublicHelp) {
+                        $("#publicHelpQueue").html('Nobody is currently asking for help. If you had previously asked for help, something is wrong; stop this session and try again later.');
+                    }
+                    else {
+                        $("#publicHelpQueue").html('Nobody is currently asking for help using the "Get live help!" button.');
+                    }
+                }
+            },
+        });
+    };
+    // did I *originally* create this session, or did I join?
+    OptFrontendSharedSessions.prototype.meCreatedThisSession = function () {
+        if (!exports.TogetherJS.running) {
+            return false;
+        }
+        var session = exports.TogetherJS.require("session");
+        var meIsCreator = !session.isClient; // adapted from lib/togetherjs/togetherjs/togetherjsPackage.js
+        return meIsCreator;
+    };
+    // this will be called periodically, so make sure it doesn't block
+    // execution by, say, taking too long:
+    OptFrontendSharedSessions.prototype.updateModerationPanel = function () {
+        // only do this if you initiated the session AND TogetherJS is currently on
+        if (!exports.TogetherJS.running || !this.meCreatedThisSession()) {
+            return;
+        }
+        $("#moderationPanel").empty(); // always start from scratch
+        var allPeers = exports.TogetherJS.require("peers").getAllPeers();
+        var livePeers = [];
+        allPeers.forEach(function (e) {
+            if (e.status !== "live") {
+                return;
+            }
+            var clientId = e.id;
+            var username = e.name;
+            livePeers.push({ username: username, clientId: clientId });
+        });
+        if (livePeers.length > 0) {
+            if (this.wantsPublicHelp) {
+                $("#moderationPanel").append("\n          <button id=\"stopRequestHelpBtn\" type=\"button\" class=\"togetherjsBtn\"\n                  style=\"margin-bottom: 6pt; font-size: 10pt; padding: 4px;\">\n            Don't let any more people join this session\n          </button><br/>");
+                $("#stopRequestHelpBtn").click(this.initStopRequestingPublicHelp.bind(this));
+            }
+            else {
+                $("#moderationPanel").append('This is a private session. ');
+                if (!$("#requestHelpBtn").is(':visible')) {
+                    $("#requestHelpBtn").show(); // make sure there's a way to get back on the queue
+                }
+            }
+            $("#moderationPanel").append('Kick out disruptive users: ');
+            livePeers.forEach(function (e) {
+                $("#moderationPanel").append('<button class="kickLink">' + e.username + '</button>');
+                $("#moderationPanel .kickLink").last()
+                    .data('clientId', e.clientId)
+                    .data('username', e.username);
+            });
+            var me = this; // ugh
+            $("#moderationPanel .kickLink").click(function () {
+                var idToKick = $(this).data('clientId');
+                var confirmation = confirm('Press OK to kick and ban ' + $(this).data('username') + ' from this session.');
+                if (confirmation) {
+                    exports.TogetherJS.send({ type: "kickOut", idToKick: idToKick });
+                    me.peopleIveKickedOut.push(idToKick);
+                }
+            });
+        }
+        else {
+            if (this.wantsPublicHelp) {
+                $("#moderationPanel").html('Nobody is here yet. Please be patient and keep working normally.');
+            }
+            else {
+                $("#moderationPanel").html('This is a private session, so nobody can join unless you send them the URL below. To ask for public help, click the "Get live help!" button at the left.');
+                if (!$("#requestHelpBtn").is(':visible')) {
+                    $("#requestHelpBtn").show(); // make sure this is shown since we say it in instructions
+                }
+            }
+        }
+    };
+    // important overrides to inject in pieces of TogetherJS functionality
+    // without triggering spurious error messages
+    OptFrontendSharedSessions.prototype.ignoreAjaxError = function (settings) {
+        if (settings.url.indexOf('togetherjs') > -1) {
+            return true;
+        }
+        else if (settings.url.indexOf('getHelpQueue') > -1) {
+            return true;
+        }
+        else if (settings.url.indexOf('requestPublicHelp') > -1) {
+            return true;
+        }
+        else if (settings.url.indexOf('survey') > -1) {
+            return true;
+        }
+        else if (settings.url.indexOf('nudge') > -1) {
+            return true;
+        }
+        else if (settings.url.indexOf('freegeoip') > -1) {
+            return true;
+        }
+        else {
+            return _super.prototype.ignoreAjaxError.call(this, settings);
+        }
+    };
+    OptFrontendSharedSessions.prototype.logEditDelta = function (delta) {
+        _super.prototype.logEditDelta.call(this, delta);
+        if (exports.TogetherJS.running) {
+            exports.TogetherJS.send({ type: "editCode", delta: delta });
+        }
+    };
+    OptFrontendSharedSessions.prototype.startExecutingCode = function (startingInstruction) {
+        if (startingInstruction === void 0) { startingInstruction = 0; }
+        if (exports.TogetherJS.running && !this.executeCodeSignalFromRemote) {
+            exports.TogetherJS.send({ type: "executeCode",
+                myAppState: this.getAppState(),
+                forceStartingInstr: startingInstruction,
+                rawInputLst: this.rawInputLst });
+        }
+        _super.prototype.startExecutingCode.call(this, startingInstruction);
+    };
+    OptFrontendSharedSessions.prototype.updateAppDisplay = function (newAppMode) {
+        _super.prototype.updateAppDisplay.call(this, newAppMode); // do this first!
+        // now this.appMode should be canonicalized to either 'edit' or 'display'
+        if (this.appMode === 'edit') {
+        }
+        else if (this.appMode === 'display') {
+            pytutor_1.assert(this.myVisualizer);
+            if (!exports.TogetherJS.running) {
+                $("#surveyHeader").show();
+            }
+            if (this.pendingCodeOutputScrollTop) {
+                this.myVisualizer.domRoot.find('#pyCodeOutputDiv').scrollTop(this.pendingCodeOutputScrollTop);
+                this.pendingCodeOutputScrollTop = null;
+            }
+            $.doTimeout('pyCodeOutputDivScroll'); // cancel any prior scheduled calls
+            // TODO: this might interfere with experimentalPopUpSyntaxErrorSurvey (2015-04-19)
+            this.myVisualizer.domRoot.find('#pyCodeOutputDiv').scroll(function (e) {
+                var elt = $(this);
+                // debounce
+                $.doTimeout('pyCodeOutputDivScroll', 100, function () {
+                    // note that this will send a signal back and forth both ways
+                    if (exports.TogetherJS.running) {
+                        // (there's no easy way to prevent this), but it shouldn't keep
+                        // bouncing back and forth indefinitely since no the second signal
+                        // causes no additional scrolling
+                        exports.TogetherJS.send({ type: "pyCodeOutputDivScroll",
+                            scrollTop: elt.scrollTop() });
+                    }
+                });
+            });
+        }
+        else {
+            pytutor_1.assert(false);
+        }
+    };
+    OptFrontendSharedSessions.prototype.finishSuccessfulExecution = function () {
+        var _this = this;
+        pytutor_1.assert(this.myVisualizer);
+        this.myVisualizer.add_pytutor_hook("end_updateOutput", function (args) {
+            if (_this.updateOutputSignalFromRemote) {
+                return [true]; // die early; no more hooks should run after this one!
+            }
+            if (exports.TogetherJS.running && !_this.isExecutingCode) {
+                exports.TogetherJS.send({ type: "updateOutput", step: args.myViz.curInstr });
+            }
+            return [false]; // pass through to let other hooks keep handling
+        });
+        // do this late since we want the hook in this function to be installed
+        // FIRST so that it can run before the hook installed by our superclass
+        _super.prototype.finishSuccessfulExecution.call(this);
+        // VERY SUBTLE -- reinitialize TogetherJS at the END so that it can detect
+        // and sync any new elements that are now inside myVisualizer
+        if (exports.TogetherJS.running) {
+            exports.TogetherJS.reinitialize();
+        }
+    };
+    // subclasses can override
+    OptFrontendSharedSessions.prototype.updateOutputTogetherJsHandler = function (msg) {
+        if (!msg.sameUrl)
+            return; // make sure we're on the same page
+        if (this.isExecutingCode) {
+            return;
+        }
+        if (this.myVisualizer) {
+            // to prevent this call to updateOutput from firing its own TogetherJS event
+            this.updateOutputSignalFromRemote = true;
+            try {
+                this.myVisualizer.renderStep(msg.step);
+            }
+            finally {
+                this.updateOutputSignalFromRemote = false;
+            }
+        }
+    };
+    OptFrontendSharedSessions.prototype.initTogetherJS = function () {
+        var _this = this;
+        pytutor_1.assert(exports.TogetherJS);
+        if (togetherjsInUrl) {
+            $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
+            $("#togetherjsStatus").html("Please wait ... loading live help chat session");
+        }
+        // clear your name from the cache every time to prevent privacy leaks
+        if (opt_frontend_common_1.supports_html5_storage()) {
+            localStorage.removeItem('togetherjs.settings.name');
+        }
+        // this event triggers when some new user joins (whether it's you or
+        // someone else) and says 'hello' ... the server attempts to
+        // geolocate their IP address server-side (since it's more accurate
+        // than doing it client-side, apparently) ...
+        exports.TogetherJS.hub.on("togetherjs.pg-hello-geolocate", function (msg) {
+            if (!msg.sameUrl)
+                return; // make sure we're on the same page
+            // make sure clientId isn't YOU so you don't display info about yourself:
+            var myClientId = exports.TogetherJS.clientId();
+            if (msg.clientId != myClientId) {
+                var geo = msg.geo;
+                var curStr;
+                // follow the same format as how geolocation data is displayed
+                // in the public help queue
+                if (geo.country_name && geo.city) {
+                    // print 'region_name' (i.e., state) for US addresses:
+                    if (geo.country_name === "United States" && geo.region_name) {
+                        curStr = geo.city + ', ' + geo.region_name + ', US';
+                    }
+                    else {
+                        curStr = geo.city + ', ' + geo.country_name;
+                    }
+                }
+                else if (geo.country_name) {
+                    curStr = geo.country_name;
+                }
+                else if (geo.city) {
+                    curStr = geo.city;
+                }
+                if (curStr) {
+                    curStr = 'Someone from ' + curStr + ' just joined this chat.';
+                    _this.chatbotPostMsg(curStr);
+                }
+            }
+        });
+        // This event triggers when you first join a session and say 'hello',
+        // and then one of your peers says hello back to you. If they have the
+        // exact same name as you, then change your own name to avoid ambiguity.
+        // Remember, they were here first (that's why they're saying 'hello-back'),
+        // so they keep their own name, but you need to change yours :)
+        exports.TogetherJS.hub.on("togetherjs.hello-back", function (msg) {
+            if (!msg.sameUrl)
+                return; // make sure we're on the same page
+            var p = exports.TogetherJS.require("peers");
+            var peerNames = p.getAllPeers().map(function (e) { return e.name; });
+            if (msg.name == p.Self.name) {
+                var newName = undefined;
+                var toks = msg.name.split(' ');
+                var count = Number(toks[1]);
+                // make sure the name is truly unique, incrementing count as necessary
+                do {
+                    if (!isNaN(count)) {
+                        newName = toks[0] + '_' + String(count + 1); // e.g., "Tutor 3"
+                        count++;
+                    }
+                    else {
+                        // the original name was something like "Tutor", so make
+                        // newName into, say, "Tutor 2"
+                        newName = p.Self.name + '_2';
+                        count = 2;
+                    }
+                } while ($.inArray(newName, peerNames) >= 0); // i.e., is newName in peerNames?
+                p.Self.update({ name: newName }); // change our own name
+            }
+        });
+        exports.TogetherJS.hub.on("updateOutput", this.updateOutputTogetherJsHandler.bind(this));
+        exports.TogetherJS.hub.on("executeCode", function (msg) {
+            if (!msg.sameUrl)
+                return; // make sure we're on the same page
+            if (_this.isExecutingCode) {
+                return;
+            }
+            _this.executeCodeSignalFromRemote = true;
+            try {
+                _this.executeCode(msg.forceStartingInstr, msg.rawInputLst);
+            }
+            finally {
+                _this.executeCodeSignalFromRemote = false;
+            }
+        });
+        exports.TogetherJS.hub.on("hashchange", function (msg) {
+            if (!msg.sameUrl)
+                return; // make sure we're on the same page
+            if (_this.isExecutingCode) {
+                return;
+            }
+            console.log("TogetherJS RECEIVE hashchange", msg.appMode);
+            if (msg.appMode != _this.appMode) {
+                _this.updateAppDisplay(msg.appMode);
+                if (_this.appMode == 'edit' && msg.codeInputScrollTop !== undefined &&
+                    _this.pyInputGetScrollTop() != msg.codeInputScrollTop) {
+                    // hack: give it a bit of time to settle first ...
+                    $.doTimeout('pyInputCodeMirrorInit', 200, function () {
+                        _this.pyInputSetScrollTop(msg.codeInputScrollTop);
+                    });
+                }
+            }
+        });
+        exports.TogetherJS.hub.on("codemirror-edit", function (msg) {
+            if (!msg.sameUrl)
+                return; // make sure we're on the same page
+            $("#codeInputWarnings").hide();
+            $("#someoneIsTypingDiv").show();
+            $.doTimeout('codeMirrorWarningTimeout', 500, function () {
+                $("#codeInputWarnings").show();
+                $("#someoneIsTypingDiv").hide();
+            });
+        });
+        exports.TogetherJS.hub.on("requestSync", function (msg) {
+            // DON'T USE msg.sameUrl check here since it doesn't work properly, eek!
+            exports.TogetherJS.send({ type: "myAppState",
+                myAppState: _this.getAppState(),
+                codeInputScrollTop: _this.pyInputGetScrollTop(),
+                pyCodeOutputDivScrollTop: _this.myVisualizer ?
+                    _this.myVisualizer.domRoot.find('#pyCodeOutputDiv').scrollTop() :
+                    undefined });
+        });
+        // if you *received* this signal from someone, that means someone new just
+        // joined your session. check if you've previously kicked them out ...
+        // if so, FORCEABLY kick them out again to prevent people from somehow
+        // sneaking back into your session. thus, we have defense in depth of
+        // enforcing the ban from both the client and server sides ...
+        exports.TogetherJS.hub.on("initialAppState", function (msg) {
+            // take a snapshot whenever someone joins your session so that if
+            // they destroy/deface your code, at least you can restore it to
+            // what was there right before they joined
+            _this.takeFullCodeSnapshot();
+            _this.peopleIveKickedOut.forEach(function (e) {
+                if (e === msg.clientId) {
+                    console.log(e, "trying to sneak back in, kicking out again", _this.peopleIveKickedOut);
+                    exports.TogetherJS.send({ type: "kickOutAgainBecauseSnuckBackIn", idToKick: e }); // server doesn't do anything with this; just log it for posterity
+                    exports.TogetherJS.send({ type: "kickOut", idToKick: e });
+                }
+            });
+        });
+        exports.TogetherJS.hub.on("myAppState", function (msg) {
+            // DON'T USE msg.sameUrl check here since it doesn't work properly, eek!
+            // if we didn't explicitly request a sync, then don't do anything
+            if (!_this.togetherjsSyncRequested) {
+                return;
+            }
+            _this.togetherjsSyncRequested = false;
+            var learnerAppState = msg.myAppState;
+            if (learnerAppState.mode == 'display') {
+                if (OptFrontendSharedSessions.appStateEq(_this.getAppState(), learnerAppState)) {
+                    // update curInstr only
+                    console.log("on:myAppState - app states equal, renderStep", learnerAppState.curInstr);
+                    _this.myVisualizer.renderStep(learnerAppState.curInstr);
+                    if (msg.pyCodeOutputDivScrollTop !== undefined) {
+                        _this.myVisualizer.domRoot.find('#pyCodeOutputDiv').scrollTop(msg.pyCodeOutputDivScrollTop);
+                    }
+                }
+                else if (!_this.isExecutingCode) {
+                    console.log("on:myAppState - app states unequal, executing", learnerAppState);
+                    _this.syncAppState(learnerAppState);
+                    _this.executeCodeSignalFromRemote = true;
+                    try {
+                        if (msg.pyCodeOutputDivScrollTop !== undefined) {
+                            _this.pendingCodeOutputScrollTop = msg.pyCodeOutputDivScrollTop;
+                        }
+                        var learnerRawInputLst = JSON.parse(learnerAppState.rawInputLstJSON);
+                        if (learnerRawInputLst && learnerRawInputLst.length > 0) {
+                            _this.executeCode(learnerAppState.curInstr, learnerRawInputLst);
+                        }
+                        else {
+                            _this.executeCode(learnerAppState.curInstr);
+                        }
+                    }
+                    finally {
+                        _this.executeCodeSignalFromRemote = false;
+                    }
+                }
+            }
+            else {
+                pytutor_1.assert(learnerAppState.mode == 'edit');
+                if (!OptFrontendSharedSessions.appStateEq(_this.getAppState(), learnerAppState)) {
+                    console.log("on:myAppState - edit mode sync");
+                    _this.syncAppState(learnerAppState);
+                    _this.enterEditMode();
+                }
+            }
+            if (msg.codeInputScrollTop !== undefined) {
+                // give pyInputAceEditor a bit of time to settle with
+                // its new value. this is hacky; ideally we have a callback for
+                // when setValue() completes.
+                $.doTimeout('pyInputCodeMirrorInit', 200, function () {
+                    _this.pyInputSetScrollTop(msg.codeInputScrollTop);
+                });
+            }
+        });
+        exports.TogetherJS.hub.on("syncAppState", function (msg) {
+            if (!msg.sameUrl)
+                return; // make sure we're on the same page
+            _this.syncAppState(msg.myAppState);
+        });
+        exports.TogetherJS.hub.on("codeInputScroll", function (msg) {
+            if (!msg.sameUrl)
+                return; // make sure we're on the same page
+            // don't sync for Ace editor since I can't get it working properly yet
+        });
+        exports.TogetherJS.hub.on("pyCodeOutputDivScroll", function (msg) {
+            if (!msg.sameUrl)
+                return; // make sure we're on the same page
+            if (_this.myVisualizer) {
+                _this.myVisualizer.domRoot.find('#pyCodeOutputDiv').scrollTop(msg.scrollTop);
+            }
+        });
+        // someone issued a kickOut message to kick somebody out of the
+        // session; maybe it's you, maybe it isn't ...
+        exports.TogetherJS.hub.on("kickOut", function (msg) {
+            var myClientId = exports.TogetherJS.clientId();
+            //console.log('RECEIVED kickOut', msg.idToKick, myClientId);
+            // disconnect yourself if idToKick matches your client id:
+            if (msg.idToKick && msg.idToKick === myClientId) {
+                // first send a message of shame to the server ...
+                exports.TogetherJS.send({ type: "iGotKickedOut",
+                    clientId: myClientId,
+                    user_uuid: _this.userUUID });
+                // then nuke all of your shared sessions controls so that you
+                // have to restart a new browser session before trying to get
+                // back into anything; otherwise you might be able to jump back
+                // in instantly using your same session #weird:
+                $("#requestHelpBtn,#ssDiv").remove(); // totally remove them, eeek!
+                exports.TogetherJS(); // ... then shut down TogetherJS
+            }
+        });
+        // fired when TogetherJS is activated. might fire on page load if there's
+        // already an open session from a prior page load in the recent past.
+        exports.TogetherJS.on("ready", function () {
+            console.log("TogetherJS ready");
+            $("#sharedSessionDisplayDiv").show();
+            $("#ssDiv,#testCasesParent").hide();
+            // send this to the server for the purposes of logging, but other
+            // clients shouldn't do anything with this data
+            if (exports.TogetherJS.running) {
+                exports.TogetherJS.send({ type: "initialAppState",
+                    myAppState: _this.getAppState(),
+                    user_uuid: _this.userUUID,
+                    // so that you can tell whether someone else
+                    // shared a TogetherJS URL with you to invite you
+                    // into this shared session:
+                    togetherjsInUrl: togetherjsInUrl }); // kinda gross global
+            }
+            _this.requestSync(); // immediately try to sync upon startup so that if
+            // others are already in the session, we will be
+            // synced up. and if nobody is here, then this is a NOP.
+            _this.TogetherjsReadyHandler();
+            _this.redrawConnectors(); // update all arrows at the end
+        });
+        // emitted when TogetherJS is closed. This is not emitted when the
+        // webpage simply closes or navigates elsewhere, ONLY when TogetherJS
+        // is explicitly stopped via a call to TogetherJS()
+        exports.TogetherJS.on("close", function () {
+            console.log("TogetherJS close");
+            $("#togetherjsStatus").html('<div id="publicHelpQueue"></div>'); // clear it (tricky! leave a publicHelpQueue node here!)
+            $("#sharedSessionDisplayDiv").hide();
+            $("#ssDiv,#requestHelpBtn,#testCasesParent").show();
+            _this.TogetherjsCloseHandler();
+            _this.redrawConnectors(); // update all arrows at the end
+        });
+    };
+    OptFrontendSharedSessions.prototype.requestSync = function () {
+        if (exports.TogetherJS.running) {
+            this.togetherjsSyncRequested = true;
+            exports.TogetherJS.send({ type: "requestSync" });
+        }
+    };
+    OptFrontendSharedSessions.prototype.syncAppState = function (appState) {
+        this.setToggleOptions(appState);
+        // VERY VERY subtle -- temporarily prevent TogetherJS from sending
+        // form update events while we set the input value. otherwise
+        // this will send an incorrect delta to the other end and screw things
+        // up because the initial states of the two forms aren't equal.
+        var orig = exports.TogetherJS.config.get('ignoreForms');
+        exports.TogetherJS.config('ignoreForms', true);
+        this.pyInputSetValue(appState.code);
+        exports.TogetherJS.config('ignoreForms', orig);
+        if (appState.rawInputLst) {
+            this.rawInputLst = $.parseJSON(appState.rawInputLstJSON);
+        }
+        else {
+            this.rawInputLst = [];
+        }
+    };
+    // TogetherJS is ready to rock and roll, so do real initiatlization all here:
+    OptFrontendSharedSessions.prototype.TogetherjsReadyHandler = function () {
+        this.takeFullCodeSnapshot();
+        $("#surveyHeader").hide();
+        // disable syntax and runtime surveys when shared sessions is on:
+        this.activateSyntaxErrorSurvey = false;
+        this.activateRuntimeErrorSurvey = false;
+        this.activateEurekaSurvey = false;
+        $("#eureka_survey").remove(); // if a survey is already displayed on-screen, then kill it
+        if (this.wantsPublicHelp) {
+            this.initRequestPublicHelp();
+        }
+        else {
+            this.initPrivateSharedSession();
+        }
+    };
+    OptFrontendSharedSessions.prototype.TogetherjsCloseHandler = function () {
+        if (this.appMode === "display") {
+            $("#surveyHeader").show();
+        }
+        this.wantsPublicHelp = false; // explicitly reset it
+    };
+    OptFrontendSharedSessions.prototype.startSharedSession = function (wantsPublicHelp) {
+        $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
+        $("#togetherjsStatus").html("Please wait ... loading live help chat session");
+        exports.TogetherJS();
+        this.wantsPublicHelp = wantsPublicHelp;
+    };
+    OptFrontendSharedSessions.prototype.requestPublicHelpButtonClick = function () {
+        if (exports.TogetherJS.running) {
+            // TogetherJS is already running
+            this.wantsPublicHelp = true;
+            this.initRequestPublicHelp();
+        }
+        else {
+            // TogetherJS isn't running yet, so start up a shared session AND
+            // request public help at the same time ...
+            this.startSharedSession(true);
+>>>>>>> master
         }
         pytutor_1.assert(this.demoVideo);
         this.demoVideo.startPlayback();
     };
+<<<<<<< HEAD
     OptFrontendSharedSessions.prototype.requestPublicHelpButtonClick = function () {
         if (exports.TogetherJS.running) {
             // TogetherJS is already running
@@ -24456,6 +25690,55 @@ var OptFrontendSharedSessions = (function (_super) {
             this.appendTogetherJsFooter();
             $("#requestHelpBtn").hide();
         }
+=======
+    // return whether two states match, except don't worry about curInstr
+    OptFrontendSharedSessions.appStateEq = function (s1, s2) {
+        pytutor_1.assert(s1.origin == s2.origin); // sanity check!
+        return (s1.code == s2.code &&
+            s1.mode == s2.mode &&
+            s1.cumulative == s2.cumulative &&
+            s1.heapPrimitives == s1.heapPrimitives &&
+            s1.textReferences == s2.textReferences &&
+            s1.py == s2.py &&
+            s1.rawInputLstJSON == s2.rawInputLstJSON);
+    };
+    OptFrontendSharedSessions.prototype.initRequestPublicHelp = function () {
+        pytutor_1.assert(this.wantsPublicHelp);
+        pytutor_1.assert(exports.TogetherJS.running);
+        // first make a /requestPublicHelp request to the TogetherJS server:
+        var rphUrl = exports.TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/requestPublicHelp";
+        var shareId = exports.TogetherJS.shareId();
+        var shareUrl = exports.TogetherJS.shareUrl();
+        var lang = this.getAppState().py;
+        var getUserName = exports.TogetherJS.config.get("getUserName");
+        var username = getUserName();
+        $.ajax({
+            url: rphUrl,
+            dataType: "json",
+            data: { id: shareId, url: shareUrl, lang: lang, username: username, user_uuid: this.userUUID },
+            success: this.doneRequestingPublicHelp.bind(this),
+            error: this.rphError.bind(this),
+        });
+    };
+    OptFrontendSharedSessions.prototype.rphError = function () {
+        alert("ERROR in getting live help. This isn't working at the moment. Please try again later.");
+        if (exports.TogetherJS.running) {
+            exports.TogetherJS(); // shut down TogetherJS
+        }
+        this.redrawConnectors(); // update all arrows at the end
+    };
+    OptFrontendSharedSessions.prototype.doneRequestingPublicHelp = function (resp) {
+        pytutor_1.assert(exports.TogetherJS.running);
+        if (resp.status === "OKIE DOKIE") {
+            $("#togetherjsStatus").html("\n        <div id=\"moderationPanel\"></div>\n        <div style=\"margin-bottom: 10px;\">You have requested help as <b>" +
+                exports.TogetherJS.config.get("getUserName")() +
+                "</b> (see below for queue). Anyone currently on this website can volunteer to help you, but there is no guarantee that someone will come help. <span style=\"color: #888; font-size: 8pt;\">Use this service at your own risk. We are not responsible for the chat messages or behaviors of this site's users.</span></div>\n        <div id=\"publicHelpQueue\"></div>");
+            this.updateModerationPanel(); // update it right away
+            this.getHelpQueue(); // update it right away
+            this.appendTogetherJsFooter();
+            $("#requestHelpBtn").hide();
+        }
+>>>>>>> master
         else {
             alert("ERROR in getting live help. This isn't working at the moment. Please try again later.");
             if (exports.TogetherJS.running) {
@@ -24524,10 +25807,13 @@ var OptFrontendSharedSessions = (function (_super) {
     // don't do this too frequently or else things might blow up.
     OptFrontendSharedSessions.prototype.takeFullCodeSnapshot = function () {
         var _this = this;
+<<<<<<< HEAD
         // don't do this if we're in demo mode
         if (this.isRecordingDemo || this.isPlayingDemo) {
             return;
         }
+=======
+>>>>>>> master
         var curCod = this.pyInputGetValue();
         // brute-force search through all of this.fullCodeSnapshots for an
         // exact duplicate ... if it exists, then don't snapshot it again.
@@ -24768,7 +26054,11 @@ __webpack_require__(1)(__webpack_require__(43))
 /* 43 */
 /***/ (function(module, exports) {
 
+<<<<<<< HEAD
 module.exports = "/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distributed with this file,\n * You can obtain one at http://mozilla.org/MPL/2.0/. */\n\n/*jshint scripturl:true */\n(function () {\n\n  // pgbovine - modify defaultConfiguration and NOT _defaultConfiguration\n  var defaultConfiguration = {\n    // Disables clicks for a certain element.\n    // (e.g., 'canvas' would not show clicks on canvas elements.)\n    // Setting this to true will disable clicks globally.\n    dontShowClicks: true, // pgbovine: on 2017-10-14, stop logging/showing clicks since they're overly verbose\n    // Experimental feature to echo clicks to certain elements across clients:\n    cloneClicks: '.togetherjsCloneClick', // pgbovine - clone clicks ONLY in these elements\n    // Enable Mozilla or Google analytics on the page when TogetherJS is activated:\n    // FIXME: these don't seem to be working, and probably should be removed in favor\n    // of the hub analytics\n    enableAnalytics: false,\n    // The code to enable (this is defaulting to a Mozilla code):\n    analyticsCode: \"UA-35433268-28\",\n    // The base URL of the hub (gets filled in below):\n    //hubBase: \"http://45.79.11.225:30035/\",    // pgbovine - online deployment to new Linode (starting 2017-10-27)\n    //hubBase: \"http://104.237.139.253:30035/\", // pgbovine - online deployment to old Linode (prior to 2017-10-27)\n    hubBase: \"http://localhost:30035/\",     // pgbovine - localhost testing\n\n    // A function that will return the name of the user:\n    // pgbovine - customized to use opt_uuid in localStorage if available\n    // so that each user can have a somewhat-unique N-digit username\n    getUserName: function() {\n      if ('localStorage' in window && window['localStorage'] !== null) {\n        var userUUID = localStorage.getItem('opt_uuid');\n        if (userUUID) {\n          // get last 3 digits of user uuid:\n          return 'user_' + userUUID.substring(userUUID.length - 3, userUUID.length);\n        } else {\n          return null; // let TogetherJS auto-assign an animal name\n        }\n      } else {\n        return null; // let TogetherJS auto-assign an animal name\n      }\n    },\n    // A function that will return the color of the user:\n    getUserColor: null,\n    // A function that will return the avatar of the user:\n    getUserAvatar: null,\n    // The siteName is used in the walkthrough (defaults to document.title):\n    siteName: null,\n    // Whether to use the minimized version of the code (overriding the built setting)\n    useMinimizedCode: undefined,\n    // Any events to bind to\n    on: {},\n    // Hub events to bind to\n    hub_on: {},\n    // Enables the alt-T alt-T TogetherJS shortcut; however, this setting\n    // must be enabled early as TogetherJSConfig_enableShortcut = true;\n    enableShortcut: false,\n    // The name of this tool as provided to users.  The UI is updated to use this.\n    // Because of how it is used in text it should be a proper noun, e.g.,\n    // \"MySite's Collaboration Tool\"\n    toolName: \"Python Tutor shared sessions\", // pgbovine\n    // Used to auto-start TogetherJS with a {prefix: pageName, max: participants}\n    // Also with findRoom: \"roomName\" it will connect to the given room name\n    findRoom: null,\n    // If true, starts TogetherJS automatically (of course!)\n    autoStart: false,\n    // If true, then the \"Join TogetherJS Session?\" confirmation dialog\n    // won't come up\n    suppressJoinConfirmation: true, // pgbovine\n    // If true, then the \"Invite a friend\" window won't automatically come up\n    suppressInvite: true, // pgbovine\n    // A room in which to find people to invite to this session,\n    inviteFromRoom: null,\n    // This is used to keep sessions from crossing over on the same\n    // domain, if for some reason you want sessions that are limited\n    // to only a portion of the domain:\n    storagePrefix: \"togetherjs\",\n    // When true, we treat the entire URL, including the hash, as the identifier\n    // of the page; i.e., if you one person is on `http://example.com/#view1`\n    // and another person is at `http://example.com/#view2` then these two people\n    // are considered to be at completely different URLs\n    includeHashInUrl: false,\n    // When true, the WebRTC-based mic/chat will be disabled\n    disableWebRTC: true, // pgbovine\n    // When true, youTube videos will synchronize\n    youtube: true,\n    // Ignores the following console messages, disables all messages if set to true\n    ignoreMessages: [\"cursor-update\", \"keydown\", \"scroll-update\"],\n    // if non-null, set to a callback function to log all events. this\n    // can be used to record a canned demo\n    eventRecorderFunc: null, // pgbovine\n    isDemoSession: false, // pgbovine - are we recording or playing a demo?\n    // Ignores the following forms (will ignore all forms if set to true):\n    ignoreForms: [\":password\", '.togetherjsIgnore'], // pgbovine\n    fallbackLang: \"en_US\"\n  };\n\n  var styleSheet = \"/togetherjs/togetherjs.css\";\n\n  var baseUrl = \"\";\n  if (baseUrl == \"__\" + \"baseUrl__\") {\n    // Reset the variable if it doesn't get substituted\n    baseUrl = \"\";\n  }\n  // True if this file should use minimized sub-resources:\n  var min = \"yes\" == \"__\" + \"min__\" ? false : \"yes\" == \"yes\";\n\n  var baseUrlOverride = localStorage.getItem(\"togetherjs.baseUrlOverride\");\n  if (baseUrlOverride) {\n    try {\n      baseUrlOverride = JSON.parse(baseUrlOverride);\n    } catch (e) {\n      baseUrlOverride = null;\n    }\n    if ((! baseUrlOverride) || baseUrlOverride.expiresAt < Date.now()) {\n      // Ignore because it has expired\n      localStorage.removeItem(\"togetherjs.baseUrlOverride\");\n    } else {\n      baseUrl = baseUrlOverride.baseUrl;\n      var logger = console.warn || console.log;\n      logger.call(console, \"Using TogetherJS baseUrlOverride:\", baseUrl);\n      logger.call(console, \"To undo run: localStorage.removeItem('togetherjs.baseUrlOverride')\");\n    }\n  }\n\n  var configOverride = localStorage.getItem(\"togetherjs.configOverride\");\n  if (configOverride) {\n    try {\n      configOverride = JSON.parse(configOverride);\n    } catch (e) {\n      configOverride = null;\n    }\n    if ((! configOverride) || configOverride.expiresAt < Date.now()) {\n      localStorage.removeItem(\"togetherjs.configOverride\");\n    } else {\n      var shownAny = false;\n      for (var attr in configOverride) {\n        if (! configOverride.hasOwnProperty(attr)) {\n          continue;\n        }\n        if (attr == \"expiresAt\" || ! configOverride.hasOwnProperty(attr)) {\n          continue;\n        }\n        if (! shownAny) {\n          console.warn(\"Using TogetherJS configOverride\");\n          console.warn(\"To undo run: localStorage.removeItem('togetherjs.configOverride')\");\n        }\n        window[\"TogetherJSConfig_\" + attr] = configOverride[attr];\n        console.log(\"Config override:\", attr, \"=\", configOverride[attr]);\n      }\n    }\n  }\n\n  var version = \"unknown\";\n  // FIXME: we could/should use a version from the checkout, at least\n  // for production\n  var cacheBust = \"\";\n  if ((! cacheBust) || cacheBust == \"\") {\n    cacheBust = Date.now() + \"\";\n  } else {\n    version = cacheBust;\n  }\n\n  // Make sure we have all of the console.* methods:\n  if (typeof console == \"undefined\") {\n    console = {};\n  }\n  if (! console.log) {\n    console.log = function () {};\n  }\n  [\"debug\", \"info\", \"warn\", \"error\"].forEach(function (method) {\n    if (! console[method]) {\n      console[method] = console.log;\n    }\n  });\n\n  if (! baseUrl) {\n    var scripts = document.getElementsByTagName(\"script\");\n    for (var i=0; i<scripts.length; i++) {\n      var src = scripts[i].src;\n      if (src && src.search(/togetherjs(-min)?.js(\\?.*)?$/) !== -1) {\n        baseUrl = src.replace(/\\/*togetherjs(-min)?.js(\\?.*)?$/, \"\");\n        //console.warn(\"Detected baseUrl as\", baseUrl); // pgbovine commented out\n        break;\n      } else if (src && src.search(/togetherjs-min.js(\\?.*)?$/) !== -1) {\n        baseUrl = src.replace(/\\/*togetherjs-min.js(\\?.*)?$/, \"\");\n        //console.warn(\"Detected baseUrl as\", baseUrl); // pgbovine commented out\n        break;\n      }\n    }\n  }\n  // pgbovine - hacked to make it work within Webpack\n  if (! baseUrl) {\n    baseUrl = window.location.protocol + '//' + window.location.host + '/js/lib/togetherjs';\n    //console.warn(\"Detected baseUrl as\", baseUrl);\n  }\n  if (! baseUrl) {\n    console.warn(\"Could not determine TogetherJS's baseUrl (looked for a <script> with togetherjs.js and togetherjs-min.js)\");\n  }\n\n  function addStyle() {\n    var existing = document.getElementById(\"togetherjs-stylesheet\");\n    if (! existing) {\n      var link = document.createElement(\"link\");\n      link.id = \"togetherjs-stylesheet\";\n      link.setAttribute(\"rel\", \"stylesheet\");\n      link.href = baseUrl + styleSheet + \"?bust=\" + cacheBust;\n      document.head.appendChild(link);\n    }\n  }\n\n  function addScript(url) {\n    var script = document.createElement(\"script\");\n    script.src = baseUrl + url + \"?bust=\" + cacheBust;\n    document.head.appendChild(script);\n  }\n\n  var TogetherJS = window.TogetherJS = function TogetherJS(event) {\n    if (TogetherJS.running) {\n      var session = TogetherJS.require(\"session\");\n      session.close();\n      return;\n    }\n    TogetherJS.startup.button = null;\n    try {\n      if (event && typeof event == \"object\") {\n        if (event.target && typeof event) {\n          TogetherJS.startup.button = event.target;\n        } else if (event.nodeType == 1) {\n          TogetherJS.startup.button = event;\n        } else if (event[0] && event[0].nodeType == 1) {\n          // Probably a jQuery element\n          TogetherJS.startup.button = event[0];\n        }\n      }\n    } catch (e) {\n      console.warn(\"Error determining starting button:\", e);\n    }\n    if (window.TowTruckConfig) {\n      console.warn(\"TowTruckConfig is deprecated; please use TogetherJSConfig\");\n      if (window.TogetherJSConfig) {\n        console.warn(\"Ignoring TowTruckConfig in favor of TogetherJSConfig\");\n      } else {\n        window.TogetherJSConfig = TowTruckConfig;\n      }\n    }\n    if (window.TogetherJSConfig && (! window.TogetherJSConfig.loaded)) {\n      TogetherJS.config(window.TogetherJSConfig);\n      window.TogetherJSConfig.loaded = true;\n    }\n\n    // This handles loading configuration from global variables.  This\n    // includes TogetherJSConfig_on_*, which are attributes folded into\n    // the \"on\" configuration value.\n    var attr;\n    var attrName;\n    var globalOns = {};\n    for (attr in window) {\n      if (attr.indexOf(\"TogetherJSConfig_on_\") === 0) {\n        attrName = attr.substr((\"TogetherJSConfig_on_\").length);\n        globalOns[attrName] = window[attr];\n      } else if (attr.indexOf(\"TogetherJSConfig_\") === 0) {\n        attrName = attr.substr((\"TogetherJSConfig_\").length);\n        TogetherJS.config(attrName, window[attr]);\n      } else if (attr.indexOf(\"TowTruckConfig_on_\") === 0) {\n        attrName = attr.substr((\"TowTruckConfig_on_\").length);\n        console.warn(\"TowTruckConfig_* is deprecated, please rename\", attr, \"to TogetherJSConfig_on_\" + attrName);\n        globalOns[attrName] = window[attr];\n      } else if (attr.indexOf(\"TowTruckConfig_\") === 0) {\n        attrName = attr.substr((\"TowTruckConfig_\").length);\n        console.warn(\"TowTruckConfig_* is deprecated, please rename\", attr, \"to TogetherJSConfig_\" + attrName);\n        TogetherJS.config(attrName, window[attr]);\n      }\n\n\n    }\n    // FIXME: copy existing config?\n    // FIXME: do this directly in TogetherJS.config() ?\n    // FIXME: close these configs?\n    var ons = TogetherJS.config.get(\"on\");\n    for (attr in globalOns) {\n      if (globalOns.hasOwnProperty(attr)) {\n        // FIXME: should we avoid overwriting?  Maybe use arrays?\n        ons[attr] = globalOns[attr];\n      }\n    }\n    TogetherJS.config(\"on\", ons);\n    for (attr in ons) {\n      TogetherJS.on(attr, ons[attr]);\n    }\n    var hubOns = TogetherJS.config.get(\"hub_on\");\n    if (hubOns) {\n      for (attr in hubOns) {\n        if (hubOns.hasOwnProperty(attr)) {\n          TogetherJS.hub.on(attr, hubOns[attr]);\n        }\n      }\n    }\n\n    if (! TogetherJS.startup.reason) {\n      // Then a call to TogetherJS() from a button must be started TogetherJS\n      TogetherJS.startup.reason = \"started\";\n    }\n\n    // FIXME: maybe I should just test for TogetherJS.require:\n    if (TogetherJS._loaded) {\n      var session = TogetherJS.require(\"session\");\n      addStyle();\n      session.start();\n      return;\n    }\n    // A sort of signal to session.js to tell it to actually\n    // start itself (i.e., put up a UI and try to activate)\n    TogetherJS.startup._launch = true;\n\n    addStyle();\n    var minSetting = TogetherJS.config.get(\"useMinimizedCode\");\n    TogetherJS.config.close(\"useMinimizedCode\");\n    if (minSetting !== undefined) {\n      min = !! minSetting;\n    }\n    var requireConfig = TogetherJS._extend(TogetherJS.requireConfig);\n    var deps = [\"session\", \"jquery\"];\n    var lang = TogetherJS.getConfig(\"lang\");\n    // [igoryen]: We should generate this value in Gruntfile.js, based on the available translations\n    var availableTranslations = {\n      \"en-US\": true,\n      \"ru\": true,\n      \"ru-RU\": true\n    };\n\n    if(lang === undefined) {\n      var navigatorLang = navigator.language.replace(/_/g, \"-\");\n      if (!availableTranslations[navigatorLang]) {\n        lang = TogetherJS.config.get(\"fallbackLang\");\n      } else {\n        lang = navigatorLang;\n      }\n     TogetherJS.config(\"lang\", lang);\n    }\n\n    TogetherJS.config(\"lang\", lang.replace(/_/g, \"-\")); // rename into TogetherJS.config.get()?\n    var localeTemplates = \"templates-\" + lang;// rename into TogetherJS.config.get()?\n    deps.splice(0, 0, localeTemplates);\n    function callback(session, jquery) {\n      TogetherJS._loaded = true;\n      if (! min) {\n        TogetherJS.require = require.config({context: \"togetherjs\"});\n        TogetherJS._requireObject = require;\n      }\n    }\n    if (! min) {\n      if (typeof require == \"function\") {\n        if (! require.config) {\n          console.warn(\"The global require (\", require, \") is not requirejs; please use togetherjs-min.js\");\n          throw new Error(\"Conflict with window.require\");\n        }\n        TogetherJS.require = require.config(requireConfig);\n      }\n    }\n    if (typeof TogetherJS.require == \"function\") {\n      // This is an already-configured version of require\n      TogetherJS.require(deps, callback);\n    } else {\n      requireConfig.deps = deps;\n      requireConfig.callback = callback;\n      if (! min) {\n        window.require = requireConfig;\n      }\n    }\n    if (min) {\n      addScript(\"/togetherjs/togetherjsPackage.js\");\n    } else {\n      addScript(\"/togetherjs/libs/require.js\");\n    }\n  };\n\n  TogetherJS.pageLoaded = Date.now();\n\n  TogetherJS._extend = function (base, extensions) {\n    if (! extensions) {\n      extensions = base;\n      base = {};\n    }\n    for (var a in extensions) {\n      if (extensions.hasOwnProperty(a)) {\n        base[a] = extensions[a];\n      }\n    }\n    return base;\n  };\n\n  TogetherJS._startupInit = {\n    // What element, if any, was used to start the session:\n    button: null,\n    // The startReason is the reason TogetherJS was started.  One of:\n    //   null: not started\n    //   started: hit the start button (first page view)\n    //   joined: joined the session (first page view)\n    reason: null,\n    // Also, the session may have started on \"this\" page, or maybe is continued\n    // from a past page.  TogetherJS.continued indicates the difference (false the\n    // first time TogetherJS is started or joined, true on later page loads).\n    continued: false,\n    // This is set to tell the session what shareId to use, if the boot\n    // code knows (mostly because the URL indicates the id).\n    _joinShareId: null,\n    // This tells session to start up immediately (otherwise it would wait\n    // for session.start() to be run)\n    _launch: false\n  };\n  TogetherJS.startup = TogetherJS._extend(TogetherJS._startupInit);\n  TogetherJS.running = false;\n\n  TogetherJS.requireConfig = {\n    context: \"togetherjs\",\n    baseUrl: baseUrl + \"/togetherjs\",\n    urlArgs: \"bust=\" + cacheBust,\n    paths: {\n      jquery: \"libs/jquery-1.8.3.min\",\n      walkabout: \"libs/walkabout/walkabout\",\n      esprima: \"libs/walkabout/lib/esprima\",\n      falafel: \"libs/walkabout/lib/falafel\",\n      tinycolor: \"libs/tinycolor\",\n      whrandom: \"libs/whrandom/random\"\n    }\n  };\n\n  TogetherJS._mixinEvents = function (proto) {\n    proto.on = function on(name, callback) {\n      if (typeof callback != \"function\") {\n        console.warn(\"Bad callback for\", this, \".once(\", name, \", \", callback, \")\");\n        throw \"Error: .once() called with non-callback\";\n      }\n      if (name.search(\" \") != -1) {\n        var names = name.split(/ +/g);\n        names.forEach(function (n) {\n          this.on(n, callback);\n        }, this);\n        return;\n      }\n      if (this._knownEvents && this._knownEvents.indexOf(name) == -1) {\n        var thisString = \"\" + this;\n        if (thisString.length > 20) {\n          thisString = thisString.substr(0, 20) + \"...\";\n        }\n        console.warn(thisString + \".on('\" + name + \"', ...): unknown event\");\n        if (console.trace) {\n          console.trace();\n        }\n      }\n      if (! this._listeners) {\n        this._listeners = {};\n      }\n      if (! this._listeners[name]) {\n        this._listeners[name] = [];\n      }\n      if (this._listeners[name].indexOf(callback) == -1) {\n        this._listeners[name].push(callback);\n      }\n    };\n    proto.once = function once(name, callback) {\n      if (typeof callback != \"function\") {\n        console.warn(\"Bad callback for\", this, \".once(\", name, \", \", callback, \")\");\n        throw \"Error: .once() called with non-callback\";\n      }\n      var attr = \"onceCallback_\" + name;\n      // FIXME: maybe I should add the event name to the .once attribute:\n      if (! callback[attr]) {\n        callback[attr] = function onceCallback() {\n          callback.apply(this, arguments);\n          this.off(name, onceCallback);\n          delete callback[attr];\n        };\n      }\n      this.on(name, callback[attr]);\n    };\n    proto.off = proto.removeListener = function off(name, callback) {\n      if (this._listenerOffs) {\n        // Defer the .off() call until the .emit() is done.\n        this._listenerOffs.push([name, callback]);\n        return;\n      }\n      if (name.search(\" \") != -1) {\n        var names = name.split(/ +/g);\n        names.forEach(function (n) {\n          this.off(n, callback);\n        }, this);\n        return;\n      }\n      if ((! this._listeners) || ! this._listeners[name]) {\n        return;\n      }\n      var l = this._listeners[name], _len = l.length;\n      for (var i=0; i<_len; i++) {\n        if (l[i] == callback) {\n          l.splice(i, 1);\n          break;\n        }\n      }\n    };\n    proto.emit = function emit(name) {\n      //console.log('proto.emit', name, this); // pgbovine - for debugging\n      var offs = this._listenerOffs = [];\n      if ((! this._listeners) || ! this._listeners[name]) {\n        return;\n      }\n      var args = Array.prototype.slice.call(arguments, 1);\n      var l = this._listeners[name];\n      l.forEach(function (callback) {\n\n        callback.apply(this, args);\n      }, this);\n      delete this._listenerOffs;\n      if (offs.length) {\n        offs.forEach(function (item) {\n          this.off(item[0], item[1]);\n        }, this);\n      }\n\n    };\n    return proto;\n  };\n\n  /* This finalizes the unloading of TogetherJS, including unloading modules */\n  TogetherJS._teardown = function () {\n    var requireObject = TogetherJS._requireObject || window.require;\n    // FIXME: this doesn't clear the context for min-case\n    if (requireObject.s && requireObject.s.contexts) {\n      delete requireObject.s.contexts.togetherjs;\n    }\n    TogetherJS._loaded = false;\n    TogetherJS.startup = TogetherJS._extend(TogetherJS._startupInit);\n    TogetherJS.running = false;\n  };\n\n  TogetherJS._mixinEvents(TogetherJS);\n  TogetherJS._knownEvents = [\"ready\", \"close\"];\n  TogetherJS.toString = function () {\n    return \"TogetherJS\";\n  };\n\n  var defaultHubBase = \"https://hub.togetherjs.com\";\n  if (defaultHubBase == \"__\" + \"hubUrl\"+ \"__\") {\n    // Substitution wasn't made\n    defaultHubBase = \"https://hub.togetherjs.mozillalabs.com\";\n  }\n\n  TogetherJS._configuration = {};\n  TogetherJS._defaultConfiguration = {\n    // Disables clicks for a certain element.\n    // (e.g., 'canvas' would not show clicks on canvas elements.)\n    // Setting this to true will disable clicks globally.\n    dontShowClicks: false,\n    // Experimental feature to echo clicks to certain elements across clients:\n    cloneClicks: false,\n    // Enable Mozilla or Google analytics on the page when TogetherJS is activated:\n    // FIXME: these don't seem to be working, and probably should be removed in favor\n    // of the hub analytics\n    enableAnalytics: false,\n    // The code to enable (this is defaulting to a Mozilla code):\n    analyticsCode: \"UA-35433268-28\",\n    // The base URL of the hub\n    hubBase: defaultHubBase,\n    // A function that will return the name of the user:\n    getUserName: null,\n    // A function that will return the color of the user:\n    getUserColor: null,\n    // A function that will return the avatar of the user:\n    getUserAvatar: null,\n    // The siteName is used in the walkthrough (defaults to document.title):\n    siteName: null,\n    // Whether to use the minimized version of the code (overriding the built setting)\n    useMinimizedCode: undefined,\n    // Any events to bind to\n    on: {},\n    // Hub events to bind to\n    hub_on: {},\n    // Enables the alt-T alt-T TogetherJS shortcut; however, this setting\n    // must be enabled early as TogetherJSConfig_enableShortcut = true;\n    enableShortcut: false,\n    // The name of this tool as provided to users.  The UI is updated to use this.\n    // Because of how it is used in text it should be a proper noun, e.g.,\n    // \"MySite's Collaboration Tool\"\n    toolName: null,\n    // Used to auto-start TogetherJS with a {prefix: pageName, max: participants}\n    // Also with findRoom: \"roomName\" it will connect to the given room name\n    findRoom: null,\n    // If true, starts TogetherJS automatically (of course!)\n    autoStart: false,\n    // If true, then the \"Join TogetherJS Session?\" confirmation dialog\n    // won't come up\n    suppressJoinConfirmation: false,\n    // If true, then the \"Invite a friend\" window won't automatically come up\n    suppressInvite: false,\n    // A room in which to find people to invite to this session,\n    inviteFromRoom: null,\n    // This is used to keep sessions from crossing over on the same\n    // domain, if for some reason you want sessions that are limited\n    // to only a portion of the domain:\n    storagePrefix: \"togetherjs\",\n    // When true, we treat the entire URL, including the hash, as the identifier\n    // of the page; i.e., if you one person is on `http://example.com/#view1`\n    // and another person is at `http://example.com/#view2` then these two people\n    // are considered to be at completely different URLs\n    includeHashInUrl: false,\n    // The language to present the tool in, such as \"en-US\" or \"ru-RU\"\n    // Note this must be set as TogetherJSConfig_lang, as it effects the loader\n    // and must be set as soon as this file is included\n    lang: null\n  };\n  // FIXME: there's a point at which configuration can't be updated\n  // (e.g., hubBase after the TogetherJS has loaded).  We should keep\n  // track of these and signal an error if someone attempts to\n  // reconfigure too late\n\n  TogetherJS.getConfig = function (name) { // rename into TogetherJS.config.get()?\n    var value = TogetherJS._configuration[name];\n    if (value === undefined) {\n      if (! TogetherJS._defaultConfiguration.hasOwnProperty(name)) {\n        console.error(\"Tried to load unknown configuration value:\", name);\n      }\n      value = TogetherJS._defaultConfiguration[name];\n    }\n    return value;\n  };\n  TogetherJS._defaultConfiguration = defaultConfiguration;\n  TogetherJS._configTrackers = {};\n  TogetherJS._configClosed = {};\n\n  /* TogetherJS.config(configurationObject)\n     or: TogetherJS.config(configName, value)\n\n     Adds configuration to TogetherJS.  You may also set the global variable TogetherJSConfig\n     and when TogetherJS is started that configuration will be loaded.\n\n     Unknown configuration values will lead to console error messages.\n     */\n  TogetherJS.config = function (name, maybeValue) {\n    var settings;\n    if (arguments.length == 1) {\n      if (typeof name != \"object\") {\n        throw new Error('TogetherJS.config(value) must have an object value (not: ' + name + ')');\n      }\n      settings = name;\n    } else {\n      settings = {};\n      settings[name] = maybeValue;\n    }\n    var i;\n    var tracker;\n    for (var attr in settings) {\n      if (settings.hasOwnProperty(attr)) {\n        if (TogetherJS._configClosed[attr] && TogetherJS.running) {\n          throw new Error(\"The configuration \" + attr + \" is finalized and cannot be changed\");\n        }\n      }\n    }\n    for (var attr in settings) {\n      if (! settings.hasOwnProperty(attr)) {\n        continue;\n      }\n      if (attr == \"loaded\" || attr == \"callToStart\") {\n        continue;\n      }\n      if (! TogetherJS._defaultConfiguration.hasOwnProperty(attr)) {\n        console.warn(\"Unknown configuration value passed to TogetherJS.config():\", attr);\n      }\n      var previous = TogetherJS._configuration[attr];\n      var value = settings[attr];\n      TogetherJS._configuration[attr] = value;\n      var trackers = TogetherJS._configTrackers[name] || [];\n      var failed = false;\n      for (i=0; i<trackers.length; i++) {\n        try {\n          tracker = trackers[i];\n          tracker(value, previous);\n        } catch (e) {\n          console.warn(\"Error setting configuration\", name, \"to\", value,\n                       \":\", e, \"; reverting to\", previous);\n          failed = true;\n          break;\n        }\n      }\n      if (failed) {\n        TogetherJS._configuration[attr] = previous;\n        for (i=0; i<trackers.length; i++) {\n          try {\n            tracker = trackers[i];\n            tracker(value);\n          } catch (e) {\n            console.warn(\"Error REsetting configuration\", name, \"to\", previous,\n                         \":\", e, \"(ignoring)\");\n          }\n        }\n      }\n    }\n  };\n\n  TogetherJS.config.get = function (name) {\n    var value = TogetherJS._configuration[name];\n    if (value === undefined) {\n      if (! TogetherJS._defaultConfiguration.hasOwnProperty(name)) {\n        console.error(\"Tried to load unknown configuration value:\", name);\n      }\n      value = TogetherJS._defaultConfiguration[name];\n    }\n    return value;\n  };\n\n  TogetherJS.config.track = function (name, callback) {\n    if (! TogetherJS._defaultConfiguration.hasOwnProperty(name)) {\n      throw new Error(\"Configuration is unknown: \" + name);\n    }\n    callback(TogetherJS.config.get(name));\n    if (! TogetherJS._configTrackers[name]) {\n      TogetherJS._configTrackers[name] = [];\n    }\n    TogetherJS._configTrackers[name].push(callback);\n    return callback;\n  };\n\n  TogetherJS.config.close = function (name) {\n    if (! TogetherJS._defaultConfiguration.hasOwnProperty(name)) {\n      throw new Error(\"Configuration is unknown: \" + name);\n    }\n    TogetherJS._configClosed[name] = true;\n  };\n\n  TogetherJS.reinitialize = function () {\n    if (TogetherJS.running && typeof TogetherJS.require == \"function\") {\n      TogetherJS.require([\"session\"], function (session) {\n        session.emit(\"reinitialize\");\n      });\n    }\n    // If it's not set, TogetherJS has not been loaded, and reinitialization is not needed\n  };\n\n  TogetherJS.refreshUserData = function () {\n    if (TogetherJS.running && typeof TogetherJS.require ==  \"function\") {\n      TogetherJS.require([\"session\"], function (session) {\n        session.emit(\"refresh-user-data\");\n      });\n    }\n  };\n\n  // This should contain the output of \"git describe --always --dirty\"\n  // FIXME: substitute this on the server (and update make-static-client)\n  TogetherJS.version = version;\n  TogetherJS.baseUrl = baseUrl;\n\n  TogetherJS.hub = TogetherJS._mixinEvents({});\n\n  TogetherJS._onmessage = function (msg) {\n    var type = msg.type;\n    if (type.search(/^app\\./) === 0) {\n      type = type.substr(\"app.\".length);\n    } else {\n      type = \"togetherjs.\" + type;\n    }\n    msg.type = type;\n    TogetherJS.hub.emit(msg.type, msg);\n  };\n\n  TogetherJS.send = function (msg) {\n    if (! TogetherJS.require) {\n      throw \"You cannot use TogetherJS.send() when TogetherJS is not running\";\n    }\n    var session = TogetherJS.require(\"session\");\n    session.appSend(msg);\n  };\n\n  TogetherJS.shareUrl = function () {\n    if (! TogetherJS.require) {\n      return null;\n    }\n    var session = TogetherJS.require(\"session\");\n    return session.shareUrl();\n  };\n\n  // pgbovine - added\n  TogetherJS.shareId = function () {\n    if (! TogetherJS.require) {\n      return null;\n    }\n    var session = TogetherJS.require(\"session\");\n    return session.shareId;\n  };\n\n  // pgbovine - added\n  TogetherJS.clientId = function () {\n    if (! TogetherJS.require) {\n      return null;\n    }\n    var session = TogetherJS.require(\"session\");\n    return session.clientId;\n  };\n\n  var listener = null;\n\n  TogetherJS.listenForShortcut = function () {\n    console.warn(\"Listening for alt-T alt-T to start TogetherJS\");\n    TogetherJS.removeShortcut();\n    listener = function listener(event) {\n      if (event.which == 84 && event.altKey) {\n        if (listener.pressed) {\n          // Second hit\n          TogetherJS();\n        } else {\n          listener.pressed = true;\n        }\n      } else {\n        listener.pressed = false;\n      }\n    };\n    TogetherJS.once(\"ready\", TogetherJS.removeShortcut);\n    document.addEventListener(\"keyup\", listener, false);\n  };\n\n  TogetherJS.removeShortcut = function () {\n    if (listener) {\n      document.addEventListener(\"keyup\", listener, false);\n      listener = null;\n    }\n  };\n\n  TogetherJS.config.track(\"enableShortcut\", function (enable, previous) {\n    if (enable) {\n      TogetherJS.listenForShortcut();\n    } else if (previous) {\n      TogetherJS.removeShortcut();\n    }\n  });\n\n  TogetherJS.checkForUsersOnChannel = function (address, callback) {\n    if (address.search(/^https?:/i) === 0) {\n      address = address.replace(/^http/i, 'ws');\n    }\n    var socket = new WebSocket(address);\n    var gotAnswer = false;\n    socket.onmessage = function (event) {\n      var msg = JSON.parse(event.data);\n      if (msg.type != \"init-connection\") {\n        console.warn(\"Got unexpected first message (should be init-connection):\", msg);\n        return;\n      }\n      if (gotAnswer) {\n        console.warn(\"Somehow received two responses from channel; ignoring second\");\n        socket.close();\n        return;\n      }\n      gotAnswer = true;\n      socket.close();\n      callback(msg.peerCount);\n    };\n    socket.onclose = socket.onerror = function () {\n      if (! gotAnswer) {\n        console.warn(\"Socket was closed without receiving answer\");\n        gotAnswer = true;\n        callback(undefined);\n      }\n    };\n  };\n\n  // It's nice to replace this early, before the load event fires, so we conflict\n  // as little as possible with the app we are embedded in:\n  var hash = location.hash.replace(/^#/, \"\");\n  var m = /&?togetherjs=([^&]*)/.exec(hash);\n  if (m) {\n    TogetherJS.startup._joinShareId = m[1];\n    TogetherJS.startup.reason = \"joined\";\n    var newHash = hash.substr(0, m.index) + hash.substr(m.index + m[0].length);\n    location.hash = newHash;\n  }\n  if (window._TogetherJSShareId) {\n    // A weird hack for something the addon does, to force a shareId.\n    // FIXME: probably should remove, it's a wonky feature.\n    TogetherJS.startup._joinShareId = window._TogetherJSShareId;\n    delete window._TogetherJSShareId;\n  }\n\n  function conditionalActivate() {\n    if (window.TogetherJSConfig_noAutoStart) {\n      return;\n    }\n    // A page can define this function to defer TogetherJS from starting\n    var callToStart = window.TogetherJSConfig_callToStart;\n    if (! callToStart && window.TowTruckConfig_callToStart) {\n      callToStart = window.TowTruckConfig_callToStart;\n      console.warn(\"Please rename TowTruckConfig_callToStart to TogetherJSConfig_callToStart\");\n    }\n    if (window.TogetherJSConfig && window.TogetherJSConfig.callToStart) {\n      callToStart = window.TogetherJSConfig.callToStart;\n    }\n    if (callToStart) {\n      // FIXME: need to document this:\n      callToStart(onload);\n    } else {\n      onload();\n    }\n  }\n\n  // FIXME: can we push this up before the load event?\n  // Do we need to wait at all?\n  function onload() {\n    if (TogetherJS.startup._joinShareId) {\n      TogetherJS();\n    } else if (window._TogetherJSBookmarklet) {\n      delete window._TogetherJSBookmarklet;\n      TogetherJS();\n    } else {\n      // FIXME: this doesn't respect storagePrefix:\n      var key = \"togetherjs-session.status\";\n      var value = sessionStorage.getItem(key);\n      if (value) {\n        value = JSON.parse(value);\n        if (value && value.running) {\n          TogetherJS.startup.continued = true;\n          TogetherJS.startup.reason = value.startupReason;\n          TogetherJS();\n        }\n      } else if (window.TogetherJSConfig_autoStart ||\n                 (window.TogetherJSConfig && window.TogetherJSConfig.autoStart)) {\n        TogetherJS.startup.reason = \"joined\";\n        TogetherJS();\n      }\n    }\n  }\n\n  conditionalActivate();\n\n  // FIXME: wait until load event to double check if this gets set?\n  if (window.TogetherJSConfig_enableShortcut) {\n    TogetherJS.listenForShortcut();\n  }\n\n  // For compatibility:\n  window.TowTruck = TogetherJS;\n\n})();\n"
+=======
+module.exports = "/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distributed with this file,\n * You can obtain one at http://mozilla.org/MPL/2.0/. */\n\n/*jshint scripturl:true */\n(function () {\n\n  // pgbovine - modify defaultConfiguration and NOT _defaultConfiguration\n  var defaultConfiguration = {\n    // Disables clicks for a certain element.\n    // (e.g., 'canvas' would not show clicks on canvas elements.)\n    // Setting this to true will disable clicks globally.\n    dontShowClicks: true, // pgbovine: on 2017-10-14, stop logging/showing clicks since they're overly verbose\n    // Experimental feature to echo clicks to certain elements across clients:\n    cloneClicks: '.togetherjsCloneClick', // pgbovine - clone clicks ONLY in these elements\n    // Enable Mozilla or Google analytics on the page when TogetherJS is activated:\n    // FIXME: these don't seem to be working, and probably should be removed in favor\n    // of the hub analytics\n    enableAnalytics: false,\n    // The code to enable (this is defaulting to a Mozilla code):\n    analyticsCode: \"UA-35433268-28\",\n    // The base URL of the hub (gets filled in below):\n    hubBase: \"http://45.79.11.225:30035/\",    // pgbovine - online deployment to new Linode (starting 2017-10-27)\n    //hubBase: \"http://104.237.139.253:30035/\", // pgbovine - online deployment to old Linode (prior to 2017-10-27)\n    //hubBase: \"http://localhost:30035/\",     // pgbovine - localhost testing\n\n    // A function that will return the name of the user:\n    // pgbovine - customized to use opt_uuid in localStorage if available\n    // so that each user can have a somewhat-unique N-digit username\n    getUserName: function() {\n      if ('localStorage' in window && window['localStorage'] !== null) {\n        var userUUID = localStorage.getItem('opt_uuid');\n        if (userUUID) {\n          // get last 3 digits of user uuid:\n          return 'user_' + userUUID.substring(userUUID.length - 3, userUUID.length);\n        } else {\n          return null; // let TogetherJS auto-assign an animal name\n        }\n      } else {\n        return null; // let TogetherJS auto-assign an animal name\n      }\n    },\n    // A function that will return the color of the user:\n    getUserColor: null,\n    // A function that will return the avatar of the user:\n    getUserAvatar: null,\n    // The siteName is used in the walkthrough (defaults to document.title):\n    siteName: null,\n    // Whether to use the minimized version of the code (overriding the built setting)\n    useMinimizedCode: undefined,\n    // Any events to bind to\n    on: {},\n    // Hub events to bind to\n    hub_on: {},\n    // Enables the alt-T alt-T TogetherJS shortcut; however, this setting\n    // must be enabled early as TogetherJSConfig_enableShortcut = true;\n    enableShortcut: false,\n    // The name of this tool as provided to users.  The UI is updated to use this.\n    // Because of how it is used in text it should be a proper noun, e.g.,\n    // \"MySite's Collaboration Tool\"\n    toolName: \"Python Tutor shared sessions\", // pgbovine\n    // Used to auto-start TogetherJS with a {prefix: pageName, max: participants}\n    // Also with findRoom: \"roomName\" it will connect to the given room name\n    findRoom: null,\n    // If true, starts TogetherJS automatically (of course!)\n    autoStart: false,\n    // If true, then the \"Join TogetherJS Session?\" confirmation dialog\n    // won't come up\n    suppressJoinConfirmation: true, // pgbovine\n    // If true, then the \"Invite a friend\" window won't automatically come up\n    suppressInvite: true, // pgbovine\n    // A room in which to find people to invite to this session,\n    inviteFromRoom: null,\n    // This is used to keep sessions from crossing over on the same\n    // domain, if for some reason you want sessions that are limited\n    // to only a portion of the domain:\n    storagePrefix: \"togetherjs\",\n    // When true, we treat the entire URL, including the hash, as the identifier\n    // of the page; i.e., if you one person is on `http://example.com/#view1`\n    // and another person is at `http://example.com/#view2` then these two people\n    // are considered to be at completely different URLs\n    includeHashInUrl: false,\n    // When true, the WebRTC-based mic/chat will be disabled\n    disableWebRTC: true, // pgbovine\n    // When true, youTube videos will synchronize\n    youtube: true,\n    // Ignores the following console messages, disables all messages if set to true\n    ignoreMessages: [\"cursor-update\", \"keydown\", \"scroll-update\"],\n    // Ignores the following forms (will ignore all forms if set to true):\n    ignoreForms: [\":password\", '.togetherjsIgnore'], // pgbovine\n    fallbackLang: \"en_US\"\n  };\n\n  var styleSheet = \"/togetherjs/togetherjs.css\";\n\n  var baseUrl = \"\";\n  if (baseUrl == \"__\" + \"baseUrl__\") {\n    // Reset the variable if it doesn't get substituted\n    baseUrl = \"\";\n  }\n  // True if this file should use minimized sub-resources:\n  var min = \"yes\" == \"__\" + \"min__\" ? false : \"yes\" == \"yes\";\n\n  var baseUrlOverride = localStorage.getItem(\"togetherjs.baseUrlOverride\");\n  if (baseUrlOverride) {\n    try {\n      baseUrlOverride = JSON.parse(baseUrlOverride);\n    } catch (e) {\n      baseUrlOverride = null;\n    }\n    if ((! baseUrlOverride) || baseUrlOverride.expiresAt < Date.now()) {\n      // Ignore because it has expired\n      localStorage.removeItem(\"togetherjs.baseUrlOverride\");\n    } else {\n      baseUrl = baseUrlOverride.baseUrl;\n      var logger = console.warn || console.log;\n      logger.call(console, \"Using TogetherJS baseUrlOverride:\", baseUrl);\n      logger.call(console, \"To undo run: localStorage.removeItem('togetherjs.baseUrlOverride')\");\n    }\n  }\n\n  var configOverride = localStorage.getItem(\"togetherjs.configOverride\");\n  if (configOverride) {\n    try {\n      configOverride = JSON.parse(configOverride);\n    } catch (e) {\n      configOverride = null;\n    }\n    if ((! configOverride) || configOverride.expiresAt < Date.now()) {\n      localStorage.removeItem(\"togetherjs.configOverride\");\n    } else {\n      var shownAny = false;\n      for (var attr in configOverride) {\n        if (! configOverride.hasOwnProperty(attr)) {\n          continue;\n        }\n        if (attr == \"expiresAt\" || ! configOverride.hasOwnProperty(attr)) {\n          continue;\n        }\n        if (! shownAny) {\n          console.warn(\"Using TogetherJS configOverride\");\n          console.warn(\"To undo run: localStorage.removeItem('togetherjs.configOverride')\");\n        }\n        window[\"TogetherJSConfig_\" + attr] = configOverride[attr];\n        console.log(\"Config override:\", attr, \"=\", configOverride[attr]);\n      }\n    }\n  }\n\n  var version = \"unknown\";\n  // FIXME: we could/should use a version from the checkout, at least\n  // for production\n  var cacheBust = \"\";\n  if ((! cacheBust) || cacheBust == \"\") {\n    cacheBust = Date.now() + \"\";\n  } else {\n    version = cacheBust;\n  }\n\n  // Make sure we have all of the console.* methods:\n  if (typeof console == \"undefined\") {\n    console = {};\n  }\n  if (! console.log) {\n    console.log = function () {};\n  }\n  [\"debug\", \"info\", \"warn\", \"error\"].forEach(function (method) {\n    if (! console[method]) {\n      console[method] = console.log;\n    }\n  });\n\n  if (! baseUrl) {\n    var scripts = document.getElementsByTagName(\"script\");\n    for (var i=0; i<scripts.length; i++) {\n      var src = scripts[i].src;\n      if (src && src.search(/togetherjs(-min)?.js(\\?.*)?$/) !== -1) {\n        baseUrl = src.replace(/\\/*togetherjs(-min)?.js(\\?.*)?$/, \"\");\n        //console.warn(\"Detected baseUrl as\", baseUrl); // pgbovine commented out\n        break;\n      } else if (src && src.search(/togetherjs-min.js(\\?.*)?$/) !== -1) {\n        baseUrl = src.replace(/\\/*togetherjs-min.js(\\?.*)?$/, \"\");\n        //console.warn(\"Detected baseUrl as\", baseUrl); // pgbovine commented out\n        break;\n      }\n    }\n  }\n  // pgbovine - hacked to make it work within Webpack\n  if (! baseUrl) {\n    baseUrl = window.location.protocol + '//' + window.location.host + '/js/lib/togetherjs';\n    //console.warn(\"Detected baseUrl as\", baseUrl);\n  }\n  if (! baseUrl) {\n    console.warn(\"Could not determine TogetherJS's baseUrl (looked for a <script> with togetherjs.js and togetherjs-min.js)\");\n  }\n\n  function addStyle() {\n    var existing = document.getElementById(\"togetherjs-stylesheet\");\n    if (! existing) {\n      var link = document.createElement(\"link\");\n      link.id = \"togetherjs-stylesheet\";\n      link.setAttribute(\"rel\", \"stylesheet\");\n      link.href = baseUrl + styleSheet + \"?bust=\" + cacheBust;\n      document.head.appendChild(link);\n    }\n  }\n\n  function addScript(url) {\n    var script = document.createElement(\"script\");\n    script.src = baseUrl + url + \"?bust=\" + cacheBust;\n    document.head.appendChild(script);\n  }\n\n  var TogetherJS = window.TogetherJS = function TogetherJS(event) {\n    if (TogetherJS.running) {\n      var session = TogetherJS.require(\"session\");\n      session.close();\n      return;\n    }\n    TogetherJS.startup.button = null;\n    try {\n      if (event && typeof event == \"object\") {\n        if (event.target && typeof event) {\n          TogetherJS.startup.button = event.target;\n        } else if (event.nodeType == 1) {\n          TogetherJS.startup.button = event;\n        } else if (event[0] && event[0].nodeType == 1) {\n          // Probably a jQuery element\n          TogetherJS.startup.button = event[0];\n        }\n      }\n    } catch (e) {\n      console.warn(\"Error determining starting button:\", e);\n    }\n    if (window.TowTruckConfig) {\n      console.warn(\"TowTruckConfig is deprecated; please use TogetherJSConfig\");\n      if (window.TogetherJSConfig) {\n        console.warn(\"Ignoring TowTruckConfig in favor of TogetherJSConfig\");\n      } else {\n        window.TogetherJSConfig = TowTruckConfig;\n      }\n    }\n    if (window.TogetherJSConfig && (! window.TogetherJSConfig.loaded)) {\n      TogetherJS.config(window.TogetherJSConfig);\n      window.TogetherJSConfig.loaded = true;\n    }\n\n    // This handles loading configuration from global variables.  This\n    // includes TogetherJSConfig_on_*, which are attributes folded into\n    // the \"on\" configuration value.\n    var attr;\n    var attrName;\n    var globalOns = {};\n    for (attr in window) {\n      if (attr.indexOf(\"TogetherJSConfig_on_\") === 0) {\n        attrName = attr.substr((\"TogetherJSConfig_on_\").length);\n        globalOns[attrName] = window[attr];\n      } else if (attr.indexOf(\"TogetherJSConfig_\") === 0) {\n        attrName = attr.substr((\"TogetherJSConfig_\").length);\n        TogetherJS.config(attrName, window[attr]);\n      } else if (attr.indexOf(\"TowTruckConfig_on_\") === 0) {\n        attrName = attr.substr((\"TowTruckConfig_on_\").length);\n        console.warn(\"TowTruckConfig_* is deprecated, please rename\", attr, \"to TogetherJSConfig_on_\" + attrName);\n        globalOns[attrName] = window[attr];\n      } else if (attr.indexOf(\"TowTruckConfig_\") === 0) {\n        attrName = attr.substr((\"TowTruckConfig_\").length);\n        console.warn(\"TowTruckConfig_* is deprecated, please rename\", attr, \"to TogetherJSConfig_\" + attrName);\n        TogetherJS.config(attrName, window[attr]);\n      }\n\n\n    }\n    // FIXME: copy existing config?\n    // FIXME: do this directly in TogetherJS.config() ?\n    // FIXME: close these configs?\n    var ons = TogetherJS.config.get(\"on\");\n    for (attr in globalOns) {\n      if (globalOns.hasOwnProperty(attr)) {\n        // FIXME: should we avoid overwriting?  Maybe use arrays?\n        ons[attr] = globalOns[attr];\n      }\n    }\n    TogetherJS.config(\"on\", ons);\n    for (attr in ons) {\n      TogetherJS.on(attr, ons[attr]);\n    }\n    var hubOns = TogetherJS.config.get(\"hub_on\");\n    if (hubOns) {\n      for (attr in hubOns) {\n        if (hubOns.hasOwnProperty(attr)) {\n          TogetherJS.hub.on(attr, hubOns[attr]);\n        }\n      }\n    }\n\n    if (! TogetherJS.startup.reason) {\n      // Then a call to TogetherJS() from a button must be started TogetherJS\n      TogetherJS.startup.reason = \"started\";\n    }\n\n    // FIXME: maybe I should just test for TogetherJS.require:\n    if (TogetherJS._loaded) {\n      var session = TogetherJS.require(\"session\");\n      addStyle();\n      session.start();\n      return;\n    }\n    // A sort of signal to session.js to tell it to actually\n    // start itself (i.e., put up a UI and try to activate)\n    TogetherJS.startup._launch = true;\n\n    addStyle();\n    var minSetting = TogetherJS.config.get(\"useMinimizedCode\");\n    TogetherJS.config.close(\"useMinimizedCode\");\n    if (minSetting !== undefined) {\n      min = !! minSetting;\n    }\n    var requireConfig = TogetherJS._extend(TogetherJS.requireConfig);\n    var deps = [\"session\", \"jquery\"];\n    var lang = TogetherJS.getConfig(\"lang\");\n    // [igoryen]: We should generate this value in Gruntfile.js, based on the available translations\n    var availableTranslations = {\n      \"en-US\": true,\n      \"ru\": true,\n      \"ru-RU\": true\n    };\n\n    if(lang === undefined) {\n      var navigatorLang = navigator.language.replace(/_/g, \"-\");\n      if (!availableTranslations[navigatorLang]) {\n        lang = TogetherJS.config.get(\"fallbackLang\");\n      } else {\n        lang = navigatorLang;\n      }\n     TogetherJS.config(\"lang\", lang);\n    }\n\n    TogetherJS.config(\"lang\", lang.replace(/_/g, \"-\")); // rename into TogetherJS.config.get()?\n    var localeTemplates = \"templates-\" + lang;// rename into TogetherJS.config.get()?\n    deps.splice(0, 0, localeTemplates);\n    function callback(session, jquery) {\n      TogetherJS._loaded = true;\n      if (! min) {\n        TogetherJS.require = require.config({context: \"togetherjs\"});\n        TogetherJS._requireObject = require;\n      }\n    }\n    if (! min) {\n      if (typeof require == \"function\") {\n        if (! require.config) {\n          console.warn(\"The global require (\", require, \") is not requirejs; please use togetherjs-min.js\");\n          throw new Error(\"Conflict with window.require\");\n        }\n        TogetherJS.require = require.config(requireConfig);\n      }\n    }\n    if (typeof TogetherJS.require == \"function\") {\n      // This is an already-configured version of require\n      TogetherJS.require(deps, callback);\n    } else {\n      requireConfig.deps = deps;\n      requireConfig.callback = callback;\n      if (! min) {\n        window.require = requireConfig;\n      }\n    }\n    if (min) {\n      addScript(\"/togetherjs/togetherjsPackage.js\");\n    } else {\n      addScript(\"/togetherjs/libs/require.js\");\n    }\n  };\n\n  TogetherJS.pageLoaded = Date.now();\n\n  TogetherJS._extend = function (base, extensions) {\n    if (! extensions) {\n      extensions = base;\n      base = {};\n    }\n    for (var a in extensions) {\n      if (extensions.hasOwnProperty(a)) {\n        base[a] = extensions[a];\n      }\n    }\n    return base;\n  };\n\n  TogetherJS._startupInit = {\n    // What element, if any, was used to start the session:\n    button: null,\n    // The startReason is the reason TogetherJS was started.  One of:\n    //   null: not started\n    //   started: hit the start button (first page view)\n    //   joined: joined the session (first page view)\n    reason: null,\n    // Also, the session may have started on \"this\" page, or maybe is continued\n    // from a past page.  TogetherJS.continued indicates the difference (false the\n    // first time TogetherJS is started or joined, true on later page loads).\n    continued: false,\n    // This is set to tell the session what shareId to use, if the boot\n    // code knows (mostly because the URL indicates the id).\n    _joinShareId: null,\n    // This tells session to start up immediately (otherwise it would wait\n    // for session.start() to be run)\n    _launch: false\n  };\n  TogetherJS.startup = TogetherJS._extend(TogetherJS._startupInit);\n  TogetherJS.running = false;\n\n  TogetherJS.requireConfig = {\n    context: \"togetherjs\",\n    baseUrl: baseUrl + \"/togetherjs\",\n    urlArgs: \"bust=\" + cacheBust,\n    paths: {\n      jquery: \"libs/jquery-1.8.3.min\",\n      walkabout: \"libs/walkabout/walkabout\",\n      esprima: \"libs/walkabout/lib/esprima\",\n      falafel: \"libs/walkabout/lib/falafel\",\n      tinycolor: \"libs/tinycolor\",\n      whrandom: \"libs/whrandom/random\"\n    }\n  };\n\n  TogetherJS._mixinEvents = function (proto) {\n    proto.on = function on(name, callback) {\n      if (typeof callback != \"function\") {\n        console.warn(\"Bad callback for\", this, \".once(\", name, \", \", callback, \")\");\n        throw \"Error: .once() called with non-callback\";\n      }\n      if (name.search(\" \") != -1) {\n        var names = name.split(/ +/g);\n        names.forEach(function (n) {\n          this.on(n, callback);\n        }, this);\n        return;\n      }\n      if (this._knownEvents && this._knownEvents.indexOf(name) == -1) {\n        var thisString = \"\" + this;\n        if (thisString.length > 20) {\n          thisString = thisString.substr(0, 20) + \"...\";\n        }\n        console.warn(thisString + \".on('\" + name + \"', ...): unknown event\");\n        if (console.trace) {\n          console.trace();\n        }\n      }\n      if (! this._listeners) {\n        this._listeners = {};\n      }\n      if (! this._listeners[name]) {\n        this._listeners[name] = [];\n      }\n      if (this._listeners[name].indexOf(callback) == -1) {\n        this._listeners[name].push(callback);\n      }\n    };\n    proto.once = function once(name, callback) {\n      if (typeof callback != \"function\") {\n        console.warn(\"Bad callback for\", this, \".once(\", name, \", \", callback, \")\");\n        throw \"Error: .once() called with non-callback\";\n      }\n      var attr = \"onceCallback_\" + name;\n      // FIXME: maybe I should add the event name to the .once attribute:\n      if (! callback[attr]) {\n        callback[attr] = function onceCallback() {\n          callback.apply(this, arguments);\n          this.off(name, onceCallback);\n          delete callback[attr];\n        };\n      }\n      this.on(name, callback[attr]);\n    };\n    proto.off = proto.removeListener = function off(name, callback) {\n      if (this._listenerOffs) {\n        // Defer the .off() call until the .emit() is done.\n        this._listenerOffs.push([name, callback]);\n        return;\n      }\n      if (name.search(\" \") != -1) {\n        var names = name.split(/ +/g);\n        names.forEach(function (n) {\n          this.off(n, callback);\n        }, this);\n        return;\n      }\n      if ((! this._listeners) || ! this._listeners[name]) {\n        return;\n      }\n      var l = this._listeners[name], _len = l.length;\n      for (var i=0; i<_len; i++) {\n        if (l[i] == callback) {\n          l.splice(i, 1);\n          break;\n        }\n      }\n    };\n    proto.emit = function emit(name) {\n      var offs = this._listenerOffs = [];\n      if ((! this._listeners) || ! this._listeners[name]) {\n        return;\n      }\n      var args = Array.prototype.slice.call(arguments, 1);\n      var l = this._listeners[name];\n      l.forEach(function (callback) {\n\n        callback.apply(this, args);\n      }, this);\n      delete this._listenerOffs;\n      if (offs.length) {\n        offs.forEach(function (item) {\n          this.off(item[0], item[1]);\n        }, this);\n      }\n\n    };\n    return proto;\n  };\n\n  /* This finalizes the unloading of TogetherJS, including unloading modules */\n  TogetherJS._teardown = function () {\n    var requireObject = TogetherJS._requireObject || window.require;\n    // FIXME: this doesn't clear the context for min-case\n    if (requireObject.s && requireObject.s.contexts) {\n      delete requireObject.s.contexts.togetherjs;\n    }\n    TogetherJS._loaded = false;\n    TogetherJS.startup = TogetherJS._extend(TogetherJS._startupInit);\n    TogetherJS.running = false;\n  };\n\n  TogetherJS._mixinEvents(TogetherJS);\n  TogetherJS._knownEvents = [\"ready\", \"close\"];\n  TogetherJS.toString = function () {\n    return \"TogetherJS\";\n  };\n\n  var defaultHubBase = \"https://hub.togetherjs.com\";\n  if (defaultHubBase == \"__\" + \"hubUrl\"+ \"__\") {\n    // Substitution wasn't made\n    defaultHubBase = \"https://hub.togetherjs.mozillalabs.com\";\n  }\n\n  TogetherJS._configuration = {};\n  TogetherJS._defaultConfiguration = {\n    // Disables clicks for a certain element.\n    // (e.g., 'canvas' would not show clicks on canvas elements.)\n    // Setting this to true will disable clicks globally.\n    dontShowClicks: false,\n    // Experimental feature to echo clicks to certain elements across clients:\n    cloneClicks: false,\n    // Enable Mozilla or Google analytics on the page when TogetherJS is activated:\n    // FIXME: these don't seem to be working, and probably should be removed in favor\n    // of the hub analytics\n    enableAnalytics: false,\n    // The code to enable (this is defaulting to a Mozilla code):\n    analyticsCode: \"UA-35433268-28\",\n    // The base URL of the hub\n    hubBase: defaultHubBase,\n    // A function that will return the name of the user:\n    getUserName: null,\n    // A function that will return the color of the user:\n    getUserColor: null,\n    // A function that will return the avatar of the user:\n    getUserAvatar: null,\n    // The siteName is used in the walkthrough (defaults to document.title):\n    siteName: null,\n    // Whether to use the minimized version of the code (overriding the built setting)\n    useMinimizedCode: undefined,\n    // Any events to bind to\n    on: {},\n    // Hub events to bind to\n    hub_on: {},\n    // Enables the alt-T alt-T TogetherJS shortcut; however, this setting\n    // must be enabled early as TogetherJSConfig_enableShortcut = true;\n    enableShortcut: false,\n    // The name of this tool as provided to users.  The UI is updated to use this.\n    // Because of how it is used in text it should be a proper noun, e.g.,\n    // \"MySite's Collaboration Tool\"\n    toolName: null,\n    // Used to auto-start TogetherJS with a {prefix: pageName, max: participants}\n    // Also with findRoom: \"roomName\" it will connect to the given room name\n    findRoom: null,\n    // If true, starts TogetherJS automatically (of course!)\n    autoStart: false,\n    // If true, then the \"Join TogetherJS Session?\" confirmation dialog\n    // won't come up\n    suppressJoinConfirmation: false,\n    // If true, then the \"Invite a friend\" window won't automatically come up\n    suppressInvite: false,\n    // A room in which to find people to invite to this session,\n    inviteFromRoom: null,\n    // This is used to keep sessions from crossing over on the same\n    // domain, if for some reason you want sessions that are limited\n    // to only a portion of the domain:\n    storagePrefix: \"togetherjs\",\n    // When true, we treat the entire URL, including the hash, as the identifier\n    // of the page; i.e., if you one person is on `http://example.com/#view1`\n    // and another person is at `http://example.com/#view2` then these two people\n    // are considered to be at completely different URLs\n    includeHashInUrl: false,\n    // The language to present the tool in, such as \"en-US\" or \"ru-RU\"\n    // Note this must be set as TogetherJSConfig_lang, as it effects the loader\n    // and must be set as soon as this file is included\n    lang: null\n  };\n  // FIXME: there's a point at which configuration can't be updated\n  // (e.g., hubBase after the TogetherJS has loaded).  We should keep\n  // track of these and signal an error if someone attempts to\n  // reconfigure too late\n\n  TogetherJS.getConfig = function (name) { // rename into TogetherJS.config.get()?\n    var value = TogetherJS._configuration[name];\n    if (value === undefined) {\n      if (! TogetherJS._defaultConfiguration.hasOwnProperty(name)) {\n        console.error(\"Tried to load unknown configuration value:\", name);\n      }\n      value = TogetherJS._defaultConfiguration[name];\n    }\n    return value;\n  };\n  TogetherJS._defaultConfiguration = defaultConfiguration;\n  TogetherJS._configTrackers = {};\n  TogetherJS._configClosed = {};\n\n  /* TogetherJS.config(configurationObject)\n     or: TogetherJS.config(configName, value)\n\n     Adds configuration to TogetherJS.  You may also set the global variable TogetherJSConfig\n     and when TogetherJS is started that configuration will be loaded.\n\n     Unknown configuration values will lead to console error messages.\n     */\n  TogetherJS.config = function (name, maybeValue) {\n    var settings;\n    if (arguments.length == 1) {\n      if (typeof name != \"object\") {\n        throw new Error('TogetherJS.config(value) must have an object value (not: ' + name + ')');\n      }\n      settings = name;\n    } else {\n      settings = {};\n      settings[name] = maybeValue;\n    }\n    var i;\n    var tracker;\n    for (var attr in settings) {\n      if (settings.hasOwnProperty(attr)) {\n        if (TogetherJS._configClosed[attr] && TogetherJS.running) {\n          throw new Error(\"The configuration \" + attr + \" is finalized and cannot be changed\");\n        }\n      }\n    }\n    for (var attr in settings) {\n      if (! settings.hasOwnProperty(attr)) {\n        continue;\n      }\n      if (attr == \"loaded\" || attr == \"callToStart\") {\n        continue;\n      }\n      if (! TogetherJS._defaultConfiguration.hasOwnProperty(attr)) {\n        console.warn(\"Unknown configuration value passed to TogetherJS.config():\", attr);\n      }\n      var previous = TogetherJS._configuration[attr];\n      var value = settings[attr];\n      TogetherJS._configuration[attr] = value;\n      var trackers = TogetherJS._configTrackers[name] || [];\n      var failed = false;\n      for (i=0; i<trackers.length; i++) {\n        try {\n          tracker = trackers[i];\n          tracker(value, previous);\n        } catch (e) {\n          console.warn(\"Error setting configuration\", name, \"to\", value,\n                       \":\", e, \"; reverting to\", previous);\n          failed = true;\n          break;\n        }\n      }\n      if (failed) {\n        TogetherJS._configuration[attr] = previous;\n        for (i=0; i<trackers.length; i++) {\n          try {\n            tracker = trackers[i];\n            tracker(value);\n          } catch (e) {\n            console.warn(\"Error REsetting configuration\", name, \"to\", previous,\n                         \":\", e, \"(ignoring)\");\n          }\n        }\n      }\n    }\n  };\n\n  TogetherJS.config.get = function (name) {\n    var value = TogetherJS._configuration[name];\n    if (value === undefined) {\n      if (! TogetherJS._defaultConfiguration.hasOwnProperty(name)) {\n        console.error(\"Tried to load unknown configuration value:\", name);\n      }\n      value = TogetherJS._defaultConfiguration[name];\n    }\n    return value;\n  };\n\n  TogetherJS.config.track = function (name, callback) {\n    if (! TogetherJS._defaultConfiguration.hasOwnProperty(name)) {\n      throw new Error(\"Configuration is unknown: \" + name);\n    }\n    callback(TogetherJS.config.get(name));\n    if (! TogetherJS._configTrackers[name]) {\n      TogetherJS._configTrackers[name] = [];\n    }\n    TogetherJS._configTrackers[name].push(callback);\n    return callback;\n  };\n\n  TogetherJS.config.close = function (name) {\n    if (! TogetherJS._defaultConfiguration.hasOwnProperty(name)) {\n      throw new Error(\"Configuration is unknown: \" + name);\n    }\n    TogetherJS._configClosed[name] = true;\n  };\n\n  TogetherJS.reinitialize = function () {\n    if (TogetherJS.running && typeof TogetherJS.require == \"function\") {\n      TogetherJS.require([\"session\"], function (session) {\n        session.emit(\"reinitialize\");\n      });\n    }\n    // If it's not set, TogetherJS has not been loaded, and reinitialization is not needed\n  };\n\n  TogetherJS.refreshUserData = function () {\n    if (TogetherJS.running && typeof TogetherJS.require ==  \"function\") {\n      TogetherJS.require([\"session\"], function (session) {\n        session.emit(\"refresh-user-data\");\n      });\n    }\n  };\n\n  // This should contain the output of \"git describe --always --dirty\"\n  // FIXME: substitute this on the server (and update make-static-client)\n  TogetherJS.version = version;\n  TogetherJS.baseUrl = baseUrl;\n\n  TogetherJS.hub = TogetherJS._mixinEvents({});\n\n  TogetherJS._onmessage = function (msg) {\n    var type = msg.type;\n    if (type.search(/^app\\./) === 0) {\n      type = type.substr(\"app.\".length);\n    } else {\n      type = \"togetherjs.\" + type;\n    }\n    msg.type = type;\n    TogetherJS.hub.emit(msg.type, msg);\n  };\n\n  TogetherJS.send = function (msg) {\n    if (! TogetherJS.require) {\n      throw \"You cannot use TogetherJS.send() when TogetherJS is not running\";\n    }\n    var session = TogetherJS.require(\"session\");\n    session.appSend(msg);\n  };\n\n  TogetherJS.shareUrl = function () {\n    if (! TogetherJS.require) {\n      return null;\n    }\n    var session = TogetherJS.require(\"session\");\n    return session.shareUrl();\n  };\n\n  // pgbovine - added\n  TogetherJS.shareId = function () {\n    if (! TogetherJS.require) {\n      return null;\n    }\n    var session = TogetherJS.require(\"session\");\n    return session.shareId;\n  };\n\n  // pgbovine - added\n  TogetherJS.clientId = function () {\n    if (! TogetherJS.require) {\n      return null;\n    }\n    var session = TogetherJS.require(\"session\");\n    return session.clientId;\n  };\n\n  var listener = null;\n\n  TogetherJS.listenForShortcut = function () {\n    console.warn(\"Listening for alt-T alt-T to start TogetherJS\");\n    TogetherJS.removeShortcut();\n    listener = function listener(event) {\n      if (event.which == 84 && event.altKey) {\n        if (listener.pressed) {\n          // Second hit\n          TogetherJS();\n        } else {\n          listener.pressed = true;\n        }\n      } else {\n        listener.pressed = false;\n      }\n    };\n    TogetherJS.once(\"ready\", TogetherJS.removeShortcut);\n    document.addEventListener(\"keyup\", listener, false);\n  };\n\n  TogetherJS.removeShortcut = function () {\n    if (listener) {\n      document.addEventListener(\"keyup\", listener, false);\n      listener = null;\n    }\n  };\n\n  TogetherJS.config.track(\"enableShortcut\", function (enable, previous) {\n    if (enable) {\n      TogetherJS.listenForShortcut();\n    } else if (previous) {\n      TogetherJS.removeShortcut();\n    }\n  });\n\n  TogetherJS.checkForUsersOnChannel = function (address, callback) {\n    if (address.search(/^https?:/i) === 0) {\n      address = address.replace(/^http/i, 'ws');\n    }\n    var socket = new WebSocket(address);\n    var gotAnswer = false;\n    socket.onmessage = function (event) {\n      var msg = JSON.parse(event.data);\n      if (msg.type != \"init-connection\") {\n        console.warn(\"Got unexpected first message (should be init-connection):\", msg);\n        return;\n      }\n      if (gotAnswer) {\n        console.warn(\"Somehow received two responses from channel; ignoring second\");\n        socket.close();\n        return;\n      }\n      gotAnswer = true;\n      socket.close();\n      callback(msg.peerCount);\n    };\n    socket.onclose = socket.onerror = function () {\n      if (! gotAnswer) {\n        console.warn(\"Socket was closed without receiving answer\");\n        gotAnswer = true;\n        callback(undefined);\n      }\n    };\n  };\n\n  // It's nice to replace this early, before the load event fires, so we conflict\n  // as little as possible with the app we are embedded in:\n  var hash = location.hash.replace(/^#/, \"\");\n  var m = /&?togetherjs=([^&]*)/.exec(hash);\n  if (m) {\n    TogetherJS.startup._joinShareId = m[1];\n    TogetherJS.startup.reason = \"joined\";\n    var newHash = hash.substr(0, m.index) + hash.substr(m.index + m[0].length);\n    location.hash = newHash;\n  }\n  if (window._TogetherJSShareId) {\n    // A weird hack for something the addon does, to force a shareId.\n    // FIXME: probably should remove, it's a wonky feature.\n    TogetherJS.startup._joinShareId = window._TogetherJSShareId;\n    delete window._TogetherJSShareId;\n  }\n\n  function conditionalActivate() {\n    if (window.TogetherJSConfig_noAutoStart) {\n      return;\n    }\n    // A page can define this function to defer TogetherJS from starting\n    var callToStart = window.TogetherJSConfig_callToStart;\n    if (! callToStart && window.TowTruckConfig_callToStart) {\n      callToStart = window.TowTruckConfig_callToStart;\n      console.warn(\"Please rename TowTruckConfig_callToStart to TogetherJSConfig_callToStart\");\n    }\n    if (window.TogetherJSConfig && window.TogetherJSConfig.callToStart) {\n      callToStart = window.TogetherJSConfig.callToStart;\n    }\n    if (callToStart) {\n      // FIXME: need to document this:\n      callToStart(onload);\n    } else {\n      onload();\n    }\n  }\n\n  // FIXME: can we push this up before the load event?\n  // Do we need to wait at all?\n  function onload() {\n    if (TogetherJS.startup._joinShareId) {\n      TogetherJS();\n    } else if (window._TogetherJSBookmarklet) {\n      delete window._TogetherJSBookmarklet;\n      TogetherJS();\n    } else {\n      // FIXME: this doesn't respect storagePrefix:\n      var key = \"togetherjs-session.status\";\n      var value = sessionStorage.getItem(key);\n      if (value) {\n        value = JSON.parse(value);\n        if (value && value.running) {\n          TogetherJS.startup.continued = true;\n          TogetherJS.startup.reason = value.startupReason;\n          TogetherJS();\n        }\n      } else if (window.TogetherJSConfig_autoStart ||\n                 (window.TogetherJSConfig && window.TogetherJSConfig.autoStart)) {\n        TogetherJS.startup.reason = \"joined\";\n        TogetherJS();\n      }\n    }\n  }\n\n  conditionalActivate();\n\n  // FIXME: wait until load event to double check if this gets set?\n  if (window.TogetherJSConfig_enableShortcut) {\n    TogetherJS.listenForShortcut();\n  }\n\n  // For compatibility:\n  window.TowTruck = TogetherJS;\n\n})();\n"
+>>>>>>> master
 
 /***/ }),
 /* 44 */
