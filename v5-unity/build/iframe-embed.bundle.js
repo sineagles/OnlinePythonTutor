@@ -4011,7 +4011,7 @@ var AbstractBaseFrontend = (function () {
             var appState = this.getAppState();
             var cachedTrace = this.traceCacheGet(appState);
             if (cachedTrace) {
-                console.log("CACHE HIT!", appState);
+                //console.log("CACHE HIT!", appState);
                 callbackWrapper({ code: appState.code, trace: cachedTrace });
                 return; // return early without going to the server at all!
             }
@@ -22552,4 +22552,3 @@ $(document).ready(function () {
 
 /***/ })
 /******/ ]);
-//# sourceMappingURL=iframe-embed.bundle.js.map
