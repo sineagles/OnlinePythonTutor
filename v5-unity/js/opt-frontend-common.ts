@@ -298,8 +298,6 @@ export abstract class AbstractBaseFrontend {
     return ret;
   }
 
-  getAppState() {assert(false);} // subclasses should always override this
-
   updateOutputCallbackFunc() {
     $('#urlOutput,#urlOutputShortened,#embedCodeOutput').val('');
   }
