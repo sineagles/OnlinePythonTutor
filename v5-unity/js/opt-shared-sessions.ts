@@ -283,6 +283,11 @@ function randomlyPickSurveyItem(key) {
 
 /* Record/replay TODOs (from first hacking on it on 2018-01-01)
 
+  - be able to store the localStorage.demoVideo data somewhere remotely
+    (maybe in a file in GitHub, or a simple database that only I control?)
+    since it probably won't fit into a URL when there's audio added. maybe
+    try Firebase?
+
   - we need to 'lock' the UI while the video is playing and only
     allow modifications once you push the 'pause' button and it's
     gotten a chance to save state
