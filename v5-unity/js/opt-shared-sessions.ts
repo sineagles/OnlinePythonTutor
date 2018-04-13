@@ -871,9 +871,7 @@ Get live help!
 </div>
 `;
 
-    if (!this.recorderMode) { // needed to work in live.html; kinda weird timing, oh wells
-      $("td#headerTdLeft").append(ssDiv);
-    }
+    $("td#headerTdLeft").append(ssDiv);
     $("td#headerTdRight").append(togetherJsDiv);
 
     // do this all after creating the DOM elements above dynamically:
