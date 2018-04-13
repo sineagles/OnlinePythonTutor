@@ -470,6 +470,8 @@ class OptDemoVideo {
       this.frontend.traceCacheAdd();
     }
 
+    this.startRecordingAudio();
+
     this.frontend.isRecordingDemo = true;
     TogetherJS.config('isDemoSession', true);
     TogetherJS(); // activate TogetherJS as the last step to start the recording
@@ -494,9 +496,32 @@ class OptDemoVideo {
     TogetherJS.config('isDemoSession', false);
     TogetherJS.config('eventRecorderFunc', null);
 
+    this.stopRecordingAudio(); // it will still take some time before the encoded mp3 data is ready!
+
     // STENT - save to localStorage to test it
     localStorage['demoVideo'] = this.serializeToJSON();
   }
+
+
+  // lifted from Recordmp3js
+  startRecordingAudio() {
+    assert(this.frontend.audioRecorder);
+    console.warn('startRecordingAudio()');
+    this.frontend.audioRecorder.record();
+  }
+
+  stopRecordingAudio() {
+    assert(this.frontend.audioRecorder);
+    console.warn('stopRecordingAudio()');
+    this.frontend.audioRecorder.stop();
+
+    this.frontend.audioRecorder.exportWAV(function(blob) {
+      console.log('calling audioRecorder.exportWAV');
+    });
+
+    this.frontend.audioRecorder.clear();
+  }
+
 
   setInitialAppState() {
     assert(this.initialAppState);
@@ -797,6 +822,7 @@ export class OptFrontendSharedSessions extends OptFrontend {
   isRecordingDemo = false;
   isPlayingDemo = false;
   demoVideo: OptDemoVideo;
+  audioRecorder = null; // Recorder() object from Recordmp3js
 
   wantsPublicHelp = false;
   iMadeAPublicHelpRequest = false; // subtly different than wantsPublicHelp (see usage)
@@ -943,12 +969,11 @@ Get live help!
     });
 
 
-    // TODO: we definitely need to break this all out into its own
-    // top-level file since we don't want this activating for all users
+    // TODO: definitely break this off into its own top-level file so
+    // that this activates only for users who are making recordings:
 
     // BEGIN - lifted from Recordmp3js
     var audio_context;
-    var recorder;
 
     try {
       // webkit shim
@@ -974,7 +999,7 @@ Get live help!
         console.warn("input sample rate " +input.context.sampleRate);
         console.warn('Input connected to audio context destination.');
 
-        recorder = new Recorder(input, {
+        this.audioRecorder = new Recorder(input, {
                       numChannels: 1
                     });
         console.warn('Recorder initialised.');
@@ -984,25 +1009,6 @@ Get live help!
           alert('ERROR: No live audio input: ' + e);
       }
     );
-
-    function startRecordingAudio() {
-      recorder && recorder.record();
-      console.warn('Recording...');
-    }
-
-    function stopRecordingAudio() {
-      recorder && recorder.stop();
-      console.warn('Stopped recording.');
-
-      recorder && recorder.exportWAV(function(blob) {
-        console.log('calling recorder.exportWAV!');
-      });
-
-      recorder.clear();
-    }
-
-    (window as any).startRecordingAudio = startRecordingAudio;
-    (window as any).stopRecordingAudio = stopRecordingAudio;
     // END - lifted from Recordmp3js
   }
 
