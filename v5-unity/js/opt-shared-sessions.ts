@@ -284,13 +284,6 @@ function randomlyPickSurveyItem(key) {
 
 /* Record/replay TODOs (from first hacking on it on 2018-01-01)
 
-  - make the recorder/player a subclass of OptFrontendSharedSessions
-    with a separate html file and everything and special frontend tag
-    (this.originFrontendJsFile) so that we can diambiguate its log
-    entries in our server logs; otherwise it will look like people are
-    executing a ton of the same pieces of code when they're simply
-    demo code
-
   - we need to 'lock' the UI while the video is playing and only
     allow modifications once you push the 'pause' button and it's
     gotten a chance to save state
@@ -343,6 +336,14 @@ function randomlyPickSurveyItem(key) {
       server so that we don't need a server at all? this seems crucial
       both for performance and for being able to ship tutorials as
       self-contained packages
+    - or if that's too hard, then make the recorder/player a subclass of
+      OptFrontendSharedSessions with a separate html file and everything
+      and special frontend tag (this.originFrontendJsFile) so that we can
+      diambiguate its log entries in our server logs; otherwise it will
+      look like people are executing a ton of the same pieces of code when
+      they're simply executing demo code (just like the iframe-embed.ts
+      label)
+
 
 potentially useful links:
 
@@ -852,17 +853,6 @@ Get live help!
   <button id="sharedSessionBtn" type="button" class="togetherjsBtn" style="font-size: 9pt;">
   Start private chat
   </button>
-
-  <br/>
-  <button id="recordBtn" type="button" class="togetherjsBtn" style="font-size: 9pt;">
-  Record demo
-  </button>
-
-  <br/>
-  <button id="playbackBtn" type="button" class="togetherjsBtn" style="font-size: 9pt;">
-  Play recording
-  </button>
-
   <div style="margin-top: 5px; font-size: 8pt;">
   <a href="https://www.youtube.com/watch?v=oDY7ScMPtqI" target="_blank">How do I use this?</a>
   </div>
@@ -888,9 +878,6 @@ Get live help!
     $("#sharedSessionBtn").click(this.startSharedSession.bind(this, false));
     $("#stopTogetherJSBtn").click(TogetherJS); // toggles off
     $("#requestHelpBtn").click(this.requestPublicHelpButtonClick.bind(this));
-
-    $("#recordBtn").click(this.startRecording.bind(this));
-    $("#playbackBtn").click(this.startPlayback.bind(this));
 
     // jquery.idle:
     ($(document) as any).idle({
@@ -957,6 +944,7 @@ Get live help!
     this.getHelpQueue();
   }
 
+  // NB: this should actually be renamed 'demoOrRecorderModeChanged'!
   demoModeChanged() {
     console.log('demoModeChanged', this.demoMode);
     if (this.demoMode) {
@@ -974,6 +962,28 @@ Get live help!
     } else {
       $("td#headerTdLeft,td#headerTdRight").show();
       this.disableSharedSessions = false;
+    }
+
+    if (this.recorderMode) {
+      this.disableSharedSessions = true; // don't call getHelpQueue periodically
+
+      // always use a localhost server for recording so that we don't
+      // pollute the real server logs
+      TogetherJS._defaultConfiguration.hubBase = 'http://localhost:30035/';
+
+      var recordReplayDiv = `
+        <button id="recordBtn" type="button" class="togetherjsBtn" style="font-size: 9pt;">
+        Record demo
+        </button>
+
+        <br/>
+        <button id="playbackBtn" type="button" class="togetherjsBtn" style="font-size: 9pt;">
+        Play recording
+        </button>`;
+      $("td#headerTdLeft").html(recordReplayDiv); // clobber the existing contents
+
+      $("#recordBtn").click(this.recordButtonClicked.bind(this));
+      $("#playbackBtn").click(this.startPlayback.bind(this));
     }
   }
 
@@ -1939,12 +1949,21 @@ Get live help!
     this.wantsPublicHelp = wantsPublicHelp; // TODO: unify everything into 1 boolean
   }
 
-  startRecording() {
-    $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
-    $("#togetherjsStatus").html("Recording now ...");
+  recordButtonClicked() {
+    if ($("#recordBtn").data('status') === 'recording') {
+      TogetherJS(); // this will stop recording
+      $("#recordBtn").data('status', 'stopped');
+      $("#recordBtn").html("Record demo");
+    } else {
+      $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
+      $("#togetherjsStatus").html("Recording now ...");
 
-    this.demoVideo = new OptDemoVideo(this);
-    this.demoVideo.startRecording();
+      this.demoVideo = new OptDemoVideo(this);
+      this.demoVideo.startRecording();
+
+      $("#recordBtn").data('status', 'recording');
+      $("#recordBtn").html("Stop recording");
+    }
   }
 
   setPlayPauseButton(state) {
