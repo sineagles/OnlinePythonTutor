@@ -43,6 +43,19 @@ import {OptFrontend} from './opt-frontend';
 import {assert} from './pytutor';
 
 
+// lifted from Recordmp3js
+function encode64(buffer) {
+  var binary = '',
+    bytes = new Uint8Array( buffer ),
+    len = bytes.byteLength;
+
+  for (var i = 0; i < len; i++) {
+    binary += String.fromCharCode( bytes[ i ] );
+  }
+  return window.btoa( binary );
+}
+
+
 // copy-pasta from // https://github.com/kidh0/jquery.idle
 /**
  *  File: jquery.idle.js
@@ -414,6 +427,8 @@ class OptDemoVideo {
   isPaused = false;  // is playback currently paused?
   rafTimerId = undefined;
 
+  audioRecorder = null; // Recorder object from Recordmp3js
+
   sess; // the current live TogetherJS session object
 
   constructor(frontend, serializedJsonStr=null) {
@@ -435,6 +450,12 @@ class OptDemoVideo {
       this.isFrozen = true; // freeze it!
       this.addFrameNumbers();
     }
+
+    assert(this.frontend.audioInputStream); // must be fully initialized first
+    this.audioRecorder = new Recorder(this.frontend.audioInputStream, {
+      numChannels: 1,
+      doneEncodingMp3Callback: this.doneEncodingMp3.bind(this),
+    });
   }
 
   // only record certain kinds of events in the recorder
@@ -496,30 +517,60 @@ class OptDemoVideo {
     TogetherJS.config('isDemoSession', false);
     TogetherJS.config('eventRecorderFunc', null);
 
-    this.stopRecordingAudio(); // it will still take some time before the encoded mp3 data is ready!
+    this.stopRecordingAudio(); // it will still take some time before the encoded mp3 data is ready and doneEncodingMp3 is called!
 
     // STENT - save to localStorage to test it
     localStorage['demoVideo'] = this.serializeToJSON();
   }
 
+  doneEncodingMp3(mp3Data) {
+    console.log('doneEncodingMp3!!!');
+    var dataUrl = 'data:audio/mp3;base64,'+encode64(mp3Data);
+
+    (window as any).mp3URL = dataUrl; // TODO: get rid of this debugging global
+
+    // reference code for a new Audio object, then play it:
+    // https://developer.mozilla.org/en-US/docs/Web/API/HTMLAudioElement
+    var audio = new Audio();
+    audio.src = dataUrl;
+    audio.play();
+
+    // this stuff below creates an HTML audio player node, which we
+    // don't need right now ... and it's kind of flaky sometimes because
+    // it seems to play incomplete chunks of the audio:
+    /*
+    var li = document.createElement('li');
+    var au = document.createElement('audio');
+    //var hf = document.createElement('a');
+
+    au.controls = true;
+    au.src = dataUrl;
+    //hf.href = dataUrl;
+    //hf.download = 'audio_recording_' + new Date().getTime() + '.mp3';
+    //hf.innerHTML = hf.download;
+    li.appendChild(au);
+    //li.appendChild(hf);
+    recordingslist.appendChild(li);
+    */
+  }
 
   // lifted from Recordmp3js
   startRecordingAudio() {
-    assert(this.frontend.audioRecorder);
+    assert(this.audioRecorder);
     console.warn('startRecordingAudio()');
-    this.frontend.audioRecorder.record();
+    this.audioRecorder.record();
   }
 
   stopRecordingAudio() {
-    assert(this.frontend.audioRecorder);
+    assert(this.audioRecorder);
     console.warn('stopRecordingAudio()');
-    this.frontend.audioRecorder.stop();
+    this.audioRecorder.stop();
 
-    this.frontend.audioRecorder.exportWAV(function(blob) {
+    this.audioRecorder.exportWAV(function(blob) {
       console.log('calling audioRecorder.exportWAV');
     });
 
-    this.frontend.audioRecorder.clear();
+    this.audioRecorder.clear();
   }
 
 
@@ -822,7 +873,7 @@ export class OptFrontendSharedSessions extends OptFrontend {
   isRecordingDemo = false;
   isPlayingDemo = false;
   demoVideo: OptDemoVideo;
-  audioRecorder = null; // Recorder() object from Recordmp3js
+  audioInputStream = null;
 
   wantsPublicHelp = false;
   iMadeAPublicHelpRequest = false; // subtly different than wantsPublicHelp (see usage)
@@ -994,15 +1045,10 @@ Get live help!
     (navigator as any).getUserMedia({audio: true},
       // success:
       (stream) => {
-        var input = audio_context.createMediaStreamSource(stream);
+        this.audioInputStream = audio_context.createMediaStreamSource(stream);
         console.warn('Media stream created.' );
-        console.warn("input sample rate " +input.context.sampleRate);
+        console.warn("input sample rate " + this.audioInputStream.context.sampleRate);
         console.warn('Input connected to audio context destination.');
-
-        this.audioRecorder = new Recorder(input, {
-                      numChannels: 1
-                    });
-        console.warn('Recorder initialised.');
       },
       // failure:
       (e) => {

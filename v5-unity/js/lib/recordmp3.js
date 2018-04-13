@@ -97,40 +97,7 @@
         encoderWorker.postMessage({ cmd: 'finish'});
         encoderWorker.onmessage = function(e) {
             if (e.data.cmd == 'data') {
-
-				console.log("Done converting to Mp3");
-				//log.innerHTML += "\n" + "Done converting to Mp3";
-
-				/*var audio = new Audio();
-				audio.src = 'data:audio/mp3;base64,'+encode64(e.data.buf);
-				audio.play();*/
-
-				//console.log ("The Mp3 data " + e.data.buf);
-
-				var mp3Blob = new Blob([new Uint8Array(e.data.buf)], {type: 'audio/mp3'});
-				//uploadAudio(mp3Blob);
-
-				var url = 'data:audio/mp3;base64,'+encode64(e.data.buf);
-        window.mp3URL = url;
-        console.log(url);
-
-        // this stuff below creates an HTML audio player node, which we
-        // don't need right now:
-        /*
-				var li = document.createElement('li');
-				var au = document.createElement('audio');
-				//var hf = document.createElement('a');
-
-				au.controls = true;
-				au.src = url;
-				//hf.href = url;
-				//hf.download = 'audio_recording_' + new Date().getTime() + '.mp3';
-				//hf.innerHTML = hf.download;
-				li.appendChild(au);
-				//li.appendChild(hf);
-				recordingslist.appendChild(li);
-        */
-
+              config.doneEncodingMp3Callback(e.data.buf); // pgbovine - should be set when Recorder was constructed
             }
         };
 	  };
