@@ -871,7 +871,9 @@ Get live help!
 </div>
 `;
 
-    $("td#headerTdLeft").append(ssDiv);
+    if (!this.recorderMode) { // needed to work in live.html; kinda weird timing, oh wells
+      $("td#headerTdLeft").append(ssDiv);
+    }
     $("td#headerTdRight").append(togetherJsDiv);
 
     // do this all after creating the DOM elements above dynamically:
@@ -946,7 +948,7 @@ Get live help!
 
   // NB: this should actually be renamed 'demoOrRecorderModeChanged'!
   demoModeChanged() {
-    console.log('demoModeChanged', this.demoMode);
+    console.log('demoModeChanged', this.demoMode, this.recorderMode);
     if (this.demoMode) {
       // hide the shared sessions header ...
       $("td#headerTdLeft,td#headerTdRight").hide();

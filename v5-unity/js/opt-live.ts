@@ -149,7 +149,7 @@ export class OptLiveFrontend extends OptFrontendSharedSessions {
 
   demoModeChanged() {
     super.demoModeChanged(); // call first
-    if (this.demoMode) {
+    if (this.demoMode || this.recorderMode) {
       $("#eurekaSurveyPane,#surveyPane,#liveModeHeader").hide();
     }
   }
