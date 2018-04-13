@@ -281,7 +281,6 @@ function randomlyPickSurveyItem(key) {
 }
 
 
-
 /* Record/replay TODOs (from first hacking on it on 2018-01-01)
 
   - we need to 'lock' the UI while the video is playing and only
@@ -323,11 +322,6 @@ function randomlyPickSurveyItem(key) {
     preserve those widths instead of always setting them back to the
     defaults, which is helpful for users with smaller monitors
 
-  - later: get this working better in live mode, which has some quirks
-    - especially note handleUncaughtException in opt-live.ts since it
-      currently doesn't call super.handleUncaughtException() so that might
-      interfere with cache-related stuff
-
   - don't send events to the togetherjs when you're in recording or
     playback mode, so as not to overwhelm the logs. also it seems
     kinda silly that you need to connect to a remote server for this
@@ -344,6 +338,11 @@ function randomlyPickSurveyItem(key) {
       they're simply executing demo code (just like the iframe-embed.ts
       label)
 
+  - NB: this recorder won't work well in live mode since we don't have a
+    notion of an explicit "execute" event, so if you play back the trace
+    too "slowly", then the live mode will auto-execute the code at weird
+    unintended times and cause syntax errors and such; just use it in
+    REGULAR visualize.html mode for now!
 
 potentially useful links:
 
