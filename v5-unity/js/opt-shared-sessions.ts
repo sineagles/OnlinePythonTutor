@@ -31,6 +31,10 @@ declare var moment: any; // for TypeScript
 require('script-loader!./lib/mobile-detect.min.js'); // http://hgoebl.github.io/mobile-detect.js/ https://github.com/hgoebl/mobile-detect.js
 declare var MobileDetect: any; // for TypeScript
 
+// using this library to record audio to mp3: https://github.com/Audior/Recordmp3js
+require('script-loader!./lib/recordmp3.js'); // TODO: break the recorder off into its own .ts file so that this library is imported ONLY when we're recording a demo and not all the time
+declare var Recorder: any; // for TypeScript
+
 export var TogetherJS = (window as any).TogetherJS;
 
 
@@ -355,7 +359,6 @@ http://air.ghost.io/recording-to-an-audio-file-using-html5-and-js/
 http://audior.ec/blog/recording-mp3-using-only-html5-and-javascript-recordmp3-js/
 https://developers.google.com/web/fundamentals/media/recording-audio/
 https://www.html5rocks.com/en/tutorials/getusermedia/intro/
-https://developer.github.com/v3/gists/
 
 */
 
@@ -938,6 +941,69 @@ Get live help!
         TogetherJS();
       }
     });
+
+
+    // TODO: we definitely need to break this all out into its own
+    // top-level file since we don't want this activating for all users
+
+    // BEGIN - lifted from Recordmp3js
+    var audio_context;
+    var recorder;
+
+    try {
+      // webkit shim
+      (window as any).AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
+      (navigator as any).getUserMedia = ( (navigator as any).getUserMedia ||
+                       (navigator as any).webkitGetUserMedia ||
+                       (navigator as any).mozGetUserMedia ||
+                       (navigator as any).msGetUserMedia);
+      (window as any).URL = (window as any).URL || (window as any).webkitURL;
+
+      audio_context = new AudioContext;
+      console.warn('Audio context set up.');
+      //console.warn('navigator.getUserMedia ' + (navigator.getUserMedia ? 'available.' : 'not present!'));
+    } catch (e) {
+      alert('ERROR: no web audio support in this browser!');
+    }
+
+    (navigator as any).getUserMedia({audio: true},
+      // success:
+      (stream) => {
+        var input = audio_context.createMediaStreamSource(stream);
+        console.warn('Media stream created.' );
+        console.warn("input sample rate " +input.context.sampleRate);
+        console.warn('Input connected to audio context destination.');
+
+        recorder = new Recorder(input, {
+                      numChannels: 1
+                    });
+        console.warn('Recorder initialised.');
+      },
+      // failure:
+      (e) => {
+          alert('ERROR: No live audio input: ' + e);
+      }
+    );
+
+    function startRecordingAudio() {
+      recorder && recorder.record();
+      console.warn('Recording...');
+    }
+
+    function stopRecordingAudio() {
+      recorder && recorder.stop();
+      console.warn('Stopped recording.');
+
+      recorder && recorder.exportWAV(function(blob) {
+        console.log('calling recorder.exportWAV!');
+      });
+
+      recorder.clear();
+    }
+
+    (window as any).startRecordingAudio = startRecordingAudio;
+    (window as any).stopRecordingAudio = stopRecordingAudio;
+    // END - lifted from Recordmp3js
   }
 
   parseQueryString() {
