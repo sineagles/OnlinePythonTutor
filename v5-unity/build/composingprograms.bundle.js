@@ -730,12 +730,12 @@ var ExecutionVisualizer = (function () {
             }
             // add an extra label to link back to the main site, so that viewers
             // on the embedded page know that they're seeing an OPT visualization
-            base.append('<div style="font-size: 8pt; margin-bottom: 10px;"><a href="http://pythontutor.com" target="_blank" style="color: #3D58A2;">Python Tutor</a> by <a href="http://www.pgbovine.net/" target="_blank" style="color: #3D58A2;">Philip Guo</a>. Support by <a href="http://pgbovine.net/support.htm" target="_blank">making a small donation</a></div>');
+            base.append('<div style="font-size: 8pt; margin-bottom: 10px;"><a href="http://pythontutor.com" target="_blank" style="color: #3D58A2;">Python Tutor</a> by <a href="https://twitter.com/pgbovine" target="_blank" style="color: #3D58A2;">Philip Guo</a>. Support with a <a href="http://pgbovine.net/support.htm" target="_blank">small donation</a>.</div>');
             base.find('#codeFooterDocs').hide(); // cut out extraneous docs
         }
         else {
             // also display credits:
-            base.append('<div style="font-size: 9pt; margin-bottom: 10px;">Keep this tool free for everyone by <a href="http://pgbovine.net/support.htm" target="_blank"><b>making a small donation</b></a></div>');
+            base.append('<div style="font-size: 9pt; margin-top: 5px; margin-bottom: 10px;">Created by <a href="https://twitter.com/pgbovine" target="_blank">@pgbovine</a>. Support with a <a href="http://pgbovine.net/support.htm" target="_blank">small donation</a>.</div>');
         }
         // not enough room for these extra buttons ...
         if (this.params.codeDivWidth &&
@@ -3062,7 +3062,7 @@ var ProgramOutputBox = (function () {
         var stdoutHeight = '75px';
         // heuristic for code with really small outputs
         if (this.numStdoutLines <= 3) {
-            stdoutHeight = (18 * this.numStdoutLines) + 'px';
+            stdoutHeight = (25 * this.numStdoutLines) + 'px';
         }
         if (heightOverride) {
             stdoutHeight = heightOverride;
@@ -3100,11 +3100,18 @@ var CodeDisplay = (function () {
         this.domRoot = domRoot;
         this.domRootD3 = domRootD3;
         this.codToDisplay = codToDisplay;
+        // 2018-03-15 - removed "Live programming" link from
+        // visualization mode to simplify the UI, even if it drives
+        // fewer people to live programming mode; they can always click
+        // the "Live Programming Mode" button in the code editor:
+        //<span id="liveModeSpan" style="display: none;">| <a id="editLiveModeBtn" href="#">Live programming</a></a>\
+        //
+        // also changed 'Edit code' link to 'Edit this code' to make
+        // it more clear to users
         var codeDisplayHTML = '<div id="codeDisplayDiv">\
          <div id="langDisplayDiv"></div>\
          <div id="pyCodeOutputDiv"/>\
-         <div id="editCodeLinkDiv"><a id="editBtn">Edit code</a>\
-         <span id="liveModeSpan" style="display: none;">| <a id="editLiveModeBtn" href="#">Live programming</a></a>\
+         <div id="editCodeLinkDiv"><a id="editBtn">Edit this code</a>\
          </div>\
          <div id="legendDiv"/>\
          <div id="codeFooterDocs">Click a line of code to set a breakpoint; use the Back and Forward buttons to jump there.</div>\
@@ -3177,7 +3184,7 @@ var CodeDisplay = (function () {
                     this.domRoot.find('#langDisplayDiv').html('C (gcc 4.8, C11)');
                 }
                 else {
-                    this.domRoot.find('#langDisplayDiv').html('C (gcc 4.8, C11) <font color="#e93f34">EXPERIMENTAL!</font><br/>see <a href="https://github.com/pgbovine/opt-cpp-backend/issues" target="_blank">known bugs</a> and report to philip@pgbovine.net');
+                    this.domRoot.find('#langDisplayDiv').html('C (gcc 4.8, C11)<br/><font color="#e93f34">EXPERIMENTAL!</font> <a href="https://github.com/pgbovine/OnlinePythonTutor/blob/master/unsupported-features.md" target="_blank">known bugs/limitations</a>');
                 }
             }
             else if (lang === 'cpp') {
@@ -3185,7 +3192,7 @@ var CodeDisplay = (function () {
                     this.domRoot.find('#langDisplayDiv').html('C++ (gcc 4.8, C++11)');
                 }
                 else {
-                    this.domRoot.find('#langDisplayDiv').html('C++ (gcc 4.8, C++11) <font color="#e93f34">EXPERIMENTAL!</font><br/>see <a href="https://github.com/pgbovine/opt-cpp-backend/issues" target="_blank">known bugs</a> and report to philip@pgbovine.net');
+                    this.domRoot.find('#langDisplayDiv').html('C++ (gcc 4.8, C++11)<br/><font color="#e93f34">EXPERIMENTAL!</font> <a href="https://github.com/pgbovine/OnlinePythonTutor/blob/master/unsupported-features.md" target="_blank">known bugs/limitations</a>');
                 }
             }
             else {
@@ -3550,7 +3557,7 @@ var NavigationController = (function () {
     };
     NavigationController.prototype.showError = function (msg) {
         if (msg) {
-            this.domRoot.find("#errorOutput").html(htmlspecialchars(msg)).show();
+            this.domRoot.find("#errorOutput").html(htmlspecialchars(msg) + "\n      <span style=\"font-size: 9pt; color: #666\">(see <a href=\"https://github.com/pgbovine/OnlinePythonTutor/blob/master/unsupported-features.md\" target=\"_blank\">unsupported features</a>)</span>").show();
         }
         else {
             this.domRoot.find("#errorOutput").hide();
@@ -3726,8 +3733,9 @@ var AbstractBaseFrontend = (function () {
         // these settings are all customized for my own server setup,
         // so you will need to customize for your server:
         this.serverRoot = (window.location.protocol === 'https:') ?
-            'https://cokapi.com:8001/' :
-            'http://cokapi.com:3000/'; // try cokapi.com so that hopefully it works through firewalls better than directly using IP addr
+            'https://cokapi.com/' :
+            'http://cokapi.com/'; // try cokapi.com so that hopefully it works through firewalls better than directly using IP addr
+        this.backupHttpServerRoot = 'http://45.33.41.179/'; // this is my backup server in case the primary is too busy
         // see ../../v4-cokapi/cokapi.js for details
         this.langSettingToJsonpEndpoint = {
             '2': null,
@@ -3738,6 +3746,16 @@ var AbstractBaseFrontend = (function () {
             'ruby': this.serverRoot + 'exec_ruby_jsonp',
             'c': this.serverRoot + 'exec_c_jsonp',
             'cpp': this.serverRoot + 'exec_cpp_jsonp',
+        };
+        this.langSettingToJsonpEndpointBackup = {
+            '2': null,
+            '3': null,
+            'js': this.backupHttpServerRoot + 'exec_js_jsonp',
+            'ts': this.backupHttpServerRoot + 'exec_ts_jsonp',
+            'java': this.backupHttpServerRoot + 'exec_java_jsonp',
+            'ruby': this.backupHttpServerRoot + 'exec_ruby_jsonp',
+            'c': this.backupHttpServerRoot + 'exec_c_jsonp',
+            'cpp': this.backupHttpServerRoot + 'exec_cpp_jsonp',
         };
         // OMG nasty wtf?!?
         // From: http://stackoverflow.com/questions/21159301/quotaexceedederror-dom-exception-22-an-attempt-was-made-to-add-something-to-st
@@ -3803,15 +3821,15 @@ var AbstractBaseFrontend = (function () {
                     $("#executeBtn").click();
                 }
                 else {
-                    _this.num414Tries = 0;
-                    _this.setFronendError(["Server error! Your code might be too long for this tool. Shorten your code and re-try."]);
+                    _this.setFronendError(["Server error! Your code might be too long for this tool. Shorten your code and re-try. [#CodeTooLong]"]);
+                    _this.num414Tries = 0; // reset this to 0 AFTER setFronendError so that in setFronendError we can know that it's a 414 error (super hacky!)
                 }
             }
             else {
-                _this.setFronendError(["Server error! Your code might be taking too much time/memory. Or the server CRASHED",
-                    "due to too many people using it. Or you are behind a FIREWALL that blocks access.",
+                _this.setFronendError(["Server error! Your code might have an INFINITE LOOP or be running for too long.",
+                    "The server may also be OVERLOADED. Or you're behind a FIREWALL that blocks access.",
                     "Try again later, or report a bug to philip@pgbovine.net by clicking the 'Generate",
-                    "permanent link' button at the bottom of this page and including a URL in your email."]);
+                    "shortened link' button at the bottom of this page and including a URL in your email."]);
             }
             _this.doneExecutingCode();
         });
@@ -3825,8 +3843,28 @@ var AbstractBaseFrontend = (function () {
     // empty stub so that our code doesn't crash.
     // TODO: override this with a version in codeopticon-learner.js if needed
     AbstractBaseFrontend.prototype.logEventCodeopticon = function (obj) { }; // NOP
-    AbstractBaseFrontend.prototype.setFronendError = function (lines) {
-        $("#frontendErrorOutput").html(lines.map(pytutor_1.htmlspecialchars).join('<br/>'));
+    AbstractBaseFrontend.prototype.getAppState = function () { return {}; }; // NOP -- subclasses need to override
+    AbstractBaseFrontend.prototype.setFronendError = function (lines, ignoreLog) {
+        if (ignoreLog === void 0) { ignoreLog = false; }
+        $("#frontendErrorOutput").html(lines.map(pytutor_1.htmlspecialchars).join('<br/>') +
+            (ignoreLog ? '' : '<p/>Here is a list of <a target="_blank" href="https://github.com/pgbovine/OnlinePythonTutor/blob/master/unsupported-features.md">UNSUPPORTED FEATURES</a>'));
+        // log it to the server as well (unless ignoreLog is on)
+        if (!ignoreLog) {
+            var errorStr = lines.join();
+            var myArgs = this.getAppState();
+            myArgs.opt_uuid = this.userUUID;
+            myArgs.session_uuid = this.sessionUUID;
+            myArgs.error_msg = errorStr;
+            // very subtle! if you have a 414 error, that means your original
+            // code was too long to fit in the URL, so CLEAR THE FULL CODE from
+            // myArgs, or else it will generate a URL that will give a 414 again
+            // when you run error_log.py!!! this relies on this.num414Tries not
+            // being reset yet at this point:
+            if (this.num414Tries > 0) {
+                myArgs.code = '#CodeTooLong: ' + String(myArgs.code.length) + ' bytes';
+            }
+            $.get('error_log.py', myArgs, function (dat) { }); // added this logging feature on 2018-02-18
+        }
     };
     AbstractBaseFrontend.prototype.clearFrontendError = function () {
         $("#frontendErrorOutput").html('');
@@ -3845,6 +3883,7 @@ var AbstractBaseFrontend = (function () {
             heapPrimitives: $.bbq.getState('heapPrimitives'),
             textReferences: $.bbq.getState('textReferences'),
             rawInputLst: ril ? $.parseJSON(ril) : undefined,
+            demoMode: $.bbq.getState('demo'),
             codeopticonSession: $.bbq.getState('cosession'),
             codeopticonUsername: $.bbq.getState('couser'),
             testCasesLst: testCasesLstJSON ? $.parseJSON(testCasesLstJSON) : undefined
@@ -3866,7 +3905,8 @@ var AbstractBaseFrontend = (function () {
     };
     AbstractBaseFrontend.prototype.getBaseFrontendOptionsObj = function () {
         var ret = {
-            disableHeapNesting: ($('#heapPrimitivesSelector').val() == 'true'),
+            disableHeapNesting: (($('#heapPrimitivesSelector').val() == 'true') ||
+                ($('#heapPrimitivesSelector').val() == 'nevernest')),
             textualMemoryLabels: ($('#textualMemoryLabelsSelector').val() == 'true'),
             executeCodeWithRawInputFunc: this.executeCodeWithRawInput.bind(this),
             // always use the same visualizer ID for all
@@ -3910,26 +3950,22 @@ var AbstractBaseFrontend = (function () {
         var _this = this;
         var vizCallback = function (dataFromBackend) {
             var trace = dataFromBackend.trace;
-            var killerException = null;
             // don't enter visualize mode if there are killer errors:
             if (!trace ||
                 (trace.length == 0) ||
                 (trace[trace.length - 1].event == 'uncaught_exception')) {
                 _this.handleUncaughtException(trace);
                 if (trace.length == 1) {
-                    killerException = trace[0]; // killer!
                     _this.setFronendError([trace[0].exception_msg]);
                 }
                 else if (trace.length > 0 && trace[trace.length - 1].exception_msg) {
-                    killerException = trace[trace.length - 1]; // killer!
                     _this.setFronendError([trace[trace.length - 1].exception_msg]);
                 }
                 else {
-                    _this.setFronendError(["Unknown error: The server may be too busy or down right now.",
-                        "Or you are behind a FIREWALL that blocks access to this server.",
-                        "Please reload and try again later. Or report a bug to",
-                        "philip@pgbovine.net by clicking the 'Generate permanent link'",
-                        "button at the bottom and including a URL in your email."]);
+                    _this.setFronendError(["Unknown error: The server may be OVERLOADED right now; try again later.",
+                        "Your code may also contain UNSUPPORTED FEATURES that this tool cannot handle.",
+                        "Report a bug to philip@pgbovine.net by clicking the 'Generate shortened link'",
+                        "button at the bottom and including a URL in your email. [#NullTrace]"]);
                 }
             }
             else {
@@ -3950,22 +3986,6 @@ var AbstractBaseFrontend = (function () {
                     _this.finishSuccessfulExecution(); // TODO: should we also run this if we're calling runTestCaseCallback?
                 }
             }
-            // do Codeopticon logging at the VERY END after the dust settles ...
-            // maybe move into opt-frontend.js?
-            // and don't do it for iframe-embed.js since getAppState doesn't
-            // work in that case ...
-            /*
-            if (this.originFrontendJsFile !== 'iframe-embed.js') {
-              this.logEventCodeopticon({type: 'doneExecutingCode',
-                        appState: this.getAppState(),
-                        // enough to reconstruct the ExecutionVisualizer object
-                        backendDataJSON: JSON.stringify(dataFromBackend), // for easier transport and compression
-                        frontendOptionsObj: frontendOptionsObj,
-                        backendOptionsObj: backendOptionsObj,
-                        killerException: killerException, // if there's, say, a syntax error
-                        });
-            }
-            */
         };
         this.executeCodeAndRunCallback(codeToExec, pyState, backendOptionsObj, frontendOptionsObj, vizCallback.bind(this));
     };
@@ -3974,6 +3994,7 @@ var AbstractBaseFrontend = (function () {
     AbstractBaseFrontend.prototype.executeCodeAndRunCallback = function (codeToExec, pyState, backendOptionsObj, frontendOptionsObj, execCallback) {
         var _this = this;
         var callbackWrapper = function (dataFromBackend) {
+            _this.clearFrontendError(); // clear old errors first; execCallback may put in a new error:
             execCallback(dataFromBackend); // call the main event first
             // run this at the VERY END after all the dust has settled
             _this.doneExecutingCode(); // rain or shine, we're done executing!
@@ -3985,7 +4006,7 @@ var AbstractBaseFrontend = (function () {
         var jsonp_endpoint = this.langSettingToJsonpEndpoint[pyState]; // maybe null
         if (!backendScript) {
             this.setFronendError(["Server configuration error: No backend script",
-                "Report a bug to philip@pgbovine.net by clicking on the 'Generate permanent link'",
+                "Report a bug to philip@pgbovine.net by clicking on the 'Generate shortened link'",
                 "button at the bottom and including a URL in your email."]);
             return;
         }
@@ -4000,6 +4021,7 @@ var AbstractBaseFrontend = (function () {
             frontendOptionsObj.lang = 'py3';
         }
         else if (pyState === 'java') {
+            // TODO: should we still keep this exceptional case?
             frontendOptionsObj.disableHeapNesting = true; // never nest Java objects, seems like a good default
         }
         // if we don't have any deltas, then don't bother sending deltaObj:
@@ -4034,23 +4056,92 @@ var AbstractBaseFrontend = (function () {
         // everything below here is an ajax (async) call to the server ...
         if (jsonp_endpoint) {
             pytutor_1.assert(pyState !== '2' && pyState !== '3');
-            // hack! should just be a dummy script for logging only
+            var retryOnBackupServer = function () {
+                // first log a #TryBackup error entry:
+                _this.setFronendError(["Main server is busy or has errors; re-trying using backup server ... [#TryBackup]"]);
+                // now re-try the query using the backup server:
+                var backup_jsonp_endpoint = _this.langSettingToJsonpEndpointBackup[pyState];
+                pytutor_1.assert(backup_jsonp_endpoint);
+                $.ajax({
+                    url: backup_jsonp_endpoint,
+                    // The name of the callback parameter, as specified by the YQL service
+                    jsonp: "callback",
+                    dataType: "jsonp",
+                    data: { user_script: codeToExec,
+                        options_json: JSON.stringify(backendOptionsObj) },
+                    success: callbackWrapper
+                });
+            };
+            // for non-python, this should be a dummy script for logging
+            // only, and to check whether there's a 414 error for #CodeTooLong
             $.get(backendScript, { user_script: codeToExec,
                 options_json: JSON.stringify(backendOptionsObj),
                 user_uuid: this.userUUID,
                 session_uuid: this.sessionUUID,
-                diffs_json: deltaObjStringified }, function (dat) { } /* don't do anything since this is a dummy call */ /* don't do anything since this is a dummy call */, "text");
-            // the REAL call uses JSONP
-            // http://learn.jquery.com/ajax/working-with-jsonp/
-            $.ajax({
-                url: jsonp_endpoint,
-                // The name of the callback parameter, as specified by the YQL service
-                jsonp: "callback",
-                dataType: "jsonp",
-                data: { user_script: codeToExec,
-                    options_json: JSON.stringify(backendOptionsObj) },
-                success: callbackWrapper,
-            });
+                diffs_json: deltaObjStringified }, function (dat) {
+                // this is super important! only if this first call is a
+                // SUCCESS do we actually make the REAL call using JSONP.
+                // the reason why is that we might get a 414 error for
+                // #CodeTooLong if we try to execute this code, in which
+                // case we want to either re-try or bail out. this also
+                // keeps the control flow synchronous. we always try
+                // the original backendScript, and then we try
+                // jsonp_endpoint only if that's successful:
+                // the REAL call uses JSONP
+                // http://learn.jquery.com/ajax/working-with-jsonp/
+                $.ajax({
+                    url: jsonp_endpoint,
+                    // for testing
+                    //url: 'http://cokapi.com/test_failure_jsonp',
+                    //url: 'http://cokapi.com/unknown_url',
+                    // The name of the callback parameter, as specified by the YQL service
+                    jsonp: "callback",
+                    dataType: "jsonp",
+                    data: { user_script: codeToExec,
+                        options_json: JSON.stringify(backendOptionsObj) },
+                    success: function (dataFromBackend) {
+                        var trace = dataFromBackend.trace;
+                        var shouldRetry = false;
+                        // the cokapi backend responded successfully, but the
+                        // backend may have issued an error. if so, then
+                        // RETRY with backupHttpServerRoot. otherwise let it
+                        // through to callbackWrapper
+                        if (!trace ||
+                            (trace.length == 0) ||
+                            (trace[trace.length - 1].event == 'uncaught_exception')) {
+                            if (trace.length == 1) {
+                                // we should only retry if there's a legit
+                                // backend error and not just a syntax error:
+                                var msg = trace[0].exception_msg;
+                                if (msg.indexOf('#BackendError') >= 0) {
+                                    shouldRetry = true;
+                                }
+                            }
+                            else {
+                                shouldRetry = true;
+                            }
+                        }
+                        // don't bother re-trying for https since we don't
+                        // currently have an https backup server
+                        if (window.location.protocol === 'https:') {
+                            shouldRetry = false;
+                        }
+                        if (shouldRetry) {
+                            retryOnBackupServer();
+                        }
+                        else {
+                            // accept our fate without retrying
+                            callbackWrapper(dataFromBackend);
+                        }
+                    },
+                    // if there's a server error, then ALWAYS retry:
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        retryOnBackupServer();
+                        // use 'global: false;' below to NOT run the generic ajaxError() function
+                    },
+                    global: false,
+                });
+            }, "text");
         }
         else {
             // for Python 2 or 3, directly execute backendScript
@@ -4106,13 +4197,8 @@ var AbstractBaseFrontend = (function () {
     };
     AbstractBaseFrontend.prototype.setSurveyHTML = function () {
         // use ${this.userUUID} within the string ...
-        var survey_v13 = '\n\
-    <p style="font-size: 10pt; margin-top: 12px; margin-bottom: 15px; line-height: 150%;">\n\
-    <div style="margin-bottom: 12px;">Keep this tool free for everyone by <a href="http://pgbovine.net/support.htm" target="_blank"><b>making a small donation</b></a> <span style="font-size: 8pt;">(PayPal, Patreon, credit/debit card)</span></div>\
-    <span>Support our research by completing a <a href="https://docs.google.com/forms/d/e/1FAIpQLSfQJP1ojlv8XzXAvHz0al-J_Hs3GQu4XeblxT8EzS8dIzuaYA/viewform?entry.956368502=';
-        survey_v13 += this.userUUID;
-        survey_v13 += '" target="_blank"><b>short user survey</b></a></span></p>';
-        $('#surveyPane').html(survey_v13);
+        var survey_v14 = "\n    <p style=\"font-size: 9pt; margin-top: 12px; margin-bottom: 15px; line-height: 150%;\">\n\n    Help improve this tool by completing a <a style=\"font-size: 10pt; font-weight: bold;\" href=\"https://docs.google.com/forms/d/e/1FAIpQLSfQJP1ojlv8XzXAvHz0al-J_Hs3GQu4XeblxT8EzS8dIzuaYA/viewform?entry.956368502=" + this.userUUID + "\" target=\"_blank\">short user survey</a>\n    <br/>\n    Keep this tool free by making a <a style=\"font-size: 10pt; font-weight: bold;\" href=\"http://pgbovine.net/support.htm\" target=\"_blank\">small donation</a> (PayPal, Patreon, credit/debit card)\n    </p>";
+        $('#surveyPane').html(survey_v14);
     };
     return AbstractBaseFrontend;
 }());
@@ -4166,7 +4252,18 @@ v12: simplified demographic survey which is a simplified hybrid of the v8 genera
 
 v13: same as v12 except with slightly different wording, and adding a
 call for donations (deployed on 2017-12-27)
-[see survey_v13 variable above]
+
+    // use ${this.userUUID} within the string ...
+    var survey_v13 = '\n\
+    <p style="font-size: 10pt; margin-top: 12px; margin-bottom: 15px; line-height: 150%;">\n\
+    <div style="margin-bottom: 12px;">Keep this tool free for everyone by <a href="http://pgbovine.net/support.htm" target="_blank"><b>making a small donation</b></a> <span style="font-size: 8pt;">(PayPal, Patreon, credit/debit card)</span></div>\
+    <span>Support our research by completing a <a href="https://docs.google.com/forms/d/e/1FAIpQLSfQJP1ojlv8XzXAvHz0al-J_Hs3GQu4XeblxT8EzS8dIzuaYA/viewform?entry.956368502=';
+    survey_v13 += this.userUUID;
+    survey_v13 += '" target="_blank"><b>short user survey</b></a></span></p>';
+
+
+v14: very similar to v13 (deployed on 2018-03-11)
+[see the survey_v14 variable]
 
 */
 // misc utilities:
@@ -22293,7 +22390,7 @@ exports = module.exports = __webpack_require__(2)();
 
 
 // module
-exports.push([module.i, "/*\n\nOnline Python Tutor\nhttps://github.com/pgbovine/OnlinePythonTutor/\n\nCopyright (C) Philip J. Guo (philip@pgbovine.net)\n\nPermission is hereby granted, free of charge, to any person obtaining a\ncopy of this software and associated documentation files (the\n\"Software\"), to deal in the Software without restriction, including\nwithout limitation the rights to use, copy, modify, merge, publish,\ndistribute, sublicense, and/or sell copies of the Software, and to\npermit persons to whom the Software is furnished to do so, subject to\nthe following conditions:\n\nThe above copyright notice and this permission notice shall be included\nin all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS\nOR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF\nMERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.\nIN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY\nCLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,\nTORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE\nSOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n\n*/\n\n/* Most recent color scheme redesign on 2012-08-19 */\n\n/* To prevent CSS namespace clashes, prefix all rules with:\n     div.ExecutionVisualizer\n*/\n\n\n/* reset some styles to nullify effects of existing stylesheets\n   e.g., http://meyerweb.com/eric/tools/css/reset/\n*/\ndiv.ExecutionVisualizer {\n  /* none for now */\n}\n\ndiv.ExecutionVisualizer table.visualizer {\n  font-family: verdana, arial, helvetica, sans-serif;\n  font-size: 10pt;\n  margin-bottom: 10px;\n}\n\ndiv.ExecutionVisualizer table.visualizer td.vizLayoutTd {\n  vertical-align: top;\n}\n\ndiv.ExecutionVisualizer td#stack_td,\ndiv.ExecutionVisualizer td#heap_td {\n  vertical-align:top;\n  font-size: 10pt; /* don't make fonts in the heap so big! */\n}\n\ndiv.ExecutionVisualizer #dataViz {\n  /*margin-left: 25px;*/\n}\n\n/*\ndiv.ExecutionVisualizer div#codeDisplayDiv {\n  width: 550px;\n}\n*/\n\ndiv.ExecutionVisualizer div#pyCodeOutputDiv {\n  /*max-width: 550px;*/\n  max-height: 460px;\n  /*max-height: 620px;*/\n  overflow: auto;\n  /*margin-bottom: 4px;*/\n\n  margin-left: auto;\n  margin-right: auto;\n}\n\ndiv.ExecutionVisualizer table#pyCodeOutput {\n  font-family: Andale mono, monospace;\n  /*font-size:12pt;*/\n  font-size:11pt;\n  line-height:1.1em;\n\n  border-collapse: separate; /* some crazy CSS voodoo that needs to be\n                                there so that SVG arrows to the left\n                                of the code line up vertically in Chrome */\n  border-spacing: 0px;\n  border-top: 1px solid #bbb;\n  padding-top: 3px;\n  border-bottom: 1px solid #bbb;\n  /*margin-top: 6px;*/\n  margin: 6px auto; /* Center code in its pane */\n}\n\n/* don't wrap lines within code output ... FORCE scrollbars to appear */\ndiv.ExecutionVisualizer table#pyCodeOutput td {\n  white-space: nowrap;\n  vertical-align: middle; /* explicitly force, to override external CSS conflicts */\n}\n\ndiv.ExecutionVisualizer #leftCodeGutterSVG {\n  width: 18px;\n  min-width: 18px; /* make sure it doesn't squash too thin */\n  height: 0px; /* programmatically set this later ... IE needs this to\n                  be 0 or it defaults to something arbitrary and gross */\n}\n\ndiv.ExecutionVisualizer #prevLegendArrowSVG,\ndiv.ExecutionVisualizer #curLegendArrowSVG {\n  width: 18px;\n  height: 10px;\n}\n\ndiv.ExecutionVisualizer .arrow {\n  font-size: 16pt;\n}\n\ndiv.ExecutionVisualizer table#pyCodeOutput .lineNo {\n  color: #aaa;\n  padding: 0.2em;\n  padding-left: 0.3em;\n  padding-right: 0.5em;\n  text-align: right;\n}\n\ndiv.ExecutionVisualizer table#pyCodeOutput .cod {\n  /*font-weight: bold;*/\n  margin-left: 3px;\n  padding-left: 7px;\n  text-align: left; /* necessary or else doesn't work properly in IE */\n}\n\ndiv.ExecutionVisualizer div#progOutputs {\n  margin-left: 13px; /* line up with heap visualizations */\n  margin-bottom: 3px;\n}\n\ndiv.ExecutionVisualizer div#legendDiv {\n  padding: 0px;\n  text-align: left;\n  color: #666;\n  font-size: 9pt;\n}\n\ndiv.ExecutionVisualizer div#editCodeLinkDiv {\n  text-align: center;\n  /*\n  margin-top: 12px;\n  margin-bottom: 4px;\n  */\n  margin: 8px auto;\n  font-size: 11pt;\n}\n\ndiv.ExecutionVisualizer div#annotateLinkDiv {\n  /*text-align: left;*/\n  margin-top: 0px;\n  margin-bottom: 12px;\n  /*\n  margin-left: auto;\n  margin-right: auto;\n  */\n}\n\ndiv.ExecutionVisualizer div#stepAnnotationDiv {\n  margin-bottom: 12px;\n}\n\ndiv.ExecutionVisualizer textarea#stepAnnotationEditor,\ndiv.ExecutionVisualizer textarea#vizTitleEditor,\ndiv.ExecutionVisualizer textarea#vizDescriptionEditor {\n  border: 1px solid #999999;\n  padding: 4px;\n\n  overflow: auto; /* to look pretty on IE */\n  /* make sure textarea doesn't grow and stretch */\n  resize: none;\n}\n\n\ndiv.ExecutionVisualizer #errorOutput {\n  color: #e93f34; /* should match brightRed JavaScript variable */\n  font-size: 12pt;\n  padding: 2px;\n  line-height: 1.5em;\n  margin-bottom: 4px;\n}\n\n/* VCR control buttons for stepping through execution */\n\ndiv.ExecutionVisualizer #vcrControls {\n  margin: 15px auto;\n  /*width: 100%;*/\n  text-align: center;\n}\n\ndiv.ExecutionVisualizer #vcrControls button {\n  margin-left: 2px;\n  margin-right: 2px;\n}\n\ndiv.ExecutionVisualizer #vcrControls #curInstr {\n  margin-left: 4px;\n  margin-right: 4px;\n}\n\ndiv.ExecutionVisualizer #pyStdout {\n  border: 1px solid #999999;\n  font-size: 10pt;\n  padding: 3px;\n  font-family: Andale mono, monospace;\n\n  overflow: auto; /* to look pretty on IE */\n  /* make sure textarea doesn't grow and stretch */\n  resize: none;\n}\n\n\ndiv.ExecutionVisualizer .vizFrame {\n  margin-bottom: 20px;\n  padding-left: 8px;\n  border-left: 2px solid #cccccc;\n}\n\n\n/* Rendering of primitive types */\n\ndiv.ExecutionVisualizer .nullObj {\n//  font-size: 8pt;\n}\n\ndiv.ExecutionVisualizer .stringObj,\ndiv.ExecutionVisualizer .customObj,\ndiv.ExecutionVisualizer .funcObj {\n  font-family: Andale mono, monospace;\n  white-space: nowrap;\n}\n\ndiv.ExecutionVisualizer .funcCode {\n  font-size: 8pt;\n}\n\ndiv.ExecutionVisualizer .retval {\n  font-size: 9pt;\n}\n\ndiv.ExecutionVisualizer .stackFrame .retval {\n  color: #e93f34; /* highlight non-zombie stack frame return values -\n                     should match brightRed JavaScript variable */\n}\n\n/* Rendering of basic compound types */\n\ndiv.ExecutionVisualizer table.listTbl,\ndiv.ExecutionVisualizer table.tupleTbl,\ndiv.ExecutionVisualizer table.setTbl {\n  background-color: #ffffc6;\n}\n\n\ndiv.ExecutionVisualizer table.listTbl {\n  border: 0px solid black;\n  border-spacing: 0px;\n}\n\ndiv.ExecutionVisualizer table.listTbl td.listHeader,\ndiv.ExecutionVisualizer table.tupleTbl td.tupleHeader {\n  padding-left: 4px;\n  padding-top: 2px;\n  padding-bottom: 3px;\n  font-size: 8pt;\n  color: #777;\n  text-align: left;\n  border-left: 1px solid #555555;\n}\n\ndiv.ExecutionVisualizer table.tupleTbl {\n  border-spacing: 0px;\n  color: black;\n\n  border-bottom: 1px solid #555555; /* must match td.tupleHeader border */\n  border-top: 1px solid #555555; /* must match td.tupleHeader border */\n  border-right: 1px solid #555555; /* must match td.tupleHeader border */\n}\n\n\ndiv.ExecutionVisualizer table.listTbl td.listElt {\n  border-bottom: 1px solid #555555; /* must match td.listHeader border */\n  border-left: 1px solid #555555; /* must match td.listHeader border */\n}\n\n\n/* for C and C++ visualizations */\n\n/* make this slightly more compact than listTbl since arrays can be\n   rendered on the stack so we want to kinda conserve space */\ndiv.ExecutionVisualizer table.cArrayTbl {\n  background-color: #ffffc6;\n  padding-left: 0px;\n  padding-top: 0px;\n  padding-bottom: 0px;\n  font-size: 8pt;\n  color: #777;\n  text-align: left;\n  border: 0px solid black;\n  border-spacing: 0px;\n}\n\ndiv.ExecutionVisualizer table.cArrayTbl td.cArrayHeader {\n  padding-left: 5px;\n  padding-top: 0px;\n  padding-bottom: 2px;\n  font-size: 6pt;\n  color: #777;\n  text-align: left;\n  border-bottom: 0px solid black; /* override whatever we're nested in */\n}\n\ndiv.ExecutionVisualizer table.cArrayTbl td.cArrayElt {\n  border-bottom: 1px solid #888;\n  border-left: 1px solid #888;\n  border-top: 0px solid black;\n  color: black;\n\n  padding-top: 2px;\n  padding-bottom: 4px;\n  padding-left: 5px;\n  padding-right: 4px;\n  vertical-align: bottom;\n}\n\ndiv.ExecutionVisualizer table.cArrayTbl td.cMultidimArrayHeader {\n  padding-left: 5px;\n  padding-right: 5px;\n  padding-top: 1px;\n  padding-bottom: 3px;\n  font-size: 6pt;\n  color: #777;\n  text-align: left;\n  border-top: 1px solid #888;\n  border-left: 1px solid #888;\n  border-bottom: 0px solid black; /* override whatever we're nested in */\n}\n\ndiv.ExecutionVisualizer table.cArrayTbl td.cMultidimArrayElt {\n  border-left: 1px solid #888;\n  color: black;\n  padding-top: 1px;\n  padding-bottom: 4px;\n  padding-left: 5px;\n  padding-right: 5px;\n  vertical-align: bottom;\n}\n\n\ndiv.ExecutionVisualizer .cdataHeader {\n  font-size: 6pt;\n  color: #555;\n  padding-bottom: 2px;\n}\n\ndiv.ExecutionVisualizer .cdataElt {\n  font-size: 10pt;\n}\n\ndiv.ExecutionVisualizer .cdataUninit {\n  color: #888;\n}\n\n\ndiv.ExecutionVisualizer table.tupleTbl td.tupleElt {\n  border-left: 1px solid #555555; /* must match td.tupleHeader border */\n}\n\ndiv.ExecutionVisualizer table.customObjTbl {\n  background-color: white;\n  color: black;\n  border: 1px solid black;\n}\n\ndiv.ExecutionVisualizer table.customObjTbl td.customObjElt {\n  padding: 5px;\n}\n\ndiv.ExecutionVisualizer table.listTbl td.listElt,\ndiv.ExecutionVisualizer table.tupleTbl td.tupleElt {\n  padding-top: 0px;\n  padding-bottom: 8px;\n  padding-left: 10px;\n  padding-right: 10px;\n  vertical-align: bottom;\n}\n\ndiv.ExecutionVisualizer table.setTbl {\n  border: 1px solid #555555;\n  border-spacing: 0px;\n  text-align: center;\n}\n\ndiv.ExecutionVisualizer table.setTbl td.setElt {\n  padding: 8px;\n}\n\n\ndiv.ExecutionVisualizer table.dictTbl,\ndiv.ExecutionVisualizer table.instTbl,\ndiv.ExecutionVisualizer table.classTbl {\n  border-spacing: 1px;\n}\n\ndiv.ExecutionVisualizer table.dictTbl td.dictKey,\ndiv.ExecutionVisualizer table.instTbl td.instKey,\ndiv.ExecutionVisualizer table.classTbl td.classKey {\n  background-color: #faebbf;\n}\n\ndiv.ExecutionVisualizer table.dictTbl td.dictVal,\ndiv.ExecutionVisualizer table.instTbl td.instVal,\ndiv.ExecutionVisualizer table.classTbl td.classVal,\ndiv.ExecutionVisualizer td.funcCod {\n  background-color: #ffffc6;\n}\n\n\ndiv.ExecutionVisualizer table.dictTbl td.dictKey,\ndiv.ExecutionVisualizer table.instTbl td.instKey,\ndiv.ExecutionVisualizer table.classTbl td.classKey {\n  padding-top: 6px /*15px*/;\n  padding-bottom: 6px;\n  padding-left: 10px;\n  padding-right: 4px;\n\n  text-align: right;\n}\n\ndiv.ExecutionVisualizer table.dictTbl td.dictVal,\ndiv.ExecutionVisualizer table.instTbl td.instVal,\ndiv.ExecutionVisualizer table.classTbl td.classVal {\n  padding-top: 6px; /*15px*/;\n  padding-bottom: 6px;\n  padding-right: 10px;\n  padding-left: 4px;\n}\n\ndiv.ExecutionVisualizer td.funcCod {\n  padding-left: 4px;\n}\n\ndiv.ExecutionVisualizer table.classTbl td,\ndiv.ExecutionVisualizer table.instTbl td {\n  border-bottom: 1px #888 solid;\n}\n\ndiv.ExecutionVisualizer table.classTbl td.classVal,\ndiv.ExecutionVisualizer table.instTbl td.instVal {\n  border-left: 1px #888 solid;\n}\n\ndiv.ExecutionVisualizer table.classTbl,\ndiv.ExecutionVisualizer table.funcTbl {\n  border-collapse: collapse;\n  border: 1px #888 solid;\n}\n\n/* only add a border to dicts if they're embedded within another object */\ndiv.ExecutionVisualizer td.listElt table.dictTbl,\ndiv.ExecutionVisualizer td.tupleElt table.dictTbl,\ndiv.ExecutionVisualizer td.dictVal table.dictTbl,\ndiv.ExecutionVisualizer td.instVal table.dictTbl,\ndiv.ExecutionVisualizer td.classVal table.dictTbl {\n  border: 1px #888 solid;\n}\n\ndiv.ExecutionVisualizer .objectIdLabel {\n  font-size: 8pt;\n  color: #444;\n  margin-bottom: 2px;\n}\n\ndiv.ExecutionVisualizer .typeLabel {\n  font-size: 8pt;\n  color: #555;\n  margin-bottom: 2px;\n}\n\ndiv.ExecutionVisualizer div#stack,\ndiv.ExecutionVisualizer div#globals_area {\n  padding-left: 10px;\n  padding-right: 30px;\n\n  /* no longer necessary ... */\n  /*float: left;*/\n  /* border-right: 1px dashed #bbbbbb; */\n}\n\ndiv.ExecutionVisualizer div.stackFrame,\ndiv.ExecutionVisualizer div.zombieStackFrame {\n  background-color: #ffffff;\n  margin-bottom: 15px;\n  padding: 2px;\n  padding-left: 6px;\n  padding-right: 6px;\n  padding-bottom: 4px;\n  font-size: 10pt;\n}\n\ndiv.ExecutionVisualizer div.zombieStackFrame {\n  border-left: 1px dotted #aaa;\n  /*color: #c0c0c0;*/\n  color: #a0a0a0;\n}\n\ndiv.ExecutionVisualizer div.highlightedStackFrame {\n  background-color: #e2ebf6;\n  /*background-color: #d7e7fb;*/\n\n  /*background-color: #c0daf8;*/\n  /*background-color: #9eeaff #c5dfea;*/\n}\n\ndiv.ExecutionVisualizer div.stackFrame,\ndiv.ExecutionVisualizer div.highlightedStackFrame {\n  border-left: 1px solid #a6b3b6;\n}\n\n\ndiv.ExecutionVisualizer div.stackFrameHeader {\n  font-family: Andale mono, monospace;\n  font-size: 10pt;\n  margin-top: 4px;\n  margin-bottom: 3px;\n  white-space: nowrap;\n}\n\ndiv.ExecutionVisualizer td.stackFrameVar {\n  text-align: right;\n  padding-right: 8px;\n  padding-top: 3px;\n  padding-bottom: 3px;\n}\n\ndiv.ExecutionVisualizer td.stackFrameValue {\n  text-align: left;\n  border-bottom: 1px solid #aaaaaa;\n  border-left: 1px solid #aaaaaa;\n\n  vertical-align: middle;\n\n  padding-top: 3px;\n  padding-left: 3px;\n  padding-bottom: 3px;\n}\n\ndiv.ExecutionVisualizer .stackFrameVarTable tr {\n\n}\n\ndiv.ExecutionVisualizer .stackFrameVarTable {\n  text-align: right;\n  padding-top: 3px;\n\n  /* right-align the table */\n  margin-left: auto;\n  margin-right: 0px;\n\n  /* hack to counteract possible nasty CSS reset styles from parent divs */\n  border-collapse: separate;\n  border-spacing: 2px;\n}\n\ndiv.ExecutionVisualizer div#heap {\n  float: left;\n  padding-left: 30px;\n}\n\ndiv.ExecutionVisualizer td.toplevelHeapObject {\n  /* needed for d3 to do transitions */\n  padding-left: 8px;\n  padding-right: 8px;\n  padding-top: 4px;\n  padding-bottom: 4px;\n  /*\n  border: 2px dotted white;\n  border-color: white;\n  */\n}\n\ndiv.ExecutionVisualizer table.heapRow {\n  margin-bottom: 10px;\n}\n\ndiv.ExecutionVisualizer div.heapObject {\n  padding-left: 2px; /* leave a TINY amount of room for connector endpoints */\n}\n\ndiv.ExecutionVisualizer div.heapPrimitive {\n  padding-left: 4px; /* leave some more room for connector endpoints */\n}\n\ndiv.ExecutionVisualizer div#stackHeader {\n  margin-bottom: 15px;\n  text-align: right;\n}\n\ndiv.ExecutionVisualizer div#heapHeader {\n  /*margin-top: 2px;\n  margin-bottom: 13px;*/\n  margin-bottom: 15px;\n}\n\ndiv.ExecutionVisualizer div#langDisplayDiv {\n  text-align: center;\n  margin-top: 2pt;\n  margin-bottom: 3pt;\n}\n\ndiv.ExecutionVisualizer div#langDisplayDiv,\ndiv.ExecutionVisualizer div#stackHeader,\ndiv.ExecutionVisualizer div#heapHeader {\n  color: #333333;\n  font-size: 10pt;\n}\n\ndiv.ExecutionVisualizer #executionSlider {\n  /* if you set 'width', then it looks ugly when you dynamically resize */\n  margin-top: 15px;\n  margin-bottom: 5px;\n\n  /* DON'T center this, since we need breakpoints in executionSliderFooter to be well aligned */\n  width: 98%;\n}\n\ndiv.ExecutionVisualizer #executionSliderCaption {\n  font-size: 8pt;\n  color: #666666;\n  margin-top: 15px;\n}\n\ndiv.ExecutionVisualizer #executionSliderFooter {\n  margin-top: -7px; /* make it butt up against #executionSlider */\n}\n\ndiv.ExecutionVisualizer #codeFooterDocs,\ndiv.ExecutionVisualizer #printOutputDocs {\n  margin-bottom: 3px;\n  font-size: 8pt;\n  color: #666;\n}\n\ndiv.ExecutionVisualizer #codeFooterDocs {\n  margin-top: 5px;\n  margin-bottom: 12px;\n  width: 95%;\n}\n\n/* darken slider handle a bit */\ndiv.ExecutionVisualizer .ui-slider .ui-slider-handle {\n  border: 1px solid #999;\n}\n\n\n/* for annotation bubbles */\n\n/* For styling tricks, see: http://css-tricks.com/textarea-tricks/ */\ntextarea.bubbleInputText {\n  border: 1px solid #ccc;\n  outline: none;\n  overflow: auto; /* to look pretty on IE */\n\n  /* make sure textarea doesn't grow and stretch the enclosing bubble */\n  resize: none;\n  width: 225px;\n  max-width: 225px;\n  height: 35px;\n  max-height: 35px;\n}\n\ndiv.ExecutionVisualizer .annotationText,\ndiv.ExecutionVisualizer .vizDescriptionText {\n  font-family: verdana, arial, helvetica, sans-serif;\n  font-size: 11pt;\n  line-height: 1.5em;\n}\n\ndiv.ExecutionVisualizer .vizTitleText {\n  font-family: verdana, arial, helvetica, sans-serif;\n  font-size: 16pt;\n  margin-bottom: 12pt;\n}\n\ndiv.ExecutionVisualizer div#vizHeader {\n  margin-bottom: 10px;\n  width: 700px;\n  max-width: 700px;\n}\n\n/* prev then curr, so curr gets precedence when both apply */\ndiv.ExecutionVisualizer .highlight-prev {\n  background-color: #F0F0EA;\n}\n\ndiv.ExecutionVisualizer .highlight-cur {\n  background-color: #FFFF66;\n}\n\ndiv.ExecutionVisualizer .highlight-legend {\n  padding: 2px;\n}\n\n/* resizing sliders from David Pritchard */\n.ui-resizable-e {\n  background-color: #dddddd;\n  width: 1px;\n  border: 3px solid white;\n}\n\n.ui-resizable-e:hover {\n  border-color: #dddddd;\n}\n\ndiv.ExecutionVisualizer a,\ndiv.ExecutionVisualizer a:visited,\ndiv.ExecutionVisualizer a:hover {\n  color: #3D58A2;\n}\n\ndiv.ExecutionVisualizer div#rawUserInputDiv {\n  padding: 5px;\n  width: 95%;\n  margin: 5px auto;\n  text-align: center;\n  border: 1px #e93f34 solid;\n}\n\n/* for pyCrazyMode */\n\n/* prev then curr, so curr gets precedence when both apply */\ndiv.ExecutionVisualizer .pycrazy-highlight-prev {\n  background-color: #eeeeee; /*#F0F0EA;*/\n  /*\n  text-decoration: none;\n  border-bottom: 1px solid #dddddd;\n  */\n}\n\ndiv.ExecutionVisualizer .pycrazy-highlight-cur {\n  background-color: #FFFF66;\n  /* aligned slightly higher than border-bottom */\n  /*\n  text-decoration: none;\n  border-bottom: 1px solid #e93f34;\n  */\n}\n\ndiv.ExecutionVisualizer .pycrazy-highlight-prev-and-cur {\n  background-color: #FFFF66;\n\n  text-decoration: none;\n  border-bottom: 1px solid #999999;\n}\n\n\n#optTabularView thead.stepTableThead {\n  background-color: #bbb;\n}\n\n#optTabularView tbody.stepTableTbody {\n}\n\n#optTabularView td.stepTableTd {\n  padding: 3px 10px;\n}\n\n\n/* BEGIN Java frontend by David Pritchard and Will Gwozdz */\n\n/* stack and queue css by Will Gwozdz */\ndiv.ExecutionVisualizer table.queueTbl,\ndiv.ExecutionVisualizer table.stackTbl {\n  background-color: #ffffc6;\n}\n\ndiv.ExecutionVisualizer table.queueTbl,\ndiv.ExecutionVisualizer table.stackTbl {\n  border: 0px solid black;\n  border-spacing: 0px;\n}\n\ndiv.ExecutionVisualizer table.stackTbl td.stackElt,\ndiv.ExecutionVisualizer table.queueTbl td.queueElt {\n  padding-left: 8px;\n  padding-right: 8px;\n  padding-top: 2px;\n  padding-bottom: 3px;\n  border-top: 1px solid #555555;\n  border-bottom: 1px solid #555555;\n  border-left: 1px dashed #555555;\n}\n\ndiv.ExecutionVisualizer table.stackTbl td.stackFElt,\ndiv.ExecutionVisualizer table.queueTbl td.queueFElt {\n  background-color: white;\n  border-top: 1px solid #555555;\n  border-bottom: 1px solid #555555;\n}\n\ndiv.ExecutionVisualizer table.stackTbl td.stackLElt {\n  background-color: white;\n  border-left: 1px solid #555555;\n}\n\ndiv.ExecutionVisualizer table.queueTbl td.queueLElt {\n  background-color: white;\n  border-top: 1px solid#555555;\n  border-bottom: 1px solid #555555;\n  border-left: 1px dashed #555555;\n}\n\n/* This ensures a border is drawn around a dict\n   if its nested in another object. */\ndiv.ExecutionVisualizer td.stackElt table.dictTbl,\ndiv.ExecutionVisualizer td.stackLElt table.dictTbl,\ndiv.ExecutionVisualizer td.stackFElt table.dictTbl,\ndiv.ExecutionVisualizer td.queueElt table.dictTbl,\ndiv.ExecutionVisualizer td.queueLElt table.dictTbl,\ndiv.ExecutionVisualizer td.queueFElt table.dictTbl {\n  border: 1px #888 solid;\n}\n\n.symbolic {\n  font-size: 18pt;\n}\n\n/* END Java frontend by David Pritchard and Will Gwozdz */\n", ""]);
+exports.push([module.i, "/*\n\nOnline Python Tutor\nhttps://github.com/pgbovine/OnlinePythonTutor/\n\nCopyright (C) Philip J. Guo (philip@pgbovine.net)\n\nPermission is hereby granted, free of charge, to any person obtaining a\ncopy of this software and associated documentation files (the\n\"Software\"), to deal in the Software without restriction, including\nwithout limitation the rights to use, copy, modify, merge, publish,\ndistribute, sublicense, and/or sell copies of the Software, and to\npermit persons to whom the Software is furnished to do so, subject to\nthe following conditions:\n\nThe above copyright notice and this permission notice shall be included\nin all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS\nOR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF\nMERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.\nIN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY\nCLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,\nTORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE\nSOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n\n*/\n\n/* Most recent color scheme redesign on 2012-08-19 */\n\n/* To prevent CSS namespace clashes, prefix all rules with:\n     div.ExecutionVisualizer\n*/\n\n\n/* reset some styles to nullify effects of existing stylesheets\n   e.g., http://meyerweb.com/eric/tools/css/reset/\n*/\ndiv.ExecutionVisualizer {\n  /* none for now */\n}\n\ndiv.ExecutionVisualizer table.visualizer {\n  font-family: verdana, arial, helvetica, sans-serif;\n  font-size: 10pt;\n  margin-bottom: 10px;\n}\n\ndiv.ExecutionVisualizer table.visualizer td.vizLayoutTd {\n  vertical-align: top;\n}\n\ndiv.ExecutionVisualizer td#stack_td,\ndiv.ExecutionVisualizer td#heap_td {\n  vertical-align:top;\n  font-size: 10pt; /* don't make fonts in the heap so big! */\n}\n\ndiv.ExecutionVisualizer #dataViz {\n  /*margin-left: 25px;*/\n}\n\n/*\ndiv.ExecutionVisualizer div#codeDisplayDiv {\n  width: 550px;\n}\n*/\n\ndiv.ExecutionVisualizer div#pyCodeOutputDiv {\n  /*max-width: 550px;*/\n  max-height: 460px;\n  /*max-height: 620px;*/\n  overflow: auto;\n  /*margin-bottom: 4px;*/\n\n  margin-left: auto;\n  margin-right: auto;\n}\n\ndiv.ExecutionVisualizer table#pyCodeOutput {\n  font-family: Andale mono, monospace;\n  /*font-size:12pt;*/\n  font-size:11pt;\n  line-height:1.1em;\n\n  border-collapse: separate; /* some crazy CSS voodoo that needs to be\n                                there so that SVG arrows to the left\n                                of the code line up vertically in Chrome */\n  border-spacing: 0px;\n  border-top: 1px solid #bbb;\n  padding-top: 3px;\n  border-bottom: 1px solid #bbb;\n  /*margin-top: 6px;*/\n  margin: 6px auto; /* Center code in its pane */\n}\n\n/* don't wrap lines within code output ... FORCE scrollbars to appear */\ndiv.ExecutionVisualizer table#pyCodeOutput td {\n  white-space: nowrap;\n  vertical-align: middle; /* explicitly force, to override external CSS conflicts */\n}\n\ndiv.ExecutionVisualizer #leftCodeGutterSVG {\n  width: 18px;\n  min-width: 18px; /* make sure it doesn't squash too thin */\n  height: 0px; /* programmatically set this later ... IE needs this to\n                  be 0 or it defaults to something arbitrary and gross */\n}\n\ndiv.ExecutionVisualizer #prevLegendArrowSVG,\ndiv.ExecutionVisualizer #curLegendArrowSVG {\n  width: 18px;\n  height: 10px;\n}\n\ndiv.ExecutionVisualizer .arrow {\n  font-size: 16pt;\n}\n\ndiv.ExecutionVisualizer table#pyCodeOutput .lineNo {\n  color: #aaa;\n  padding: 0.2em;\n  padding-left: 0.3em;\n  padding-right: 0.5em;\n  text-align: right;\n}\n\ndiv.ExecutionVisualizer table#pyCodeOutput .cod {\n  /*font-weight: bold;*/\n  margin-left: 3px;\n  padding-left: 7px;\n  text-align: left; /* necessary or else doesn't work properly in IE */\n}\n\ndiv.ExecutionVisualizer div#progOutputs {\n  margin-left: 13px; /* line up with heap visualizations */\n  margin-bottom: 3px;\n}\n\ndiv.ExecutionVisualizer div#legendDiv {\n  padding: 0px;\n  text-align: left;\n  color: #666;\n  font-size: 9pt;\n}\n\ndiv.ExecutionVisualizer div#editCodeLinkDiv {\n  text-align: center;\n  /*\n  margin-top: 12px;\n  margin-bottom: 4px;\n  */\n  margin: 8px auto;\n  font-size: 11pt;\n}\n\ndiv.ExecutionVisualizer div#annotateLinkDiv {\n  /*text-align: left;*/\n  margin-top: 0px;\n  margin-bottom: 12px;\n  /*\n  margin-left: auto;\n  margin-right: auto;\n  */\n}\n\ndiv.ExecutionVisualizer div#stepAnnotationDiv {\n  margin-bottom: 12px;\n}\n\ndiv.ExecutionVisualizer textarea#stepAnnotationEditor,\ndiv.ExecutionVisualizer textarea#vizTitleEditor,\ndiv.ExecutionVisualizer textarea#vizDescriptionEditor {\n  border: 1px solid #999999;\n  padding: 4px;\n\n  overflow: auto; /* to look pretty on IE */\n  /* make sure textarea doesn't grow and stretch */\n  resize: none;\n}\n\n\ndiv.ExecutionVisualizer #errorOutput {\n  color: #e93f34; /* should match brightRed JavaScript variable */\n  font-size: 11pt;\n  padding-top: 2px;\n  line-height: 1.5em;\n  margin-bottom: 4px;\n}\n\n/* VCR control buttons for stepping through execution */\n\ndiv.ExecutionVisualizer #vcrControls {\n  margin: 15px auto;\n  /*width: 100%;*/\n  text-align: center;\n}\n\ndiv.ExecutionVisualizer #vcrControls button {\n  margin-left: 2px;\n  margin-right: 2px;\n}\n\ndiv.ExecutionVisualizer #vcrControls #curInstr {\n  margin-left: 4px;\n  margin-right: 4px;\n}\n\ndiv.ExecutionVisualizer #pyStdout {\n  border: 1px solid #999999;\n  font-size: 10pt;\n  padding: 3px;\n  font-family: Andale mono, monospace;\n\n  overflow: auto; /* to look pretty on IE */\n  /* make sure textarea doesn't grow and stretch */\n  resize: none;\n}\n\n\ndiv.ExecutionVisualizer .vizFrame {\n  margin-bottom: 20px;\n  padding-left: 8px;\n  border-left: 2px solid #cccccc;\n}\n\n\n/* Rendering of primitive types */\n\ndiv.ExecutionVisualizer .nullObj {\n//  font-size: 8pt;\n}\n\ndiv.ExecutionVisualizer .stringObj,\ndiv.ExecutionVisualizer .customObj,\ndiv.ExecutionVisualizer .funcObj {\n  font-family: Andale mono, monospace;\n  white-space: nowrap;\n}\n\ndiv.ExecutionVisualizer .funcCode {\n  font-size: 8pt;\n}\n\ndiv.ExecutionVisualizer .retval {\n  font-size: 9pt;\n}\n\ndiv.ExecutionVisualizer .stackFrame .retval {\n  color: #e93f34; /* highlight non-zombie stack frame return values -\n                     should match brightRed JavaScript variable */\n}\n\n/* Rendering of basic compound types */\n\ndiv.ExecutionVisualizer table.listTbl,\ndiv.ExecutionVisualizer table.tupleTbl,\ndiv.ExecutionVisualizer table.setTbl {\n  background-color: #ffffc6;\n}\n\n\ndiv.ExecutionVisualizer table.listTbl {\n  border: 0px solid black;\n  border-spacing: 0px;\n}\n\ndiv.ExecutionVisualizer table.listTbl td.listHeader,\ndiv.ExecutionVisualizer table.tupleTbl td.tupleHeader {\n  padding-left: 4px;\n  padding-top: 2px;\n  padding-bottom: 3px;\n  font-size: 8pt;\n  color: #777;\n  text-align: left;\n  border-left: 1px solid #555555;\n}\n\ndiv.ExecutionVisualizer table.tupleTbl {\n  border-spacing: 0px;\n  color: black;\n\n  border-bottom: 1px solid #555555; /* must match td.tupleHeader border */\n  border-top: 1px solid #555555; /* must match td.tupleHeader border */\n  border-right: 1px solid #555555; /* must match td.tupleHeader border */\n}\n\n\ndiv.ExecutionVisualizer table.listTbl td.listElt {\n  border-bottom: 1px solid #555555; /* must match td.listHeader border */\n  border-left: 1px solid #555555; /* must match td.listHeader border */\n}\n\n\n/* for C and C++ visualizations */\n\n/* make this slightly more compact than listTbl since arrays can be\n   rendered on the stack so we want to kinda conserve space */\ndiv.ExecutionVisualizer table.cArrayTbl {\n  background-color: #ffffc6;\n  padding-left: 0px;\n  padding-top: 0px;\n  padding-bottom: 0px;\n  font-size: 8pt;\n  color: #777;\n  text-align: left;\n  border: 0px solid black;\n  border-spacing: 0px;\n}\n\ndiv.ExecutionVisualizer table.cArrayTbl td.cArrayHeader {\n  padding-left: 5px;\n  padding-top: 0px;\n  padding-bottom: 2px;\n  font-size: 6pt;\n  color: #777;\n  text-align: left;\n  border-bottom: 0px solid black; /* override whatever we're nested in */\n}\n\ndiv.ExecutionVisualizer table.cArrayTbl td.cArrayElt {\n  border-bottom: 1px solid #888;\n  border-left: 1px solid #888;\n  border-top: 0px solid black;\n  color: black;\n\n  padding-top: 2px;\n  padding-bottom: 4px;\n  padding-left: 5px;\n  padding-right: 4px;\n  vertical-align: bottom;\n}\n\ndiv.ExecutionVisualizer table.cArrayTbl td.cMultidimArrayHeader {\n  padding-left: 5px;\n  padding-right: 5px;\n  padding-top: 1px;\n  padding-bottom: 3px;\n  font-size: 6pt;\n  color: #777;\n  text-align: left;\n  border-top: 1px solid #888;\n  border-left: 1px solid #888;\n  border-bottom: 0px solid black; /* override whatever we're nested in */\n}\n\ndiv.ExecutionVisualizer table.cArrayTbl td.cMultidimArrayElt {\n  border-left: 1px solid #888;\n  color: black;\n  padding-top: 1px;\n  padding-bottom: 4px;\n  padding-left: 5px;\n  padding-right: 5px;\n  vertical-align: bottom;\n}\n\n\ndiv.ExecutionVisualizer .cdataHeader {\n  font-size: 6pt;\n  color: #555;\n  padding-bottom: 2px;\n}\n\ndiv.ExecutionVisualizer .cdataElt {\n  font-size: 10pt;\n}\n\ndiv.ExecutionVisualizer .cdataUninit {\n  color: #888;\n}\n\n\ndiv.ExecutionVisualizer table.tupleTbl td.tupleElt {\n  border-left: 1px solid #555555; /* must match td.tupleHeader border */\n}\n\ndiv.ExecutionVisualizer table.customObjTbl {\n  background-color: white;\n  color: black;\n  border: 1px solid black;\n}\n\ndiv.ExecutionVisualizer table.customObjTbl td.customObjElt {\n  padding: 5px;\n}\n\ndiv.ExecutionVisualizer table.listTbl td.listElt,\ndiv.ExecutionVisualizer table.tupleTbl td.tupleElt {\n  padding-top: 0px;\n  padding-bottom: 8px;\n  padding-left: 10px;\n  padding-right: 10px;\n  vertical-align: bottom;\n}\n\ndiv.ExecutionVisualizer table.setTbl {\n  border: 1px solid #555555;\n  border-spacing: 0px;\n  text-align: center;\n}\n\ndiv.ExecutionVisualizer table.setTbl td.setElt {\n  padding: 8px;\n}\n\n\ndiv.ExecutionVisualizer table.dictTbl,\ndiv.ExecutionVisualizer table.instTbl,\ndiv.ExecutionVisualizer table.classTbl {\n  border-spacing: 1px;\n}\n\ndiv.ExecutionVisualizer table.dictTbl td.dictKey,\ndiv.ExecutionVisualizer table.instTbl td.instKey,\ndiv.ExecutionVisualizer table.classTbl td.classKey {\n  background-color: #faebbf;\n}\n\ndiv.ExecutionVisualizer table.dictTbl td.dictVal,\ndiv.ExecutionVisualizer table.instTbl td.instVal,\ndiv.ExecutionVisualizer table.classTbl td.classVal,\ndiv.ExecutionVisualizer td.funcCod {\n  background-color: #ffffc6;\n}\n\n\ndiv.ExecutionVisualizer table.dictTbl td.dictKey,\ndiv.ExecutionVisualizer table.instTbl td.instKey,\ndiv.ExecutionVisualizer table.classTbl td.classKey {\n  padding-top: 6px /*15px*/;\n  padding-bottom: 6px;\n  padding-left: 10px;\n  padding-right: 4px;\n\n  text-align: right;\n}\n\ndiv.ExecutionVisualizer table.dictTbl td.dictVal,\ndiv.ExecutionVisualizer table.instTbl td.instVal,\ndiv.ExecutionVisualizer table.classTbl td.classVal {\n  padding-top: 6px; /*15px*/;\n  padding-bottom: 6px;\n  padding-right: 10px;\n  padding-left: 4px;\n}\n\ndiv.ExecutionVisualizer td.funcCod {\n  padding-left: 4px;\n}\n\ndiv.ExecutionVisualizer table.classTbl td,\ndiv.ExecutionVisualizer table.instTbl td {\n  border-bottom: 1px #888 solid;\n}\n\ndiv.ExecutionVisualizer table.classTbl td.classVal,\ndiv.ExecutionVisualizer table.instTbl td.instVal {\n  border-left: 1px #888 solid;\n}\n\ndiv.ExecutionVisualizer table.classTbl,\ndiv.ExecutionVisualizer table.funcTbl {\n  border-collapse: collapse;\n  border: 1px #888 solid;\n}\n\n/* only add a border to dicts if they're embedded within another object */\ndiv.ExecutionVisualizer td.listElt table.dictTbl,\ndiv.ExecutionVisualizer td.tupleElt table.dictTbl,\ndiv.ExecutionVisualizer td.dictVal table.dictTbl,\ndiv.ExecutionVisualizer td.instVal table.dictTbl,\ndiv.ExecutionVisualizer td.classVal table.dictTbl {\n  border: 1px #888 solid;\n}\n\ndiv.ExecutionVisualizer .objectIdLabel {\n  font-size: 8pt;\n  color: #444;\n  margin-bottom: 2px;\n}\n\ndiv.ExecutionVisualizer .typeLabel {\n  font-size: 8pt;\n  color: #555;\n  margin-bottom: 2px;\n}\n\ndiv.ExecutionVisualizer div#stack,\ndiv.ExecutionVisualizer div#globals_area {\n  padding-left: 10px;\n  padding-right: 30px;\n\n  /* no longer necessary ... */\n  /*float: left;*/\n  /* border-right: 1px dashed #bbbbbb; */\n}\n\ndiv.ExecutionVisualizer div.stackFrame,\ndiv.ExecutionVisualizer div.zombieStackFrame {\n  background-color: #ffffff;\n  margin-bottom: 15px;\n  padding: 2px;\n  padding-left: 6px;\n  padding-right: 6px;\n  padding-bottom: 4px;\n  font-size: 10pt;\n}\n\ndiv.ExecutionVisualizer div.zombieStackFrame {\n  border-left: 1px dotted #aaa;\n  /*color: #c0c0c0;*/\n  color: #a0a0a0;\n}\n\ndiv.ExecutionVisualizer div.highlightedStackFrame {\n  background-color: #e2ebf6;\n  /*background-color: #d7e7fb;*/\n\n  /*background-color: #c0daf8;*/\n  /*background-color: #9eeaff #c5dfea;*/\n}\n\ndiv.ExecutionVisualizer div.stackFrame,\ndiv.ExecutionVisualizer div.highlightedStackFrame {\n  border-left: 1px solid #a6b3b6;\n}\n\n\ndiv.ExecutionVisualizer div.stackFrameHeader {\n  font-family: Andale mono, monospace;\n  font-size: 10pt;\n  margin-top: 4px;\n  margin-bottom: 3px;\n  white-space: nowrap;\n}\n\ndiv.ExecutionVisualizer td.stackFrameVar {\n  text-align: right;\n  padding-right: 8px;\n  padding-top: 3px;\n  padding-bottom: 3px;\n}\n\ndiv.ExecutionVisualizer td.stackFrameValue {\n  text-align: left;\n  border-bottom: 1px solid #aaaaaa;\n  border-left: 1px solid #aaaaaa;\n\n  vertical-align: middle;\n\n  padding-top: 3px;\n  padding-left: 3px;\n  padding-bottom: 3px;\n}\n\ndiv.ExecutionVisualizer .stackFrameVarTable tr {\n\n}\n\ndiv.ExecutionVisualizer .stackFrameVarTable {\n  text-align: right;\n  padding-top: 3px;\n\n  /* right-align the table */\n  margin-left: auto;\n  margin-right: 0px;\n\n  /* hack to counteract possible nasty CSS reset styles from parent divs */\n  border-collapse: separate;\n  border-spacing: 2px;\n}\n\ndiv.ExecutionVisualizer div#heap {\n  float: left;\n  padding-left: 30px;\n}\n\ndiv.ExecutionVisualizer td.toplevelHeapObject {\n  /* needed for d3 to do transitions */\n  padding-left: 8px;\n  padding-right: 8px;\n  padding-top: 4px;\n  padding-bottom: 4px;\n  /*\n  border: 2px dotted white;\n  border-color: white;\n  */\n}\n\ndiv.ExecutionVisualizer table.heapRow {\n  margin-bottom: 10px;\n}\n\ndiv.ExecutionVisualizer div.heapObject {\n  padding-left: 2px; /* leave a TINY amount of room for connector endpoints */\n}\n\ndiv.ExecutionVisualizer div.heapPrimitive {\n  padding-left: 4px; /* leave some more room for connector endpoints */\n}\n\ndiv.ExecutionVisualizer div#stackHeader {\n  margin-bottom: 15px;\n  text-align: right;\n}\n\ndiv.ExecutionVisualizer div#heapHeader {\n  /*margin-top: 2px;\n  margin-bottom: 13px;*/\n  margin-bottom: 15px;\n}\n\ndiv.ExecutionVisualizer div#langDisplayDiv {\n  text-align: center;\n  margin-top: 2pt;\n  margin-bottom: 3pt;\n}\n\ndiv.ExecutionVisualizer div#langDisplayDiv,\ndiv.ExecutionVisualizer div#stackHeader,\ndiv.ExecutionVisualizer div#heapHeader {\n  color: #333333;\n  font-size: 10pt;\n}\n\ndiv.ExecutionVisualizer #executionSlider {\n  /* if you set 'width', then it looks ugly when you dynamically resize */\n  margin-top: 15px;\n  margin-bottom: 5px;\n\n  /* DON'T center this, since we need breakpoints in executionSliderFooter to be well aligned */\n  width: 98%;\n}\n\ndiv.ExecutionVisualizer #executionSliderCaption {\n  font-size: 8pt;\n  color: #666666;\n  margin-top: 15px;\n}\n\ndiv.ExecutionVisualizer #executionSliderFooter {\n  margin-top: -7px; /* make it butt up against #executionSlider */\n}\n\ndiv.ExecutionVisualizer #codeFooterDocs,\ndiv.ExecutionVisualizer #printOutputDocs {\n  margin-bottom: 3px;\n  font-size: 8pt;\n  color: #666;\n}\n\ndiv.ExecutionVisualizer #codeFooterDocs {\n  margin-top: 5px;\n  margin-bottom: 12px;\n  width: 95%;\n}\n\n/* darken slider handle a bit */\ndiv.ExecutionVisualizer .ui-slider .ui-slider-handle {\n  border: 1px solid #999;\n}\n\n\n/* for annotation bubbles */\n\n/* For styling tricks, see: http://css-tricks.com/textarea-tricks/ */\ntextarea.bubbleInputText {\n  border: 1px solid #ccc;\n  outline: none;\n  overflow: auto; /* to look pretty on IE */\n\n  /* make sure textarea doesn't grow and stretch the enclosing bubble */\n  resize: none;\n  width: 225px;\n  max-width: 225px;\n  height: 35px;\n  max-height: 35px;\n}\n\ndiv.ExecutionVisualizer .annotationText,\ndiv.ExecutionVisualizer .vizDescriptionText {\n  font-family: verdana, arial, helvetica, sans-serif;\n  font-size: 11pt;\n  line-height: 1.5em;\n}\n\ndiv.ExecutionVisualizer .vizTitleText {\n  font-family: verdana, arial, helvetica, sans-serif;\n  font-size: 16pt;\n  margin-bottom: 12pt;\n}\n\ndiv.ExecutionVisualizer div#vizHeader {\n  margin-bottom: 10px;\n  width: 700px;\n  max-width: 700px;\n}\n\n/* prev then curr, so curr gets precedence when both apply */\ndiv.ExecutionVisualizer .highlight-prev {\n  background-color: #F0F0EA;\n}\n\ndiv.ExecutionVisualizer .highlight-cur {\n  background-color: #FFFF66;\n}\n\ndiv.ExecutionVisualizer .highlight-legend {\n  padding: 2px;\n}\n\n/* resizing sliders from David Pritchard */\n.ui-resizable-e {\n  background-color: #dddddd;\n  width: 1px;\n  border: 3px solid white;\n}\n\n.ui-resizable-e:hover {\n  border-color: #dddddd;\n}\n\ndiv.ExecutionVisualizer a,\ndiv.ExecutionVisualizer a:visited,\ndiv.ExecutionVisualizer a:hover {\n  color: #3D58A2;\n}\n\ndiv.ExecutionVisualizer div#rawUserInputDiv {\n  padding: 5px;\n  width: 95%;\n  margin: 5px auto;\n  text-align: center;\n  border: 1px #e93f34 solid;\n}\n\n/* for pyCrazyMode */\n\n/* prev then curr, so curr gets precedence when both apply */\ndiv.ExecutionVisualizer .pycrazy-highlight-prev {\n  background-color: #eeeeee; /*#F0F0EA;*/\n  /*\n  text-decoration: none;\n  border-bottom: 1px solid #dddddd;\n  */\n}\n\ndiv.ExecutionVisualizer .pycrazy-highlight-cur {\n  background-color: #FFFF66;\n  /* aligned slightly higher than border-bottom */\n  /*\n  text-decoration: none;\n  border-bottom: 1px solid #e93f34;\n  */\n}\n\ndiv.ExecutionVisualizer .pycrazy-highlight-prev-and-cur {\n  background-color: #FFFF66;\n\n  text-decoration: none;\n  border-bottom: 1px solid #999999;\n}\n\n\n#optTabularView thead.stepTableThead {\n  background-color: #bbb;\n}\n\n#optTabularView tbody.stepTableTbody {\n}\n\n#optTabularView td.stepTableTd {\n  padding: 3px 10px;\n}\n\n\n/* BEGIN Java frontend by David Pritchard and Will Gwozdz */\n\n/* stack and queue css by Will Gwozdz */\ndiv.ExecutionVisualizer table.queueTbl,\ndiv.ExecutionVisualizer table.stackTbl {\n  background-color: #ffffc6;\n}\n\ndiv.ExecutionVisualizer table.queueTbl,\ndiv.ExecutionVisualizer table.stackTbl {\n  border: 0px solid black;\n  border-spacing: 0px;\n}\n\ndiv.ExecutionVisualizer table.stackTbl td.stackElt,\ndiv.ExecutionVisualizer table.queueTbl td.queueElt {\n  padding-left: 8px;\n  padding-right: 8px;\n  padding-top: 2px;\n  padding-bottom: 3px;\n  border-top: 1px solid #555555;\n  border-bottom: 1px solid #555555;\n  border-left: 1px dashed #555555;\n}\n\ndiv.ExecutionVisualizer table.stackTbl td.stackFElt,\ndiv.ExecutionVisualizer table.queueTbl td.queueFElt {\n  background-color: white;\n  border-top: 1px solid #555555;\n  border-bottom: 1px solid #555555;\n}\n\ndiv.ExecutionVisualizer table.stackTbl td.stackLElt {\n  background-color: white;\n  border-left: 1px solid #555555;\n}\n\ndiv.ExecutionVisualizer table.queueTbl td.queueLElt {\n  background-color: white;\n  border-top: 1px solid#555555;\n  border-bottom: 1px solid #555555;\n  border-left: 1px dashed #555555;\n}\n\n/* This ensures a border is drawn around a dict\n   if its nested in another object. */\ndiv.ExecutionVisualizer td.stackElt table.dictTbl,\ndiv.ExecutionVisualizer td.stackLElt table.dictTbl,\ndiv.ExecutionVisualizer td.stackFElt table.dictTbl,\ndiv.ExecutionVisualizer td.queueElt table.dictTbl,\ndiv.ExecutionVisualizer td.queueLElt table.dictTbl,\ndiv.ExecutionVisualizer td.queueFElt table.dictTbl {\n  border: 1px #888 solid;\n}\n\n.symbolic {\n  font-size: 18pt;\n}\n\n/* END Java frontend by David Pritchard and Will Gwozdz */\n", ""]);
 
 // exports
 
@@ -22403,7 +22500,7 @@ exports = module.exports = __webpack_require__(2)();
 
 
 // module
-exports.push([module.i, "/* CSS accompanying ../visualize.html */\n\nh1 {\n  font-weight: normal;\n  font-size: 20pt;\n  font-family: georgia, serif;\n  line-height: 1em;  /* enforce single spacing so that Georgia works */\n\n  margin-top: 0px;\n  margin-bottom: 8px;\n}\n\nh2 {\n  font-size: 12pt;\n  font-weight: normal;\n  font-family: georgia, serif;\n  line-height: 1.1em; /* enforce single spacing so that Georgia works */\n\n  margin-top: 2px;\n  margin-bottom: 20px;\n}\n\n\nbody {\n  background-color: white;\n  font-family: verdana, arial, helvetica, sans-serif;\n  font-size: 10pt;\n}\n\na,\na:visited,\na:hover {\n  color: #3D58A2;\n}\n\nspan {\n  padding: 0px;\n}\n\n#optionsPane {\n  margin-top: 15px;\n  margin-bottom: 20px;\n  line-height: 150%;\n}\n\ntable#pyOutputPane {\n  padding: 10px;\n}\n\n#pyInputPane, #loadingPane {\n  margin-top: 10px;\n  margin-bottom: 20px;\n\n  max-width: 700px;\n  /* center align */\n  margin-left: auto;\n  margin-right: auto;\n}\n\n#loadingPane {\n  margin-bottom: 5px;\n}\n\n#codeInputPane {\n  margin-top: 5px;\n  font-size: 12pt;\n  border: 1px solid #ddd;\n}\n\n#codeInputWarnings {\n  margin-bottom: 8px;\n}\n\nbutton.smallBtn {\n  font-size: 10pt;\n  padding: 3px;\n}\n\nbutton.bigBtn {\n  font-size: 12pt;\n  padding: 6px;\n  margin-top: 0px;\n}\n\nbutton.surveyBtn {\n  font-size: 8pt;\n  margin-top: 8px;\n}\n\nbutton.surveyBtnBig {\n  font-size: 11pt;\n  padding: 5px;\n  margin-top: 0px;\n}\n\n#footer {\n  color: #888;\n  font-size: 9pt;\n  border-top: 1px solid #bbbbbb;\n  padding-top: 5px;\n  margin-top: 5px;\n\n  max-width: 700px;\n  /* center align */\n  margin-left: auto;\n  margin-right: auto;\n}\n\n#frontendErrorOutput {\n  color: #e93f34; /* should match brightRed JavaScript variable */\n  font-size: 12pt;\n  line-height: 1.5em;\n  margin-top: 8px;\n}\n\n.togetherjsBtn {\n  /*color: #b80000;*/\n  color: #e93f34;\n  font-size: 10pt;\n  padding: 4px;\n  margin-top: 3px;\n}\n\n/* make this a fixed size with scrollbars for overflow so that the UI doesn't jitter up and down */\n#publicHelpQueue {\n  overflow: auto;\n  height: 95px;\n  margin-bottom: 15px;\n  margin-left: 10px;\n}\n\n.helpQueueSmallText {\n  color: #777;\n  font-size: 8pt;\n}\n\n.redBold {\n  font-weight: bold;\n  color: #e93f34;\n}\n\n#stopRequestHelpBtn {\n  font-size: 9pt;\n  padding: 2px;\n}\n\n#moderationPanel {\n  font-size: 11pt;\n  margin-bottom: 5pt;\n  min-height: 16pt; /* just so things don't jiggle around vertically too much */\n  padding-top: 6px;\n  padding-bottom: 6px;\n  padding-left: 6px;\n  padding-right: 6px;\n  border: 1px solid #e93f34;\n}\n\n.kickLink {\n  font-size: 10pt;\n  margin-right: 4px;\n}\n\n\n#syncBtn {\n font-size: 8pt;\n margin-left: 0px;\n}\n\n#experimentalHeader {\n}\n\n#surveyHeader {\n  margin-left: 100px;\n}\n\n.surveyQ {\n  font-size: 9pt;\n  padding: 2px;\n}\n\n/* necessary for CodeMirror error line highlighting to work! */\n.CodeMirror .errorLine { background: #ffff3f !important; }\n\n\n/* from http://rog.ie/blog/css-star-rater */\n.star-rating {\n  font-size: 0;\n  white-space: nowrap;\n  display: inline-block;\n  /* pgbovine - scale this appropriately with a 5:1 ratio */\n  width: 100px;\n  height: 20px;\n  overflow: hidden;\n  position: relative;\n  background: url('data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB3aWR0aD0iMjBweCIgaGVpZ2h0PSIyMHB4IiB2aWV3Qm94PSIwIDAgMjAgMjAiIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgMCAwIDIwIDIwIiB4bWw6c3BhY2U9InByZXNlcnZlIj48cG9seWdvbiBmaWxsPSIjREREREREIiBwb2ludHM9IjEwLDAgMTMuMDksNi41ODMgMjAsNy42MzkgMTUsMTIuNzY0IDE2LjE4LDIwIDEwLDE2LjU4MyAzLjgyLDIwIDUsMTIuNzY0IDAsNy42MzkgNi45MSw2LjU4MyAiLz48L3N2Zz4=');\n  background-size: contain;\n}\n.star-rating i {\n  opacity: 0;\n  position: absolute;\n  left: 0;\n  top: 0;\n  height: 100%;\n  width: 20%;\n  z-index: 1;\n  background: url('data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB3aWR0aD0iMjBweCIgaGVpZ2h0PSIyMHB4IiB2aWV3Qm94PSIwIDAgMjAgMjAiIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgMCAwIDIwIDIwIiB4bWw6c3BhY2U9InByZXNlcnZlIj48cG9seWdvbiBmaWxsPSIjRkZERjg4IiBwb2ludHM9IjEwLDAgMTMuMDksNi41ODMgMjAsNy42MzkgMTUsMTIuNzY0IDE2LjE4LDIwIDEwLDE2LjU4MyAzLjgyLDIwIDUsMTIuNzY0IDAsNy42MzkgNi45MSw2LjU4MyAiLz48L3N2Zz4=');\n  background-size: contain;\n}\n.star-rating input {\n  -moz-appearance: none;\n  -webkit-appearance: none;\n  opacity: 0;\n  display: inline-block;\n  width: 20%;\n  height: 100%;\n  margin: 0;\n  padding: 0;\n  z-index: 2;\n  position: relative;\n}\n.star-rating input:hover + i,\n.star-rating input:checked + i {\n  opacity: 1;\n}\n.star-rating i ~ i {\n  width: 40%;\n}\n.star-rating i ~ i ~ i {\n  width: 60%;\n}\n.star-rating i ~ i ~ i ~ i {\n  width: 80%;\n}\n.star-rating i ~ i ~ i ~ i ~ i {\n  width: 100%;\n}\n\n\n#syntaxErrBubbleContents {\n  font-size: 9.5pt;\n  cursor: default;\n}\n\n#syntaxErrHeader {\n  margin-bottom: 3pt;\n}\n\n#syntaxErrCodeDisplay {\n  border: 1px solid #ddd;\n}\n\n#syntaxErrMsg {\n  color: #e93f34; /* should match brightRed JavaScript variable */\n  font-size: 10pt;\n  margin-top: 3pt;\n  margin-bottom: 2pt;\n}\n\n#syntaxErrQuestion {\n  margin-top: 12px;\n}\n\n#syntaxErrTxtInput {\n  margin-top: 3px;\n  margin-bottom: 6px;\n  padding: 2px;\n}\n\n#syntaxErrSubmitBtn, #syntaxErrCloseBtn {\n  margin-right: 8px;\n}\n\n#syntaxErrHideAllLink {\n  font-size: 8pt;\n}\n\n#testCasesPane {\n margin-top: 5px;\n padding-bottom: 5px;\n}\n\n#exampleSnippets {\n border-top: 1px solid #ccc;\n margin-top: 15px;\n}\n\n#showExampleLink {\n  margin-top: 15px;\n}\n\n#instructionsPane {\n margin-bottom: 10px;\n}\n\n/* for SyntaxErrorSurveyBubble */\n\ntextarea.bubbleInputText {\n  font-family: verdana, arial, helvetica, sans-serif;\n\tfont-size: 9pt;\n\tline-height: 1.3em;\n}\n\n.qtip-content {\n\tcolor: #333;\n\tbackground-color: #ffffff;\n\n\tmax-width: 390px;\n\twidth: 390px;\n\n\tborder: 2px solid #e93f34;\n\n  cursor: pointer;\n\n\t*border-right-width: 2px;\n\t*border-bottom-width: 2px;\n\n\t-webkit-border-radius: 5px;\n\t-moz-border-radius: 5px;\n\tborder-radius: 5px;\n\n\t-webkit-box-shadow: 2px 2px 3px 0px rgba(0, 0, 0, 0.2);\n\t-moz-box-shadow: 2px 2px 3px 0px rgba(0, 0, 0, 0.2);\n\tbox-shadow: 2px 2px 3px 0px rgba(0, 0, 0, 0.2);\n\n\t-webkit-background-clip: padding-box;\n\t-moz-background-clip: padding;\n\tbackground-clip: padding-box;\n}\n", ""]);
+exports.push([module.i, "/* CSS accompanying ../visualize.html */\n\nh1 {\n  font-weight: normal;\n  font-size: 20pt;\n  font-family: georgia, serif;\n  line-height: 1em;  /* enforce single spacing so that Georgia works */\n\n  margin-top: 0px;\n  margin-bottom: 8px;\n}\n\nh2 {\n  font-size: 12pt;\n  font-weight: normal;\n  font-family: georgia, serif;\n  line-height: 1.1em; /* enforce single spacing so that Georgia works */\n\n  margin-top: 2px;\n  margin-bottom: 20px;\n}\n\n\nbody {\n  background-color: white;\n  font-family: verdana, arial, helvetica, sans-serif;\n  font-size: 10pt;\n}\n\na,\na:visited,\na:hover {\n  color: #3D58A2;\n}\n\nspan {\n  padding: 0px;\n}\n\n#optionsPane {\n  margin-top: 15px;\n  margin-bottom: 20px;\n  line-height: 150%;\n}\n\ntable#pyOutputPane {\n  padding: 10px;\n}\n\n#pyInputPane, #loadingPane {\n  margin-top: 10px;\n  margin-bottom: 20px;\n\n  max-width: 700px;\n  /* center align */\n  margin-left: auto;\n  margin-right: auto;\n}\n\n#loadingPane {\n  margin-bottom: 5px;\n}\n\n#codeInputPane {\n  margin-top: 5px;\n  font-size: 12pt;\n  border: 1px solid #ddd;\n}\n\n#codeInputWarnings {\n  margin-bottom: 8px;\n}\n\nbutton.smallBtn {\n  font-size: 10pt;\n  padding: 3px;\n}\n\nbutton.bigBtn {\n  font-size: 12pt;\n  padding: 6px;\n  margin-top: 0px;\n}\n\nbutton.surveyBtn {\n  font-size: 8pt;\n  margin-top: 8px;\n}\n\nbutton.surveyBtnBig {\n  font-size: 11pt;\n  padding: 5px;\n  margin-top: 0px;\n}\n\n#footer {\n  color: #999;\n  font-size: 9pt;\n  border-top: 1px solid #bbbbbb;\n  padding-top: 5px;\n  margin-top: 5px;\n\n  max-width: 700px;\n  /* center align */\n  margin-left: auto;\n  margin-right: auto;\n}\n\n#frontendErrorOutput {\n  color: #e93f34; /* should match brightRed JavaScript variable */\n  font-size: 12pt;\n  line-height: 1.5em;\n  margin-top: 8px;\n}\n\n.togetherjsBtn {\n  /*color: #b80000;*/\n  color: #e93f34;\n  font-size: 9pt;\n  padding: 4px;\n  margin-top: 3px;\n}\n\n/* make this a fixed size with scrollbars for overflow so that the UI doesn't jitter up and down */\n#publicHelpQueue {\n  overflow: auto;\n  height: 95px;\n  margin-bottom: 15px;\n  margin-left: 10px;\n}\n\n.helpQueueSmallText {\n  color: #777;\n  font-size: 8pt;\n}\n\n.redBold {\n  font-weight: bold;\n  color: #e93f34;\n}\n\n#stopRequestHelpBtn {\n  font-size: 9pt;\n  padding: 2px;\n}\n\n#moderationPanel {\n  font-size: 11pt;\n  margin-bottom: 5pt;\n  min-height: 16pt; /* just so things don't jiggle around vertically too much */\n  padding-top: 6px;\n  padding-bottom: 6px;\n  padding-left: 6px;\n  padding-right: 6px;\n  border: 1px solid #e93f34;\n}\n\n.kickLink {\n  font-size: 10pt;\n  margin-right: 4px;\n}\n\n\n#syncBtn {\n font-size: 8pt;\n margin-left: 0px;\n}\n\n#experimentalHeader {\n}\n\n#surveyHeader {\n  margin-left: 100px;\n}\n\n.surveyQ {\n  font-size: 9pt;\n  padding: 2px;\n}\n\n/* necessary for CodeMirror error line highlighting to work! */\n.CodeMirror .errorLine { background: #ffff3f !important; }\n\n\n/* from http://rog.ie/blog/css-star-rater */\n.star-rating {\n  font-size: 0;\n  white-space: nowrap;\n  display: inline-block;\n  /* pgbovine - scale this appropriately with a 5:1 ratio */\n  width: 100px;\n  height: 20px;\n  overflow: hidden;\n  position: relative;\n  background: url('data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB3aWR0aD0iMjBweCIgaGVpZ2h0PSIyMHB4IiB2aWV3Qm94PSIwIDAgMjAgMjAiIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgMCAwIDIwIDIwIiB4bWw6c3BhY2U9InByZXNlcnZlIj48cG9seWdvbiBmaWxsPSIjREREREREIiBwb2ludHM9IjEwLDAgMTMuMDksNi41ODMgMjAsNy42MzkgMTUsMTIuNzY0IDE2LjE4LDIwIDEwLDE2LjU4MyAzLjgyLDIwIDUsMTIuNzY0IDAsNy42MzkgNi45MSw2LjU4MyAiLz48L3N2Zz4=');\n  background-size: contain;\n}\n.star-rating i {\n  opacity: 0;\n  position: absolute;\n  left: 0;\n  top: 0;\n  height: 100%;\n  width: 20%;\n  z-index: 1;\n  background: url('data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB3aWR0aD0iMjBweCIgaGVpZ2h0PSIyMHB4IiB2aWV3Qm94PSIwIDAgMjAgMjAiIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgMCAwIDIwIDIwIiB4bWw6c3BhY2U9InByZXNlcnZlIj48cG9seWdvbiBmaWxsPSIjRkZERjg4IiBwb2ludHM9IjEwLDAgMTMuMDksNi41ODMgMjAsNy42MzkgMTUsMTIuNzY0IDE2LjE4LDIwIDEwLDE2LjU4MyAzLjgyLDIwIDUsMTIuNzY0IDAsNy42MzkgNi45MSw2LjU4MyAiLz48L3N2Zz4=');\n  background-size: contain;\n}\n.star-rating input {\n  -moz-appearance: none;\n  -webkit-appearance: none;\n  opacity: 0;\n  display: inline-block;\n  width: 20%;\n  height: 100%;\n  margin: 0;\n  padding: 0;\n  z-index: 2;\n  position: relative;\n}\n.star-rating input:hover + i,\n.star-rating input:checked + i {\n  opacity: 1;\n}\n.star-rating i ~ i {\n  width: 40%;\n}\n.star-rating i ~ i ~ i {\n  width: 60%;\n}\n.star-rating i ~ i ~ i ~ i {\n  width: 80%;\n}\n.star-rating i ~ i ~ i ~ i ~ i {\n  width: 100%;\n}\n\n\n#syntaxErrBubbleContents {\n  font-size: 9.5pt;\n  cursor: default;\n}\n\n#syntaxErrHeader {\n  margin-bottom: 3pt;\n}\n\n#syntaxErrCodeDisplay {\n  border: 1px solid #ddd;\n}\n\n#syntaxErrMsg {\n  color: #e93f34; /* should match brightRed JavaScript variable */\n  font-size: 10pt;\n  margin-top: 3pt;\n  margin-bottom: 2pt;\n}\n\n#syntaxErrQuestion {\n  margin-top: 12px;\n}\n\n#syntaxErrTxtInput {\n  margin-top: 3px;\n  margin-bottom: 6px;\n  padding: 2px;\n}\n\n#syntaxErrSubmitBtn, #syntaxErrCloseBtn {\n  margin-right: 8px;\n}\n\n#syntaxErrHideAllLink {\n  font-size: 8pt;\n}\n\n#testCasesPane {\n margin-top: 5px;\n padding-bottom: 5px;\n}\n\n#exampleSnippets {\n border-top: 1px solid #ccc;\n margin-top: 15px;\n}\n\n#showExampleLink {\n  margin-top: 15px;\n}\n\n#instructionsPane {\n margin-bottom: 10px;\n}\n\n/* for SyntaxErrorSurveyBubble */\n\ntextarea.bubbleInputText {\n  font-family: verdana, arial, helvetica, sans-serif;\n\tfont-size: 9pt;\n\tline-height: 1.3em;\n}\n\n.qtip-content {\n\tcolor: #333;\n\tbackground-color: #ffffff;\n\n\tmax-width: 390px;\n\twidth: 390px;\n\n\tborder: 2px solid #e93f34;\n\n  cursor: pointer;\n\n\t*border-right-width: 2px;\n\t*border-bottom-width: 2px;\n\n\t-webkit-border-radius: 5px;\n\t-moz-border-radius: 5px;\n\tborder-radius: 5px;\n\n\t-webkit-box-shadow: 2px 2px 3px 0px rgba(0, 0, 0, 0.2);\n\t-moz-box-shadow: 2px 2px 3px 0px rgba(0, 0, 0, 0.2);\n\tbox-shadow: 2px 2px 3px 0px rgba(0, 0, 0, 0.2);\n\n\t-webkit-background-clip: padding-box;\n\t-moz-background-clip: padding;\n\tbackground-clip: padding-box;\n}\n", ""]);
 
 // exports
 
@@ -22457,6 +22554,7 @@ var OptFrontend = (function (_super) {
         this.activateSyntaxErrorSurvey = true;
         this.activateRuntimeErrorSurvey = true;
         this.activateEurekaSurvey = true;
+        this.demoMode = false; // if true, then we're giving a live demo, so hide a bunch of excess stuff on page
         this.preseededCurInstr = undefined;
         $('#genEmbedBtn').bind('click', function () {
             var mod = _this.appMode;
@@ -22513,7 +22611,7 @@ var OptFrontend = (function (_super) {
                 }
             });
         });
-        $("#instructionsPane").html('Instructions: <a href="https://www.youtube.com/watch?v=h4q3UKdEFKE" target="_blank">sharing permanent links</a> | <a href="https://www.youtube.com/watch?v=Mxt9HZWgwAM" target="_blank">hiding variables</a> | <a href="https://www.youtube.com/watch?v=80ztTXP90Vs" target="_blank">setting breakpoints</a>');
+        $("#instructionsPane").html("Advanced instructions:\n      <a href=\"https://www.youtube.com/watch?v=80ztTXP90Vs&list=PLzV58Zm8FuBL2WxxZKGZ6j1dH8NKb_HYI&index=5\" target=\"_blank\">setting breakpoints</a> |\n      <a href=\"https://www.youtube.com/watch?v=Mxt9HZWgwAM&list=PLzV58Zm8FuBL2WxxZKGZ6j1dH8NKb_HYI&index=6\" target=\"_blank\">hiding variables</a> |\n      <a href=\"https://www.youtube.com/watch?v=JjGt95Te0wo&index=3&list=PLzV58Zm8FuBL2WxxZKGZ6j1dH8NKb_HYI\" target=\"_blank\">live programming</a>");
         // first initialize options from HTML LocalStorage. very important
         // that this code runs FIRST so that options get overridden by query
         // string options and anything else the user wants to override with.
@@ -22635,8 +22733,11 @@ var OptFrontend = (function (_super) {
                 console.log("Converted all tabs to spaces");
             }
             $.doTimeout('pyInputAceEditorChange', CODE_SNAPSHOT_DEBOUNCE_MS, _this.snapshotCodeDiff.bind(_this)); // debounce
-            _this.clearFrontendError();
-            s.clearAnnotations();
+            // starting on 2018-03-14 -- do NOT clear frontend errors and
+            // annotations when you edit the code, since you may still want to
+            // see the old error messages ... commented out these two lines:
+            //this.clearFrontendError();
+            //s.clearAnnotations();
         });
         // don't do real-time syntax checks:
         // https://github.com/ajaxorg/ace/wiki/Syntax-validation
@@ -22721,7 +22822,7 @@ var OptFrontend = (function (_super) {
     OptFrontend.prototype.executeCodeFromScratch = function () {
         // don't execute empty string:
         if (this.pyInputAceEditor && $.trim(this.pyInputGetValue()) == '') {
-            this.setFronendError(["Type in some code to visualize."]);
+            this.setFronendError(["Type in some code to visualize."], true);
             return;
         }
         _super.prototype.executeCodeFromScratch.call(this);
@@ -22834,6 +22935,7 @@ var OptFrontend = (function (_super) {
         if ((settings.url.indexOf('syntax_err_survey.py') > -1) ||
             (settings.url.indexOf('runtime_err_survey.py') > -1) ||
             (settings.url.indexOf('eureka_survey.py') > -1) ||
+            (settings.url.indexOf('error_log.py') > -1) ||
             (settings.url.indexOf('viz_interaction.py') > -1)) {
             return true;
         }
@@ -22919,15 +23021,20 @@ var OptFrontend = (function (_super) {
                 _this.enterEditMode();
             });
             var v = $('#pythonVersionSelector').val();
+            // 2018-03-15 - removed "Live programming" link from
+            // visualization mode to simplify the UI, even if it drives
+            // fewer people to live programming mode; they can always click
+            // the "Live Programming Mode" button in the code editor:
+            /*
             if (v === 'js' || v === '2' || v === '3') {
-                var myArgs = this.getAppState();
-                var urlStr = $.param.fragment('live.html', myArgs, 2 /* clobber all */);
-                $("#pyOutputPane #liveModeSpan").show();
-                $('#pyOutputPane #editLiveModeBtn').off().click(this.openLiveModeUrl.bind(this));
+              var myArgs = this.getAppState();
+              var urlStr = $.param.fragment('live.html', myArgs, 2); // clobber all
+              $("#pyOutputPane #liveModeSpan").show();
+              $('#pyOutputPane #editLiveModeBtn').off().click(this.openLiveModeUrl.bind(this));
+            } else {
+              $("#pyOutputPane #liveModeSpan").hide();
             }
-            else {
-                $("#pyOutputPane #liveModeSpan").hide();
-            }
+            */
             $(document).scrollTop(0); // scroll to top to make UX better on small monitors
             var s = { mode: 'display' };
             // keep these persistent so that they survive page reloads
@@ -23009,6 +23116,8 @@ var OptFrontend = (function (_super) {
             $('#textualMemoryLabelsSelector').val(dat.textReferences);
         }
     };
+    OptFrontend.prototype.demoModeChanged = function () { };
+    ;
     OptFrontend.prototype.parseQueryString = function () {
         var queryStrOptions = this.getQueryStringOptions();
         this.setToggleOptions(queryStrOptions);
@@ -23019,6 +23128,10 @@ var OptFrontend = (function (_super) {
         this.preseededCurInstr = queryStrOptions.preseededCurInstr;
         if (isNaN(this.preseededCurInstr)) {
             this.preseededCurInstr = undefined;
+        }
+        if (queryStrOptions.demoMode) {
+            this.demoMode = true;
+            this.demoModeChanged();
         }
         if (queryStrOptions.codeopticonSession) {
             pytutor_1.assert(false); // TODO: this won't currently work with Webpack, so fix it later
@@ -23256,18 +23369,48 @@ var liveHelpSurvey = {
 };
 */
 // third version, deployed on 2018-01-22 (modeled off of the second version above)
+/*
 var liveHelpSurvey = {
-    requestHelp: [{ prompt: 'You\'re now on the help queue. Support our research by answering below:\n\nWhy did you decide to ask for help at this time?',
-            v: 'r3a' },
-        { prompt: 'You\'re now on the help queue. Support our research by answering below:\n\nWhy did you choose to ask for help anonymously here rather than getting help from someone you know?',
-            v: 'r3b' },
+  requestHelp:   [ {prompt: 'You\'re now on the help queue. Support our research by answering below:\n\nWhy did you decide to ask for help at this time?',
+                    v: 'r3a'}, // almost identical to 'r2a'
+                   {prompt: 'You\'re now on the help queue. Support our research by answering below:\n\nWhy did you choose to ask for help anonymously here rather than getting help from someone you know?',
+                    v: 'r3b'},
+                 ],
+  volunteerHelp: [ {prompt: "Thanks for volunteering! Support our research by answering below:\n\nWhy did you decide to volunteer at this time?",
+                    v: 'h3a'}, // almost identical to 'h2a'
+                   {prompt: "Thanks for volunteering! Support our research by answering below:\n\nWhat is your current job or profession?",
+                    v: 'h3b'},
+                   {prompt: "Thanks for volunteering! Support our research by answering below:\n\nWhat kind of code were you working on right before you volunteered?",
+                    v: 'h3c'},
+                 ]
+};
+*/
+// fourth version, deployed on 2018-03-12
+/*
+var liveHelpSurvey = {
+  requestHelp:   [ {prompt: 'You\'re now on the help queue. Support our research by answering below:\n\nWhy did you decide to ask for help at this time?',
+                    v: 'r4a'},
+                   {prompt: 'You\'re now on the help queue. Support our research by answering below:\n\nWhy did you ask for help anonymously on this website rather than getting help from someone you know?',
+                    v: 'r4b'},
+                 ],
+  volunteerHelp: [ {prompt: "Thanks for volunteering! Support our research by answering below:\n\nWhy did you decide to volunteer at this time? What motivated you to click on this particular help link?",
+                    v: 'h4a'},
+                   {prompt: "Thanks for volunteering! Support our research by answering below:\n\nWhat is your current job or profession?",
+                    v: 'h4b'},
+                 ]
+};
+*/
+// 2018-03-17: minor tweaks on version 4's wording to make it sound a bit more optional and casual
+var liveHelpSurvey = {
+    requestHelp: [{ prompt: 'You are now on the help queue. Please wait for help to arrive.\n\n[OPTIONAL] Support our research by letting us know:\nWhy did you decide to ask for help at this time?',
+            v: 'r4a' },
+        { prompt: 'You are now on the help queue. Please wait for help to arrive.\n\n[OPTIONAL] Support our research by letting us know:\nWhy did you ask for help anonymously on this website rather than getting help from someone you know?',
+            v: 'r4b' },
     ],
-    volunteerHelp: [{ prompt: "Thanks for volunteering! Support our research by answering below:\n\nWhy did you decide to volunteer at this time?",
-            v: 'h3a' },
-        { prompt: "Thanks for volunteering! Support our research by answering below:\n\nWhat is your current job or profession?",
-            v: 'h3b' },
-        { prompt: "Thanks for volunteering! Support our research by answering below:\n\nWhat kind of code were you working on right before you volunteered?",
-            v: 'h3c' },
+    volunteerHelp: [{ prompt: "Thanks for volunteering! You are about to join a live chat.\n\n[OPTIONAL] Support our research by letting us know:\nWhy did you decide to volunteer at this time? What motivated you to click on this particular help link?",
+            v: 'h4a' },
+        { prompt: "Thanks for volunteering! You are about to join a live chat.\n\n[OPTIONAL] Support our research by letting us know:\nWhat is your current job or profession?",
+            v: 'h4b' },
     ]
 };
 // randomly picks a survey item from liveHelpSurvey and mutates
@@ -23740,16 +23883,21 @@ var OptFrontendSharedSessions = (function (_super) {
         this.togetherjsSyncRequested = false;
         this.pendingCodeOutputScrollTop = null;
         this.updateOutputSignalFromRemote = false;
-        // TODO: unify these 3 booleans into 1 unified one:
-        this.wantsPublicHelp = false;
+        // for demo recording:
         this.isRecordingDemo = false;
         this.isPlayingDemo = false;
-        this.disableSharedSessions = false; // if we're on mobile/tablets, disable this entirely since it doesn't work on mobile
+        this.wantsPublicHelp = false;
+        this.iMadeAPublicHelpRequest = false; // subtly different than wantsPublicHelp (see usage)
+        this.disableSharedSessions = false;
         this.isIdle = false;
         this.peopleIveKickedOut = []; // #savage
+        this.sessionActivityStats = {};
+        this.payItForwardMsg = "If you found this service useful, please take the time to help others in the future. We depend on volunteers like you to provide help.";
+        this.payItForwardMsgVersion = 'v1';
         this.fullCodeSnapshots = []; // a list of full snapshots of code taken at given times, with:
         this.curPeekSnapshotIndex = -1; // current index you're peeking at inside of fullCodeSnapshots, -1 if not peeking at anything
         this.initTogetherJS();
+        this.initABTest();
         this.pyInputAceEditor.getSession().on("change", function (e) {
             // unfortunately, Ace doesn't detect whether a change was caused
             // by a setValue call
@@ -23777,7 +23925,7 @@ var OptFrontendSharedSessions = (function (_super) {
         if (this.disableSharedSessions) {
             return; // early exit, so we don't do any other initialization below here ...
         }
-        var ssDiv = "\n\n<button id=\"requestHelpBtn\" type=\"button\" class=\"togetherjsBtn\" style=\"margin-bottom: 6pt; font-weight: bold;\">\nGet live help! (NEW!)\n</button>\n\n<div id=\"ssDiv\">\n  <button id=\"sharedSessionBtn\" type=\"button\" class=\"togetherjsBtn\" style=\"font-size: 9pt;\">\n  Start private chat session\n  </button>\n\n  <br/>\n  <button id=\"recordBtn\" type=\"button\" class=\"togetherjsBtn\" style=\"font-size: 9pt;\">\n  Record demo\n  </button>\n\n  <br/>\n  <button id=\"playbackBtn\" type=\"button\" class=\"togetherjsBtn\" style=\"font-size: 9pt;\">\n  Play recording\n  </button>\n\n  <div style=\"margin-top: 5px; font-size: 8pt;\">\n  <a href=\"https://www.youtube.com/watch?v=oDY7ScMPtqI\" target=\"_blank\">How do I use this?</a>\n  </div>\n</div>\n\n<div id=\"sharedSessionDisplayDiv\" style=\"display: none; margin-right: 5px;\">\n  <button id=\"stopTogetherJSBtn\" type=\"button\" class=\"togetherjsBtn\">\n  Stop this chat session\n  </button>\n\n  <div style=\"width: 200px; font-size: 8pt; color: #666; margin-top: 8px;\">\n  Note that your chat logs and code may be recorded, anonymized, and\n  analyzed for our research.\n  </div>\n</div>\n";
+        var ssDiv = "\n\n<button id=\"requestHelpBtn\" type=\"button\" class=\"togetherjsBtn\" style=\"font-size: 11pt; margin-bottom: 6pt; font-weight: bold;\">\nGet live help!\n</button>\n\n<div id=\"ssDiv\">\n  <button id=\"sharedSessionBtn\" type=\"button\" class=\"togetherjsBtn\" style=\"font-size: 9pt;\">\n  Start private chat\n  </button>\n\n  <br/>\n  <button id=\"recordBtn\" type=\"button\" class=\"togetherjsBtn\" style=\"font-size: 9pt;\">\n  Record demo\n  </button>\n\n  <br/>\n  <button id=\"playbackBtn\" type=\"button\" class=\"togetherjsBtn\" style=\"font-size: 9pt;\">\n  Play recording\n  </button>\n\n  <div style=\"margin-top: 5px; font-size: 8pt;\">\n  <a href=\"https://www.youtube.com/watch?v=oDY7ScMPtqI\" target=\"_blank\">How do I use this?</a>\n  </div>\n</div>\n\n<div id=\"sharedSessionDisplayDiv\" style=\"display: none; margin-right: 5px;\">\n  <button id=\"stopTogetherJSBtn\" type=\"button\" class=\"togetherjsBtn\">\n  Stop this chat session\n  </button>\n</div>\n";
         var togetherJsDiv = "\n<div id=\"togetherjsStatus\">\n  <div id=\"publicHelpQueue\"></div>\n</div>\n";
         $("td#headerTdLeft").append(ssDiv);
         $("td#headerTdRight").append(togetherJsDiv);
@@ -23808,7 +23956,6 @@ var OptFrontendSharedSessions = (function (_super) {
         // resources and get a more accurate indicator of who is active at
         // the moment
         setInterval(this.getHelpQueue.bind(this), 5 * 1000);
-        this.getHelpQueue(); // call it once on page load
         // update this pretty frequently; doesn't require any ajax calls:
         setInterval(this.updateModerationPanel.bind(this), 2 * 1000);
         // take a snapshot every 30 seconds or so if you're in a TogetherJS
@@ -23838,6 +23985,60 @@ var OptFrontendSharedSessions = (function (_super) {
             }
         });
     }
+    OptFrontendSharedSessions.prototype.parseQueryString = function () {
+        _super.prototype.parseQueryString.call(this);
+        // AFTERWARDS, immediately get help queue. this way, if the query
+        // string option demo=true is set, then it will properly disable
+        // shared sessions before getting the help queue
+        this.getHelpQueue();
+    };
+    OptFrontendSharedSessions.prototype.demoModeChanged = function () {
+        console.log('demoModeChanged', this.demoMode);
+        if (this.demoMode) {
+            // hide the shared sessions header ...
+            $("td#headerTdLeft,td#headerTdRight").hide();
+            // we need to not only hide this header, but also NOT call
+            // getHelpQueue periodically, or else the server will *think* that
+            // we're monitoring the help queue when in fact we aren't:
+            this.disableSharedSessions = true;
+            // disable all surveys too
+            this.activateSyntaxErrorSurvey = false;
+            this.activateRuntimeErrorSurvey = false;
+            this.activateEurekaSurvey = false;
+        }
+        else {
+            $("td#headerTdLeft,td#headerTdRight").show();
+            this.disableSharedSessions = false;
+        }
+    };
+    // for A/B testing -- store this information PER USER in localStorage,
+    // so that it can last throughout all sessions where this user
+    // used the same browser. that way, every user will consistently get
+    // put into one particular A/B test bucket.
+    OptFrontendSharedSessions.prototype.initABTest = function () {
+        if (opt_frontend_common_1.supports_html5_storage() && localStorage.getItem('abtest_settings')) {
+            this.abTestSettings = JSON.parse(localStorage.getItem('abtest_settings'));
+        }
+        else {
+            this.abTestSettings = {};
+        }
+        // all values in the range of [0, 1)
+        if (this.abTestSettings.nudge === undefined) {
+            this.abTestSettings.nudge = Math.random();
+        }
+        if (this.abTestSettings.payItForward === undefined) {
+            this.abTestSettings.payItForward = Math.random();
+        }
+        if (this.abTestSettings.helperGreeting === undefined) {
+            this.abTestSettings.helperGreeting = Math.random();
+        }
+        // always save it again for robustness (we might have added some new
+        // keys to this user's abTestSettings object)
+        if (opt_frontend_common_1.supports_html5_storage()) {
+            localStorage.setItem('abtest_settings', JSON.stringify(this.abTestSettings));
+        }
+        console.log('initABTest:', this.abTestSettings);
+    };
     OptFrontendSharedSessions.prototype.langToEnglish = function (lang) {
         if (lang === '2') {
             return 'Python2';
@@ -23868,18 +24069,34 @@ var OptFrontendSharedSessions = (function (_super) {
     OptFrontendSharedSessions.prototype.getHelpQueue = function () {
         var _this = this;
         // VERY IMPORTANT: to avoid overloading the server, don't send these
-        // requests when you're idle
-        if (this.isIdle) {
+        // requests when you're idle or disableSharedSessions is on.
+        // this is important also for accurate logging, since if you're not
+        // currently looking at the queue, the server shouldn't count you as
+        // an "observer" who is looking at the queue at the moment, or else
+        // it might overestimate the number of people who are observing the
+        // queue at each moment ...
+        if (this.isIdle || this.disableSharedSessions) {
             $("#publicHelpQueue").empty(); // clear when idle so that you don't have stale results
-            return; // return early!
+            return; // return early before making a GET request to server!
+        }
+        // if we can't even see the help queue for some reason, then don't bother
+        // calling /getHelpQueue on the server since we can't see the help queue!!
+        if (!$("#publicHelpQueue").is(":visible")) {
+            console.log('getHelpQueue canned because #publicHelpQueue not visible');
+            return; // return early before making a GET request to server!
         }
         var ghqUrl = exports.TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/getHelpQueue";
+        var curState = this.getAppState();
         $.ajax({
             url: ghqUrl,
             dataType: "json",
-            data: { user_uuid: this.userUUID },
+            data: { user_uuid: this.userUUID, lang: curState.py, mode: curState.mode, origin: curState.origin },
             error: function () {
                 console.log('/getHelpQueue error');
+                // hide all shared session related stuff if you can't even
+                // getHelpQueue successfully, because that means you likely
+                // can't get connected to the chat server at all:
+                $("td#headerTdLeft").hide(); // TODO: make a better name for this!
                 if (_this.wantsPublicHelp) {
                     $("#publicHelpQueue").html('ERROR: help server is down. If you had previously asked for help, something is wrong; stop this session and try again later.');
                 }
@@ -23888,6 +24105,10 @@ var OptFrontendSharedSessions = (function (_super) {
                 }
             },
             success: function (resp) {
+                if (!$("td#headerTdLeft").is(":visible")) {
+                    console.log('td#headerTdLeft show');
+                    $("td#headerTdLeft").show(); // TODO: make a better name for this!
+                }
                 var displayEmptyQueueMsg = false;
                 var me = _this;
                 if (resp && resp.length > 0) {
@@ -24011,10 +24232,10 @@ var OptFrontendSharedSessions = (function (_super) {
                 }
                 if (displayEmptyQueueMsg) {
                     if (_this.wantsPublicHelp) {
-                        $("#publicHelpQueue").html('Nobody is currently asking for help. If you had previously asked for help, something is wrong; stop this session and try again later.');
+                        $("#publicHelpQueue").html('Nobody is currently on the help queue. <span style="color: red; font-weight: bold;">If you have asked for help, something is not working</span>; stop this session and try again later.');
                     }
                     else {
-                        $("#publicHelpQueue").html('Nobody is currently asking for help using the "Get live help!" button.');
+                        $("#publicHelpQueue").html('Nobody is currently asking for help using the "Get live help!" button. Be the first!');
                     }
                 }
             },
@@ -24053,7 +24274,7 @@ var OptFrontendSharedSessions = (function (_super) {
                 $("#stopRequestHelpBtn").click(this.initStopRequestingPublicHelp.bind(this));
             }
             else {
-                $("#moderationPanel").append('This is a private session. ');
+                $("#moderationPanel").append('This is a private session.<br/><br/>');
                 if (!$("#requestHelpBtn").is(':visible')) {
                     $("#requestHelpBtn").show(); // make sure there's a way to get back on the queue
                 }
@@ -24068,10 +24289,11 @@ var OptFrontendSharedSessions = (function (_super) {
             var me = this; // ugh
             $("#moderationPanel .kickLink").click(function () {
                 var idToKick = $(this).data('clientId');
-                var confirmation = confirm('Press OK to kick and ban ' + $(this).data('username') + ' from this session.');
+                var confirmation = confirm('Press OK to kick and ban ' + $(this).data('username') + ' from this session.\n\nUndo their code changes using the UNDO/restore buttons.');
                 if (confirmation) {
                     exports.TogetherJS.send({ type: "kickOut", idToKick: idToKick });
                     me.peopleIveKickedOut.push(idToKick);
+                    me.takeFullCodeSnapshot(); // 2018-03-15: save a snapshot at the time when you kick someone out, so that UNDO button will appear to show you older snapshots
                 }
             });
         }
@@ -24296,6 +24518,63 @@ var OptFrontendSharedSessions = (function (_super) {
                     }
                 } while ($.inArray(newName, peerNames) >= 0); // i.e., is newName in peerNames?
                 p.Self.update({ name: newName }); // change our own name
+            }
+        });
+        // someone ELSE sent a chat
+        exports.TogetherJS.hub.on("togetherjs.chat", function (msg) {
+            var obj = _this.sessionActivityStats.numChatsByPeers;
+            if (!(obj[msg.clientId])) {
+                obj[msg.clientId] = 0;
+            }
+            obj[msg.clientId]++;
+        });
+        // someone ELSE edited code
+        exports.TogetherJS.hub.on("editCode", function (msg) {
+            var obj = _this.sessionActivityStats.numCodeEditsByPeers;
+            if (!(obj[msg.clientId])) {
+                obj[msg.clientId] = 0;
+            }
+            obj[msg.clientId]++;
+        });
+        // someone (other than you) left this session; if *you* left, then
+        // TogetherJS will be shut off by the time this signal is sent, so
+        // this callback function won't run
+        exports.TogetherJS.hub.on("togetherjs.bye", function (msg) {
+            _this.takeFullCodeSnapshot(); // take a snapshot whenever someone leaves so that we can undo to the point right before they left
+            console.log('PEER JUST LEFT: # chats, # code edits:', _this.sessionActivityStats.numChatsByPeers[msg.clientId], _this.sessionActivityStats.numCodeEditsByPeers[msg.clientId]);
+            // A/B test the pay-it-forward nudge
+            //
+            // if YOU were the help requester, and the person who just left had
+            // >= 10 chats or code edits, then they did SOMETHING non-trivial, so
+            // possibly pop up a pay-it-forward message. they're not
+            // guaranteed to have successfully helped you, but at least they
+            // did something and weren't just lurking silently.
+            //
+            // note that we use this.iMadeAPublicHelpRequest, which will pick up
+            // on only those requests you made by putting yourself on the public
+            // help queue
+            if (_this.iMadeAPublicHelpRequest &&
+                ((_this.sessionActivityStats.numChatsByPeers[msg.clientId] >= 10) ||
+                    (_this.sessionActivityStats.numCodeEditsByPeers[msg.clientId] >= 10))) {
+                var isRealPayItForward = (_this.abTestSettings && _this.abTestSettings.payItForward < 0.5);
+                if (isRealPayItForward) {
+                    _this.chatbotPostMsg(_this.payItForwardMsg);
+                }
+                // regardless of isRealPayItForward, log an entry on the server to aid in data analysis later:
+                // note that we co-opt the 'nudge' endpoint for simplicity
+                var nudgeUrl = exports.TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/nudge";
+                $.ajax({
+                    url: nudgeUrl,
+                    dataType: "json",
+                    data: { nudgeType: 'payItForward',
+                        v: _this.payItForwardMsgVersion,
+                        info: 'peerJustLeft',
+                        isRealNudge: isRealPayItForward,
+                        id: exports.TogetherJS.shareId(),
+                        user_uuid: _this.userUUID },
+                    success: function () { },
+                    error: function () { },
+                });
             }
         });
         exports.TogetherJS.hub.on("updateOutput", this.updateOutputTogetherJsHandler.bind(this));
@@ -24525,6 +24804,12 @@ var OptFrontendSharedSessions = (function (_super) {
         this.activateRuntimeErrorSurvey = false;
         this.activateEurekaSurvey = false;
         $("#eureka_survey").remove(); // if a survey is already displayed on-screen, then kill it
+        this.sessionActivityStats = {
+            // Key: clientId of another person who's joined this session
+            // Value: number of times these events occurred
+            numChatsByPeers: {},
+            numCodeEditsByPeers: {},
+        };
         if (this.isRecordingDemo) {
             this.demoVideo.recordTogetherJsReady();
         }
@@ -24539,10 +24824,62 @@ var OptFrontendSharedSessions = (function (_super) {
         }
     };
     OptFrontendSharedSessions.prototype.TogetherjsCloseHandler = function () {
+        // A/B test the pay-it-forward nudge
+        //
+        // if YOU were the help requester and ANYONE in your session had
+        // >= 10 chats or code edits, then they did SOMETHING non-trivial, so
+        // possibly pop up a pay-it-forward message. they're not
+        // guaranteed to have successfully helped you, but at least they
+        // did something and weren't just lurking silently.
+        //
+        // note that we use this.iMadeAPublicHelpRequest, which will pick up
+        // on only those requests you made by putting yourself on the public
+        // help queue
+        if (this.iMadeAPublicHelpRequest) {
+            var nonTrivialSession = false;
+            var ncbp = this.sessionActivityStats.numChatsByPeers;
+            var ncebp = this.sessionActivityStats.numCodeEditsByPeers;
+            for (var key in ncbp) {
+                if (ncbp[key] >= 10) {
+                    nonTrivialSession = true;
+                    break;
+                }
+            }
+            for (var key in ncebp) {
+                if (ncebp[key] >= 10) {
+                    nonTrivialSession = true;
+                    break;
+                }
+            }
+            if (nonTrivialSession) {
+                var isRealPayItForward = (this.abTestSettings && this.abTestSettings.payItForward < 0.5);
+                if (isRealPayItForward) {
+                    // we can't use the chatbot since we just closed the TogetherJS session, so we'll have to go with an alert
+                    // TODO: replace with a less annoying modal pop-up in the future, maybe from jQuery UI
+                    alert(this.payItForwardMsg);
+                }
+                // regardless of isRealPayItForward, log an entry on the server to aid in data analysis later:
+                // note that we co-opt the 'nudge' endpoint for simplicity
+                var nudgeUrl = exports.TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/nudge";
+                $.ajax({
+                    url: nudgeUrl,
+                    dataType: "json",
+                    data: { nudgeType: 'payItForward',
+                        v: this.payItForwardMsgVersion,
+                        info: 'sessionStopped',
+                        isRealNudge: isRealPayItForward,
+                        //id: TogetherJS.shareId(), // we don't have a shareId anymore since the session has been stopped
+                        user_uuid: this.userUUID },
+                    success: function () { },
+                    error: function () { },
+                });
+            }
+        }
         if (this.appMode === "display") {
             $("#surveyHeader").show();
         }
         this.wantsPublicHelp = false; // explicitly reset it
+        this.iMadeAPublicHelpRequest = false; // explicitly reset it
         // reset all recording-related stuff too!
         if (this.isRecordingDemo) {
             this.demoVideo.stopRecording();
@@ -24691,9 +25028,25 @@ var OptFrontendSharedSessions = (function (_super) {
     OptFrontendSharedSessions.prototype.initRequestPublicHelp = function () {
         pytutor_1.assert(this.wantsPublicHelp);
         pytutor_1.assert(exports.TogetherJS.running);
+        var shareId = exports.TogetherJS.shareId();
+        // pop up the survey BEFORE you make the request, so in case you get
+        // hung up on the prompt() and take a long time to answer the question,
+        // you're not put on the queue yet until you finish or click Cancel:
+        var surveyItem = randomlyPickSurveyItem('requestHelp');
+        var miniSurveyResponse = prompt(surveyItem.prompt);
+        // always log every impression, even if miniSurveyResponse is blank,
+        // since we can know how many times that survey question was ever seen:
+        var surveyUrl = exports.TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/survey";
+        $.ajax({
+            url: surveyUrl,
+            dataType: "json",
+            data: { id: shareId, user_uuid: this.userUUID, kind: 'requestHelp', v: surveyItem.v, response: miniSurveyResponse },
+            success: function () { },
+            error: function () { },
+        });
+        this.iMadeAPublicHelpRequest = true; // this will always be true even if you shut the door later and don't let people in (i.e., make this into a private session)
         // first make a /requestPublicHelp request to the TogetherJS server:
         var rphUrl = exports.TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/requestPublicHelp";
-        var shareId = exports.TogetherJS.shareId();
         var shareUrl = exports.TogetherJS.shareUrl();
         var lang = this.getAppState().py;
         var getUserName = exports.TogetherJS.config.get("getUserName");
@@ -24718,7 +25071,7 @@ var OptFrontendSharedSessions = (function (_super) {
         if (resp.status === "OKIE DOKIE") {
             $("#togetherjsStatus").html("\n        <div id=\"moderationPanel\"></div>\n        <div style=\"margin-bottom: 10px;\">You have requested help as <b>" +
                 exports.TogetherJS.config.get("getUserName")() +
-                "</b> (see below for queue). Anyone currently on this website can volunteer to help you, but there is no guarantee that someone will come help. <span style=\"color: #888; font-size: 8pt;\">Use this service at your own risk. We are not responsible for the chat messages or behaviors of this site's users.</span></div>\n        <div id=\"publicHelpQueue\"></div>");
+                "</b> (see below for queue).<br/>Anyone on this website can volunteer to help you, but there is no guarantee that someone will come help.</div>\n        <div id=\"publicHelpQueue\"></div>");
             this.updateModerationPanel(); // update it right away
             this.getHelpQueue(); // update it right away
             this.appendTogetherJsFooter();
@@ -24730,19 +25083,6 @@ var OptFrontendSharedSessions = (function (_super) {
                 exports.TogetherJS(); // shut down TogetherJS
             }
         }
-        var surveyItem = randomlyPickSurveyItem('requestHelp');
-        var miniSurveyResponse = prompt(surveyItem.prompt);
-        // always log every impression, even if miniSurveyResponse is blank,
-        // since we can know how many times that survey question was ever seen:
-        var shareId = exports.TogetherJS.shareId();
-        var surveyUrl = exports.TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/survey";
-        $.ajax({
-            url: surveyUrl,
-            dataType: "json",
-            data: { id: shareId, user_uuid: this.userUUID, kind: 'requestHelp', v: surveyItem.v, response: miniSurveyResponse },
-            success: function () { },
-            error: function () { },
-        });
         this.redrawConnectors(); // update all arrows at the end
     };
     OptFrontendSharedSessions.prototype.initStopRequestingPublicHelp = function () {
@@ -24783,7 +25123,10 @@ var OptFrontendSharedSessions = (function (_super) {
         this.redrawConnectors(); // update all arrows at the end
     };
     OptFrontendSharedSessions.prototype.appendTogetherJsFooter = function () {
-        var extraHtml = '<div style="margin-top: 3px; margin-bottom: 10px; font-size: 8pt;">This is a <span style="color: #e93f34;">highly experimental</span> feature. Use at your own risk. Do not move or type too quickly. If you get out of sync, click: <button id="syncBtn" type="button">force sync</button> <a href="https://docs.google.com/forms/d/126ZijTGux_peoDusn1F9C1prkR226897DQ0MTTB5Q4M/viewform" target="_blank">Report bugs/feedback</a></div>';
+        // deployed on 2018-03-24
+        var extraHtml = '<div style="margin-top: 3px; margin-bottom: 6px; font-size: 9pt;"><a href="https://docs.google.com/forms/d/126ZijTGux_peoDusn1F9C1prkR226897DQ0MTTB5Q4M/viewform" target="_blank">Report bugs & feedback</a>. Don\'t move or type too fast. If you get out of sync, click <button id="syncBtn" type="button">force sync</button> </div>';
+        // retired on 2018-03-24 to simplify the text on the page:
+        //var extraHtml = '<div style="margin-top: 3px; margin-bottom: 10px; font-size: 8pt;">This is a <span style="color: #e93f34;">highly experimental</span> feature. Use at your own risk. Do not move or type too quickly. If you get out of sync, click: <button id="syncBtn" type="button">force sync</button> <a href="https://docs.google.com/forms/d/126ZijTGux_peoDusn1F9C1prkR226897DQ0MTTB5Q4M/viewform" target="_blank">Report bugs/feedback</a></div>';
         $("#togetherjsStatus").append(extraHtml);
         $("#syncBtn").click(this.requestSync.bind(this));
     };
@@ -24816,7 +25159,7 @@ var OptFrontendSharedSessions = (function (_super) {
             ($("#codeInputWarnings #snapshotHistory").length == 0) /* if you haven't rendered it yet */ &&
             this.meCreatedThisSession()) {
             $("#codeInputWarnings #liveModeExtraWarning").remove(); // for ../live.html
-            $("#codeInputWarnings").append("\n        <span id=\"snapshotHistory\" style=\"font-size: 9pt; margin-left: 5px;\">\n          Restore old code:\n          <button id=\"prevSnapshot\">&lt; Prev</button>\n          <span id=\"curSnapIndex\"/>/<span id=\"numTotalSnaps\"/>\n          <button id=\"nextSnapshot\">Next &gt;</button>\n        </span>");
+            $("#codeInputWarnings").append("\n        <span id=\"snapshotHistory\" style=\"font-size: 9pt; margin-left: 5px;\">\n          <span style=\"color: red; font-weight: bold;\">UNDO</span>/restore old code:\n          <button id=\"prevSnapshot\">&lt; Prev</button>\n          <span id=\"curSnapIndex\"/>/<span id=\"numTotalSnaps\"/>\n          <button id=\"nextSnapshot\">Next &gt;</button>\n        </span>");
             $("#snapshotHistory #prevSnapshot").click(function () {
                 if (_this.curPeekSnapshotIndex == 0) {
                     return;
@@ -24883,6 +25226,11 @@ var OptFrontendSharedSessions = (function (_super) {
     };
     // send an encouraging nudge message in the chat box if you're not idle ...
     // deployed on 2017-12-10
+    //
+    // starting on 2018-03-16, set this up as an A/B test where if
+    // (this.abTestSettings.nudge < 0.5), then we do a real nudge;
+    // otherwise we don't do a nudge but log to the server that we did a
+    // fake one so we have a record if it
     OptFrontendSharedSessions.prototype.periodicMaybeChatNudge = function () {
         var _this = this;
         // only do this if you're:
@@ -24905,10 +25253,11 @@ var OptFrontendSharedSessions = (function (_super) {
         }
         // MASSIVE MASSIVE MASSIVE copy-and-paste from getHelpQueue()
         var ghqUrl = exports.TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/getHelpQueue";
+        var curState = this.getAppState();
         $.ajax({
             url: ghqUrl,
             dataType: "json",
-            data: { user_uuid: this.userUUID },
+            data: { user_uuid: this.userUUID, lang: curState.py, mode: curState.mode, origin: curState.origin },
             error: function () {
                 console.log('/getHelpQueue error');
             },
@@ -24963,7 +25312,7 @@ var OptFrontendSharedSessions = (function (_super) {
                         otherActiveEntries.push(e);
                     });
                     otherActiveEntries.forEach(function (e) {
-                        var curStr = '\n- Click to help ' + e.username;
+                        var curStr = '\n- Help ' + e.username;
                         var langName = _this.langToEnglish(e.lang);
                         if (e.country && e.city) {
                             // print 'region' (i.e., state) for US addresses:
@@ -24987,17 +25336,21 @@ var OptFrontendSharedSessions = (function (_super) {
                         chatMsgs.push(curStr);
                     });
                     if (chatMsgs.length > 0) {
-                        var finalMsg = 'Please be patient and keep working normally. Note that these other users also need help. If you help them, maybe they can help you in return.';
+                        var finalMsg = 'Please be patient and keep working normally. These other users also need help right now. If you help them, maybe they can help you in return.';
                         chatMsgs.forEach(function (e) {
                             finalMsg += e;
                         });
-                        _this.chatbotPostMsg(finalMsg);
-                        // log an entry on the server to aid in data analysis later:
+                        // A/B test: log all nudges but only display it if it's real:
+                        var isRealNudge = (_this.abTestSettings && _this.abTestSettings.nudge < 0.5);
+                        if (isRealNudge) {
+                            _this.chatbotPostMsg(finalMsg);
+                        }
+                        // regardless of isRealNudge, log an entry on the server to aid in data analysis later:
                         var nudgeUrl = exports.TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/nudge";
                         $.ajax({
                             url: nudgeUrl,
                             dataType: "json",
-                            data: { id: myShareId, user_uuid: _this.userUUID, entriesJSON: JSON.stringify(otherActiveEntries) },
+                            data: { isRealNudge: isRealNudge, id: myShareId, user_uuid: _this.userUUID, entriesJSON: JSON.stringify(otherActiveEntries) },
                             success: function () { },
                             error: function () { },
                         });
@@ -25036,7 +25389,7 @@ __webpack_require__(1)(__webpack_require__(43))
 /* 43 */
 /***/ (function(module, exports) {
 
-module.exports = "/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distributed with this file,\n * You can obtain one at http://mozilla.org/MPL/2.0/. */\n\n/*jshint scripturl:true */\n(function () {\n\n  // pgbovine - modify defaultConfiguration and NOT _defaultConfiguration\n  var defaultConfiguration = {\n    // Disables clicks for a certain element.\n    // (e.g., 'canvas' would not show clicks on canvas elements.)\n    // Setting this to true will disable clicks globally.\n    dontShowClicks: true, // pgbovine: on 2017-10-14, stop logging/showing clicks since they're overly verbose\n    // Experimental feature to echo clicks to certain elements across clients:\n    cloneClicks: '.togetherjsCloneClick', // pgbovine - clone clicks ONLY in these elements\n    // Enable Mozilla or Google analytics on the page when TogetherJS is activated:\n    // FIXME: these don't seem to be working, and probably should be removed in favor\n    // of the hub analytics\n    enableAnalytics: false,\n    // The code to enable (this is defaulting to a Mozilla code):\n    analyticsCode: \"UA-35433268-28\",\n    // The base URL of the hub (gets filled in below):\n    //hubBase: \"http://45.79.11.225:30035/\",    // pgbovine - online deployment to new Linode (starting 2017-10-27)\n    //hubBase: \"http://104.237.139.253:30035/\", // pgbovine - online deployment to old Linode (prior to 2017-10-27)\n    hubBase: \"http://localhost:30035/\",     // pgbovine - localhost testing\n\n    // A function that will return the name of the user:\n    // pgbovine - customized to use opt_uuid in localStorage if available\n    // so that each user can have a somewhat-unique N-digit username\n    getUserName: function() {\n      if ('localStorage' in window && window['localStorage'] !== null) {\n        var userUUID = localStorage.getItem('opt_uuid');\n        if (userUUID) {\n          // get last 3 digits of user uuid:\n          return 'user_' + userUUID.substring(userUUID.length - 3, userUUID.length);\n        } else {\n          return null; // let TogetherJS auto-assign an animal name\n        }\n      } else {\n        return null; // let TogetherJS auto-assign an animal name\n      }\n    },\n    // A function that will return the color of the user:\n    getUserColor: null,\n    // A function that will return the avatar of the user:\n    getUserAvatar: null,\n    // The siteName is used in the walkthrough (defaults to document.title):\n    siteName: null,\n    // Whether to use the minimized version of the code (overriding the built setting)\n    useMinimizedCode: undefined,\n    // Any events to bind to\n    on: {},\n    // Hub events to bind to\n    hub_on: {},\n    // Enables the alt-T alt-T TogetherJS shortcut; however, this setting\n    // must be enabled early as TogetherJSConfig_enableShortcut = true;\n    enableShortcut: false,\n    // The name of this tool as provided to users.  The UI is updated to use this.\n    // Because of how it is used in text it should be a proper noun, e.g.,\n    // \"MySite's Collaboration Tool\"\n    toolName: \"Python Tutor shared sessions\", // pgbovine\n    // Used to auto-start TogetherJS with a {prefix: pageName, max: participants}\n    // Also with findRoom: \"roomName\" it will connect to the given room name\n    findRoom: null,\n    // If true, starts TogetherJS automatically (of course!)\n    autoStart: false,\n    // If true, then the \"Join TogetherJS Session?\" confirmation dialog\n    // won't come up\n    suppressJoinConfirmation: true, // pgbovine\n    // If true, then the \"Invite a friend\" window won't automatically come up\n    suppressInvite: true, // pgbovine\n    // A room in which to find people to invite to this session,\n    inviteFromRoom: null,\n    // This is used to keep sessions from crossing over on the same\n    // domain, if for some reason you want sessions that are limited\n    // to only a portion of the domain:\n    storagePrefix: \"togetherjs\",\n    // When true, we treat the entire URL, including the hash, as the identifier\n    // of the page; i.e., if you one person is on `http://example.com/#view1`\n    // and another person is at `http://example.com/#view2` then these two people\n    // are considered to be at completely different URLs\n    includeHashInUrl: false,\n    // When true, the WebRTC-based mic/chat will be disabled\n    disableWebRTC: true, // pgbovine\n    // When true, youTube videos will synchronize\n    youtube: true,\n    // Ignores the following console messages, disables all messages if set to true\n    ignoreMessages: [\"cursor-update\", \"keydown\", \"scroll-update\"],\n    // if non-null, set to a callback function to log all events. this\n    // can be used to record a canned demo\n    eventRecorderFunc: null, // pgbovine\n    isDemoSession: false, // pgbovine - are we recording or playing a demo?\n    // Ignores the following forms (will ignore all forms if set to true):\n    ignoreForms: [\":password\", '.togetherjsIgnore'], // pgbovine\n    fallbackLang: \"en_US\"\n  };\n\n  var styleSheet = \"/togetherjs/togetherjs.css\";\n\n  var baseUrl = \"\";\n  if (baseUrl == \"__\" + \"baseUrl__\") {\n    // Reset the variable if it doesn't get substituted\n    baseUrl = \"\";\n  }\n  // True if this file should use minimized sub-resources:\n  var min = \"yes\" == \"__\" + \"min__\" ? false : \"yes\" == \"yes\";\n\n  var baseUrlOverride = localStorage.getItem(\"togetherjs.baseUrlOverride\");\n  if (baseUrlOverride) {\n    try {\n      baseUrlOverride = JSON.parse(baseUrlOverride);\n    } catch (e) {\n      baseUrlOverride = null;\n    }\n    if ((! baseUrlOverride) || baseUrlOverride.expiresAt < Date.now()) {\n      // Ignore because it has expired\n      localStorage.removeItem(\"togetherjs.baseUrlOverride\");\n    } else {\n      baseUrl = baseUrlOverride.baseUrl;\n      var logger = console.warn || console.log;\n      logger.call(console, \"Using TogetherJS baseUrlOverride:\", baseUrl);\n      logger.call(console, \"To undo run: localStorage.removeItem('togetherjs.baseUrlOverride')\");\n    }\n  }\n\n  var configOverride = localStorage.getItem(\"togetherjs.configOverride\");\n  if (configOverride) {\n    try {\n      configOverride = JSON.parse(configOverride);\n    } catch (e) {\n      configOverride = null;\n    }\n    if ((! configOverride) || configOverride.expiresAt < Date.now()) {\n      localStorage.removeItem(\"togetherjs.configOverride\");\n    } else {\n      var shownAny = false;\n      for (var attr in configOverride) {\n        if (! configOverride.hasOwnProperty(attr)) {\n          continue;\n        }\n        if (attr == \"expiresAt\" || ! configOverride.hasOwnProperty(attr)) {\n          continue;\n        }\n        if (! shownAny) {\n          console.warn(\"Using TogetherJS configOverride\");\n          console.warn(\"To undo run: localStorage.removeItem('togetherjs.configOverride')\");\n        }\n        window[\"TogetherJSConfig_\" + attr] = configOverride[attr];\n        console.log(\"Config override:\", attr, \"=\", configOverride[attr]);\n      }\n    }\n  }\n\n  var version = \"unknown\";\n  // FIXME: we could/should use a version from the checkout, at least\n  // for production\n  var cacheBust = \"\";\n  if ((! cacheBust) || cacheBust == \"\") {\n    cacheBust = Date.now() + \"\";\n  } else {\n    version = cacheBust;\n  }\n\n  // Make sure we have all of the console.* methods:\n  if (typeof console == \"undefined\") {\n    console = {};\n  }\n  if (! console.log) {\n    console.log = function () {};\n  }\n  [\"debug\", \"info\", \"warn\", \"error\"].forEach(function (method) {\n    if (! console[method]) {\n      console[method] = console.log;\n    }\n  });\n\n  if (! baseUrl) {\n    var scripts = document.getElementsByTagName(\"script\");\n    for (var i=0; i<scripts.length; i++) {\n      var src = scripts[i].src;\n      if (src && src.search(/togetherjs(-min)?.js(\\?.*)?$/) !== -1) {\n        baseUrl = src.replace(/\\/*togetherjs(-min)?.js(\\?.*)?$/, \"\");\n        //console.warn(\"Detected baseUrl as\", baseUrl); // pgbovine commented out\n        break;\n      } else if (src && src.search(/togetherjs-min.js(\\?.*)?$/) !== -1) {\n        baseUrl = src.replace(/\\/*togetherjs-min.js(\\?.*)?$/, \"\");\n        //console.warn(\"Detected baseUrl as\", baseUrl); // pgbovine commented out\n        break;\n      }\n    }\n  }\n  // pgbovine - hacked to make it work within Webpack\n  if (! baseUrl) {\n    baseUrl = window.location.protocol + '//' + window.location.host + '/js/lib/togetherjs';\n    //console.warn(\"Detected baseUrl as\", baseUrl);\n  }\n  if (! baseUrl) {\n    console.warn(\"Could not determine TogetherJS's baseUrl (looked for a <script> with togetherjs.js and togetherjs-min.js)\");\n  }\n\n  function addStyle() {\n    var existing = document.getElementById(\"togetherjs-stylesheet\");\n    if (! existing) {\n      var link = document.createElement(\"link\");\n      link.id = \"togetherjs-stylesheet\";\n      link.setAttribute(\"rel\", \"stylesheet\");\n      link.href = baseUrl + styleSheet + \"?bust=\" + cacheBust;\n      document.head.appendChild(link);\n    }\n  }\n\n  function addScript(url) {\n    var script = document.createElement(\"script\");\n    script.src = baseUrl + url + \"?bust=\" + cacheBust;\n    document.head.appendChild(script);\n  }\n\n  var TogetherJS = window.TogetherJS = function TogetherJS(event) {\n    if (TogetherJS.running) {\n      var session = TogetherJS.require(\"session\");\n      session.close();\n      return;\n    }\n    TogetherJS.startup.button = null;\n    try {\n      if (event && typeof event == \"object\") {\n        if (event.target && typeof event) {\n          TogetherJS.startup.button = event.target;\n        } else if (event.nodeType == 1) {\n          TogetherJS.startup.button = event;\n        } else if (event[0] && event[0].nodeType == 1) {\n          // Probably a jQuery element\n          TogetherJS.startup.button = event[0];\n        }\n      }\n    } catch (e) {\n      console.warn(\"Error determining starting button:\", e);\n    }\n    if (window.TowTruckConfig) {\n      console.warn(\"TowTruckConfig is deprecated; please use TogetherJSConfig\");\n      if (window.TogetherJSConfig) {\n        console.warn(\"Ignoring TowTruckConfig in favor of TogetherJSConfig\");\n      } else {\n        window.TogetherJSConfig = TowTruckConfig;\n      }\n    }\n    if (window.TogetherJSConfig && (! window.TogetherJSConfig.loaded)) {\n      TogetherJS.config(window.TogetherJSConfig);\n      window.TogetherJSConfig.loaded = true;\n    }\n\n    // This handles loading configuration from global variables.  This\n    // includes TogetherJSConfig_on_*, which are attributes folded into\n    // the \"on\" configuration value.\n    var attr;\n    var attrName;\n    var globalOns = {};\n    for (attr in window) {\n      if (attr.indexOf(\"TogetherJSConfig_on_\") === 0) {\n        attrName = attr.substr((\"TogetherJSConfig_on_\").length);\n        globalOns[attrName] = window[attr];\n      } else if (attr.indexOf(\"TogetherJSConfig_\") === 0) {\n        attrName = attr.substr((\"TogetherJSConfig_\").length);\n        TogetherJS.config(attrName, window[attr]);\n      } else if (attr.indexOf(\"TowTruckConfig_on_\") === 0) {\n        attrName = attr.substr((\"TowTruckConfig_on_\").length);\n        console.warn(\"TowTruckConfig_* is deprecated, please rename\", attr, \"to TogetherJSConfig_on_\" + attrName);\n        globalOns[attrName] = window[attr];\n      } else if (attr.indexOf(\"TowTruckConfig_\") === 0) {\n        attrName = attr.substr((\"TowTruckConfig_\").length);\n        console.warn(\"TowTruckConfig_* is deprecated, please rename\", attr, \"to TogetherJSConfig_\" + attrName);\n        TogetherJS.config(attrName, window[attr]);\n      }\n\n\n    }\n    // FIXME: copy existing config?\n    // FIXME: do this directly in TogetherJS.config() ?\n    // FIXME: close these configs?\n    var ons = TogetherJS.config.get(\"on\");\n    for (attr in globalOns) {\n      if (globalOns.hasOwnProperty(attr)) {\n        // FIXME: should we avoid overwriting?  Maybe use arrays?\n        ons[attr] = globalOns[attr];\n      }\n    }\n    TogetherJS.config(\"on\", ons);\n    for (attr in ons) {\n      TogetherJS.on(attr, ons[attr]);\n    }\n    var hubOns = TogetherJS.config.get(\"hub_on\");\n    if (hubOns) {\n      for (attr in hubOns) {\n        if (hubOns.hasOwnProperty(attr)) {\n          TogetherJS.hub.on(attr, hubOns[attr]);\n        }\n      }\n    }\n\n    if (! TogetherJS.startup.reason) {\n      // Then a call to TogetherJS() from a button must be started TogetherJS\n      TogetherJS.startup.reason = \"started\";\n    }\n\n    // FIXME: maybe I should just test for TogetherJS.require:\n    if (TogetherJS._loaded) {\n      var session = TogetherJS.require(\"session\");\n      addStyle();\n      session.start();\n      return;\n    }\n    // A sort of signal to session.js to tell it to actually\n    // start itself (i.e., put up a UI and try to activate)\n    TogetherJS.startup._launch = true;\n\n    addStyle();\n    var minSetting = TogetherJS.config.get(\"useMinimizedCode\");\n    TogetherJS.config.close(\"useMinimizedCode\");\n    if (minSetting !== undefined) {\n      min = !! minSetting;\n    }\n    var requireConfig = TogetherJS._extend(TogetherJS.requireConfig);\n    var deps = [\"session\", \"jquery\"];\n    var lang = TogetherJS.getConfig(\"lang\");\n    // [igoryen]: We should generate this value in Gruntfile.js, based on the available translations\n    var availableTranslations = {\n      \"en-US\": true,\n      \"ru\": true,\n      \"ru-RU\": true\n    };\n\n    if(lang === undefined) {\n      var navigatorLang = navigator.language.replace(/_/g, \"-\");\n      if (!availableTranslations[navigatorLang]) {\n        lang = TogetherJS.config.get(\"fallbackLang\");\n      } else {\n        lang = navigatorLang;\n      }\n     TogetherJS.config(\"lang\", lang);\n    }\n\n    TogetherJS.config(\"lang\", lang.replace(/_/g, \"-\")); // rename into TogetherJS.config.get()?\n    var localeTemplates = \"templates-\" + lang;// rename into TogetherJS.config.get()?\n    deps.splice(0, 0, localeTemplates);\n    function callback(session, jquery) {\n      TogetherJS._loaded = true;\n      if (! min) {\n        TogetherJS.require = require.config({context: \"togetherjs\"});\n        TogetherJS._requireObject = require;\n      }\n    }\n    if (! min) {\n      if (typeof require == \"function\") {\n        if (! require.config) {\n          console.warn(\"The global require (\", require, \") is not requirejs; please use togetherjs-min.js\");\n          throw new Error(\"Conflict with window.require\");\n        }\n        TogetherJS.require = require.config(requireConfig);\n      }\n    }\n    if (typeof TogetherJS.require == \"function\") {\n      // This is an already-configured version of require\n      TogetherJS.require(deps, callback);\n    } else {\n      requireConfig.deps = deps;\n      requireConfig.callback = callback;\n      if (! min) {\n        window.require = requireConfig;\n      }\n    }\n    if (min) {\n      addScript(\"/togetherjs/togetherjsPackage.js\");\n    } else {\n      addScript(\"/togetherjs/libs/require.js\");\n    }\n  };\n\n  TogetherJS.pageLoaded = Date.now();\n\n  TogetherJS._extend = function (base, extensions) {\n    if (! extensions) {\n      extensions = base;\n      base = {};\n    }\n    for (var a in extensions) {\n      if (extensions.hasOwnProperty(a)) {\n        base[a] = extensions[a];\n      }\n    }\n    return base;\n  };\n\n  TogetherJS._startupInit = {\n    // What element, if any, was used to start the session:\n    button: null,\n    // The startReason is the reason TogetherJS was started.  One of:\n    //   null: not started\n    //   started: hit the start button (first page view)\n    //   joined: joined the session (first page view)\n    reason: null,\n    // Also, the session may have started on \"this\" page, or maybe is continued\n    // from a past page.  TogetherJS.continued indicates the difference (false the\n    // first time TogetherJS is started or joined, true on later page loads).\n    continued: false,\n    // This is set to tell the session what shareId to use, if the boot\n    // code knows (mostly because the URL indicates the id).\n    _joinShareId: null,\n    // This tells session to start up immediately (otherwise it would wait\n    // for session.start() to be run)\n    _launch: false\n  };\n  TogetherJS.startup = TogetherJS._extend(TogetherJS._startupInit);\n  TogetherJS.running = false;\n\n  TogetherJS.requireConfig = {\n    context: \"togetherjs\",\n    baseUrl: baseUrl + \"/togetherjs\",\n    urlArgs: \"bust=\" + cacheBust,\n    paths: {\n      jquery: \"libs/jquery-1.8.3.min\",\n      walkabout: \"libs/walkabout/walkabout\",\n      esprima: \"libs/walkabout/lib/esprima\",\n      falafel: \"libs/walkabout/lib/falafel\",\n      tinycolor: \"libs/tinycolor\",\n      whrandom: \"libs/whrandom/random\"\n    }\n  };\n\n  TogetherJS._mixinEvents = function (proto) {\n    proto.on = function on(name, callback) {\n      if (typeof callback != \"function\") {\n        console.warn(\"Bad callback for\", this, \".once(\", name, \", \", callback, \")\");\n        throw \"Error: .once() called with non-callback\";\n      }\n      if (name.search(\" \") != -1) {\n        var names = name.split(/ +/g);\n        names.forEach(function (n) {\n          this.on(n, callback);\n        }, this);\n        return;\n      }\n      if (this._knownEvents && this._knownEvents.indexOf(name) == -1) {\n        var thisString = \"\" + this;\n        if (thisString.length > 20) {\n          thisString = thisString.substr(0, 20) + \"...\";\n        }\n        console.warn(thisString + \".on('\" + name + \"', ...): unknown event\");\n        if (console.trace) {\n          console.trace();\n        }\n      }\n      if (! this._listeners) {\n        this._listeners = {};\n      }\n      if (! this._listeners[name]) {\n        this._listeners[name] = [];\n      }\n      if (this._listeners[name].indexOf(callback) == -1) {\n        this._listeners[name].push(callback);\n      }\n    };\n    proto.once = function once(name, callback) {\n      if (typeof callback != \"function\") {\n        console.warn(\"Bad callback for\", this, \".once(\", name, \", \", callback, \")\");\n        throw \"Error: .once() called with non-callback\";\n      }\n      var attr = \"onceCallback_\" + name;\n      // FIXME: maybe I should add the event name to the .once attribute:\n      if (! callback[attr]) {\n        callback[attr] = function onceCallback() {\n          callback.apply(this, arguments);\n          this.off(name, onceCallback);\n          delete callback[attr];\n        };\n      }\n      this.on(name, callback[attr]);\n    };\n    proto.off = proto.removeListener = function off(name, callback) {\n      if (this._listenerOffs) {\n        // Defer the .off() call until the .emit() is done.\n        this._listenerOffs.push([name, callback]);\n        return;\n      }\n      if (name.search(\" \") != -1) {\n        var names = name.split(/ +/g);\n        names.forEach(function (n) {\n          this.off(n, callback);\n        }, this);\n        return;\n      }\n      if ((! this._listeners) || ! this._listeners[name]) {\n        return;\n      }\n      var l = this._listeners[name], _len = l.length;\n      for (var i=0; i<_len; i++) {\n        if (l[i] == callback) {\n          l.splice(i, 1);\n          break;\n        }\n      }\n    };\n    proto.emit = function emit(name) {\n      //console.log('proto.emit', name, this); // pgbovine - for debugging\n      var offs = this._listenerOffs = [];\n      if ((! this._listeners) || ! this._listeners[name]) {\n        return;\n      }\n      var args = Array.prototype.slice.call(arguments, 1);\n      var l = this._listeners[name];\n      l.forEach(function (callback) {\n\n        callback.apply(this, args);\n      }, this);\n      delete this._listenerOffs;\n      if (offs.length) {\n        offs.forEach(function (item) {\n          this.off(item[0], item[1]);\n        }, this);\n      }\n\n    };\n    return proto;\n  };\n\n  /* This finalizes the unloading of TogetherJS, including unloading modules */\n  TogetherJS._teardown = function () {\n    var requireObject = TogetherJS._requireObject || window.require;\n    // FIXME: this doesn't clear the context for min-case\n    if (requireObject.s && requireObject.s.contexts) {\n      delete requireObject.s.contexts.togetherjs;\n    }\n    TogetherJS._loaded = false;\n    TogetherJS.startup = TogetherJS._extend(TogetherJS._startupInit);\n    TogetherJS.running = false;\n  };\n\n  TogetherJS._mixinEvents(TogetherJS);\n  TogetherJS._knownEvents = [\"ready\", \"close\"];\n  TogetherJS.toString = function () {\n    return \"TogetherJS\";\n  };\n\n  var defaultHubBase = \"https://hub.togetherjs.com\";\n  if (defaultHubBase == \"__\" + \"hubUrl\"+ \"__\") {\n    // Substitution wasn't made\n    defaultHubBase = \"https://hub.togetherjs.mozillalabs.com\";\n  }\n\n  TogetherJS._configuration = {};\n  TogetherJS._defaultConfiguration = {\n    // Disables clicks for a certain element.\n    // (e.g., 'canvas' would not show clicks on canvas elements.)\n    // Setting this to true will disable clicks globally.\n    dontShowClicks: false,\n    // Experimental feature to echo clicks to certain elements across clients:\n    cloneClicks: false,\n    // Enable Mozilla or Google analytics on the page when TogetherJS is activated:\n    // FIXME: these don't seem to be working, and probably should be removed in favor\n    // of the hub analytics\n    enableAnalytics: false,\n    // The code to enable (this is defaulting to a Mozilla code):\n    analyticsCode: \"UA-35433268-28\",\n    // The base URL of the hub\n    hubBase: defaultHubBase,\n    // A function that will return the name of the user:\n    getUserName: null,\n    // A function that will return the color of the user:\n    getUserColor: null,\n    // A function that will return the avatar of the user:\n    getUserAvatar: null,\n    // The siteName is used in the walkthrough (defaults to document.title):\n    siteName: null,\n    // Whether to use the minimized version of the code (overriding the built setting)\n    useMinimizedCode: undefined,\n    // Any events to bind to\n    on: {},\n    // Hub events to bind to\n    hub_on: {},\n    // Enables the alt-T alt-T TogetherJS shortcut; however, this setting\n    // must be enabled early as TogetherJSConfig_enableShortcut = true;\n    enableShortcut: false,\n    // The name of this tool as provided to users.  The UI is updated to use this.\n    // Because of how it is used in text it should be a proper noun, e.g.,\n    // \"MySite's Collaboration Tool\"\n    toolName: null,\n    // Used to auto-start TogetherJS with a {prefix: pageName, max: participants}\n    // Also with findRoom: \"roomName\" it will connect to the given room name\n    findRoom: null,\n    // If true, starts TogetherJS automatically (of course!)\n    autoStart: false,\n    // If true, then the \"Join TogetherJS Session?\" confirmation dialog\n    // won't come up\n    suppressJoinConfirmation: false,\n    // If true, then the \"Invite a friend\" window won't automatically come up\n    suppressInvite: false,\n    // A room in which to find people to invite to this session,\n    inviteFromRoom: null,\n    // This is used to keep sessions from crossing over on the same\n    // domain, if for some reason you want sessions that are limited\n    // to only a portion of the domain:\n    storagePrefix: \"togetherjs\",\n    // When true, we treat the entire URL, including the hash, as the identifier\n    // of the page; i.e., if you one person is on `http://example.com/#view1`\n    // and another person is at `http://example.com/#view2` then these two people\n    // are considered to be at completely different URLs\n    includeHashInUrl: false,\n    // The language to present the tool in, such as \"en-US\" or \"ru-RU\"\n    // Note this must be set as TogetherJSConfig_lang, as it effects the loader\n    // and must be set as soon as this file is included\n    lang: null\n  };\n  // FIXME: there's a point at which configuration can't be updated\n  // (e.g., hubBase after the TogetherJS has loaded).  We should keep\n  // track of these and signal an error if someone attempts to\n  // reconfigure too late\n\n  TogetherJS.getConfig = function (name) { // rename into TogetherJS.config.get()?\n    var value = TogetherJS._configuration[name];\n    if (value === undefined) {\n      if (! TogetherJS._defaultConfiguration.hasOwnProperty(name)) {\n        console.error(\"Tried to load unknown configuration value:\", name);\n      }\n      value = TogetherJS._defaultConfiguration[name];\n    }\n    return value;\n  };\n  TogetherJS._defaultConfiguration = defaultConfiguration;\n  TogetherJS._configTrackers = {};\n  TogetherJS._configClosed = {};\n\n  /* TogetherJS.config(configurationObject)\n     or: TogetherJS.config(configName, value)\n\n     Adds configuration to TogetherJS.  You may also set the global variable TogetherJSConfig\n     and when TogetherJS is started that configuration will be loaded.\n\n     Unknown configuration values will lead to console error messages.\n     */\n  TogetherJS.config = function (name, maybeValue) {\n    var settings;\n    if (arguments.length == 1) {\n      if (typeof name != \"object\") {\n        throw new Error('TogetherJS.config(value) must have an object value (not: ' + name + ')');\n      }\n      settings = name;\n    } else {\n      settings = {};\n      settings[name] = maybeValue;\n    }\n    var i;\n    var tracker;\n    for (var attr in settings) {\n      if (settings.hasOwnProperty(attr)) {\n        if (TogetherJS._configClosed[attr] && TogetherJS.running) {\n          throw new Error(\"The configuration \" + attr + \" is finalized and cannot be changed\");\n        }\n      }\n    }\n    for (var attr in settings) {\n      if (! settings.hasOwnProperty(attr)) {\n        continue;\n      }\n      if (attr == \"loaded\" || attr == \"callToStart\") {\n        continue;\n      }\n      if (! TogetherJS._defaultConfiguration.hasOwnProperty(attr)) {\n        console.warn(\"Unknown configuration value passed to TogetherJS.config():\", attr);\n      }\n      var previous = TogetherJS._configuration[attr];\n      var value = settings[attr];\n      TogetherJS._configuration[attr] = value;\n      var trackers = TogetherJS._configTrackers[name] || [];\n      var failed = false;\n      for (i=0; i<trackers.length; i++) {\n        try {\n          tracker = trackers[i];\n          tracker(value, previous);\n        } catch (e) {\n          console.warn(\"Error setting configuration\", name, \"to\", value,\n                       \":\", e, \"; reverting to\", previous);\n          failed = true;\n          break;\n        }\n      }\n      if (failed) {\n        TogetherJS._configuration[attr] = previous;\n        for (i=0; i<trackers.length; i++) {\n          try {\n            tracker = trackers[i];\n            tracker(value);\n          } catch (e) {\n            console.warn(\"Error REsetting configuration\", name, \"to\", previous,\n                         \":\", e, \"(ignoring)\");\n          }\n        }\n      }\n    }\n  };\n\n  TogetherJS.config.get = function (name) {\n    var value = TogetherJS._configuration[name];\n    if (value === undefined) {\n      if (! TogetherJS._defaultConfiguration.hasOwnProperty(name)) {\n        console.error(\"Tried to load unknown configuration value:\", name);\n      }\n      value = TogetherJS._defaultConfiguration[name];\n    }\n    return value;\n  };\n\n  TogetherJS.config.track = function (name, callback) {\n    if (! TogetherJS._defaultConfiguration.hasOwnProperty(name)) {\n      throw new Error(\"Configuration is unknown: \" + name);\n    }\n    callback(TogetherJS.config.get(name));\n    if (! TogetherJS._configTrackers[name]) {\n      TogetherJS._configTrackers[name] = [];\n    }\n    TogetherJS._configTrackers[name].push(callback);\n    return callback;\n  };\n\n  TogetherJS.config.close = function (name) {\n    if (! TogetherJS._defaultConfiguration.hasOwnProperty(name)) {\n      throw new Error(\"Configuration is unknown: \" + name);\n    }\n    TogetherJS._configClosed[name] = true;\n  };\n\n  TogetherJS.reinitialize = function () {\n    if (TogetherJS.running && typeof TogetherJS.require == \"function\") {\n      TogetherJS.require([\"session\"], function (session) {\n        session.emit(\"reinitialize\");\n      });\n    }\n    // If it's not set, TogetherJS has not been loaded, and reinitialization is not needed\n  };\n\n  TogetherJS.refreshUserData = function () {\n    if (TogetherJS.running && typeof TogetherJS.require ==  \"function\") {\n      TogetherJS.require([\"session\"], function (session) {\n        session.emit(\"refresh-user-data\");\n      });\n    }\n  };\n\n  // This should contain the output of \"git describe --always --dirty\"\n  // FIXME: substitute this on the server (and update make-static-client)\n  TogetherJS.version = version;\n  TogetherJS.baseUrl = baseUrl;\n\n  TogetherJS.hub = TogetherJS._mixinEvents({});\n\n  TogetherJS._onmessage = function (msg) {\n    var type = msg.type;\n    if (type.search(/^app\\./) === 0) {\n      type = type.substr(\"app.\".length);\n    } else {\n      type = \"togetherjs.\" + type;\n    }\n    msg.type = type;\n    TogetherJS.hub.emit(msg.type, msg);\n  };\n\n  TogetherJS.send = function (msg) {\n    if (! TogetherJS.require) {\n      throw \"You cannot use TogetherJS.send() when TogetherJS is not running\";\n    }\n    var session = TogetherJS.require(\"session\");\n    session.appSend(msg);\n  };\n\n  TogetherJS.shareUrl = function () {\n    if (! TogetherJS.require) {\n      return null;\n    }\n    var session = TogetherJS.require(\"session\");\n    return session.shareUrl();\n  };\n\n  // pgbovine - added\n  TogetherJS.shareId = function () {\n    if (! TogetherJS.require) {\n      return null;\n    }\n    var session = TogetherJS.require(\"session\");\n    return session.shareId;\n  };\n\n  // pgbovine - added\n  TogetherJS.clientId = function () {\n    if (! TogetherJS.require) {\n      return null;\n    }\n    var session = TogetherJS.require(\"session\");\n    return session.clientId;\n  };\n\n  var listener = null;\n\n  TogetherJS.listenForShortcut = function () {\n    console.warn(\"Listening for alt-T alt-T to start TogetherJS\");\n    TogetherJS.removeShortcut();\n    listener = function listener(event) {\n      if (event.which == 84 && event.altKey) {\n        if (listener.pressed) {\n          // Second hit\n          TogetherJS();\n        } else {\n          listener.pressed = true;\n        }\n      } else {\n        listener.pressed = false;\n      }\n    };\n    TogetherJS.once(\"ready\", TogetherJS.removeShortcut);\n    document.addEventListener(\"keyup\", listener, false);\n  };\n\n  TogetherJS.removeShortcut = function () {\n    if (listener) {\n      document.addEventListener(\"keyup\", listener, false);\n      listener = null;\n    }\n  };\n\n  TogetherJS.config.track(\"enableShortcut\", function (enable, previous) {\n    if (enable) {\n      TogetherJS.listenForShortcut();\n    } else if (previous) {\n      TogetherJS.removeShortcut();\n    }\n  });\n\n  TogetherJS.checkForUsersOnChannel = function (address, callback) {\n    if (address.search(/^https?:/i) === 0) {\n      address = address.replace(/^http/i, 'ws');\n    }\n    var socket = new WebSocket(address);\n    var gotAnswer = false;\n    socket.onmessage = function (event) {\n      var msg = JSON.parse(event.data);\n      if (msg.type != \"init-connection\") {\n        console.warn(\"Got unexpected first message (should be init-connection):\", msg);\n        return;\n      }\n      if (gotAnswer) {\n        console.warn(\"Somehow received two responses from channel; ignoring second\");\n        socket.close();\n        return;\n      }\n      gotAnswer = true;\n      socket.close();\n      callback(msg.peerCount);\n    };\n    socket.onclose = socket.onerror = function () {\n      if (! gotAnswer) {\n        console.warn(\"Socket was closed without receiving answer\");\n        gotAnswer = true;\n        callback(undefined);\n      }\n    };\n  };\n\n  // It's nice to replace this early, before the load event fires, so we conflict\n  // as little as possible with the app we are embedded in:\n  var hash = location.hash.replace(/^#/, \"\");\n  var m = /&?togetherjs=([^&]*)/.exec(hash);\n  if (m) {\n    TogetherJS.startup._joinShareId = m[1];\n    TogetherJS.startup.reason = \"joined\";\n    var newHash = hash.substr(0, m.index) + hash.substr(m.index + m[0].length);\n    location.hash = newHash;\n  }\n  if (window._TogetherJSShareId) {\n    // A weird hack for something the addon does, to force a shareId.\n    // FIXME: probably should remove, it's a wonky feature.\n    TogetherJS.startup._joinShareId = window._TogetherJSShareId;\n    delete window._TogetherJSShareId;\n  }\n\n  function conditionalActivate() {\n    if (window.TogetherJSConfig_noAutoStart) {\n      return;\n    }\n    // A page can define this function to defer TogetherJS from starting\n    var callToStart = window.TogetherJSConfig_callToStart;\n    if (! callToStart && window.TowTruckConfig_callToStart) {\n      callToStart = window.TowTruckConfig_callToStart;\n      console.warn(\"Please rename TowTruckConfig_callToStart to TogetherJSConfig_callToStart\");\n    }\n    if (window.TogetherJSConfig && window.TogetherJSConfig.callToStart) {\n      callToStart = window.TogetherJSConfig.callToStart;\n    }\n    if (callToStart) {\n      // FIXME: need to document this:\n      callToStart(onload);\n    } else {\n      onload();\n    }\n  }\n\n  // FIXME: can we push this up before the load event?\n  // Do we need to wait at all?\n  function onload() {\n    if (TogetherJS.startup._joinShareId) {\n      TogetherJS();\n    } else if (window._TogetherJSBookmarklet) {\n      delete window._TogetherJSBookmarklet;\n      TogetherJS();\n    } else {\n      // FIXME: this doesn't respect storagePrefix:\n      var key = \"togetherjs-session.status\";\n      var value = sessionStorage.getItem(key);\n      if (value) {\n        value = JSON.parse(value);\n        if (value && value.running) {\n          TogetherJS.startup.continued = true;\n          TogetherJS.startup.reason = value.startupReason;\n          TogetherJS();\n        }\n      } else if (window.TogetherJSConfig_autoStart ||\n                 (window.TogetherJSConfig && window.TogetherJSConfig.autoStart)) {\n        TogetherJS.startup.reason = \"joined\";\n        TogetherJS();\n      }\n    }\n  }\n\n  conditionalActivate();\n\n  // FIXME: wait until load event to double check if this gets set?\n  if (window.TogetherJSConfig_enableShortcut) {\n    TogetherJS.listenForShortcut();\n  }\n\n  // For compatibility:\n  window.TowTruck = TogetherJS;\n\n})();\n"
+module.exports = "/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distributed with this file,\n * You can obtain one at http://mozilla.org/MPL/2.0/. */\n\n/*jshint scripturl:true */\n(function () {\n\n  // pgbovine - modify defaultConfiguration and NOT _defaultConfiguration\n  var defaultConfiguration = {\n    // Disables clicks for a certain element.\n    // (e.g., 'canvas' would not show clicks on canvas elements.)\n    // Setting this to true will disable clicks globally.\n    dontShowClicks: true, // pgbovine: on 2017-10-14, stop logging/showing clicks since they're overly verbose\n    // Experimental feature to echo clicks to certain elements across clients:\n    cloneClicks: '.togetherjsCloneClick', // pgbovine - clone clicks ONLY in these elements\n    // Enable Mozilla or Google analytics on the page when TogetherJS is activated:\n    // FIXME: these don't seem to be working, and probably should be removed in favor\n    // of the hub analytics\n    enableAnalytics: false,\n    // The code to enable (this is defaulting to a Mozilla code):\n    analyticsCode: \"UA-35433268-28\",\n    // The base URL of the hub (gets filled in below):\n    //hubBase: \"http://localhost:30035/\",     // pgbovine - localhost testing\n    hubBase: \"http://45.79.11.225:30035/\",    // pgbovine - online deployment to new Linode (starting 2017-10-27)\n    //hubBase: \"http://104.237.139.253:30035/\", // pgbovine - online deployment to old Linode (prior to 2017-10-27)\n\n    // A function that will return the name of the user:\n    // pgbovine - customized to use opt_uuid in localStorage if available\n    // so that each user can have a somewhat-unique N-digit username\n    getUserName: function() {\n      if ('localStorage' in window && window['localStorage'] !== null) {\n        var userUUID = localStorage.getItem('opt_uuid');\n        if (userUUID) {\n          // get last 3 digits of user uuid:\n          return 'user_' + userUUID.substring(userUUID.length - 3, userUUID.length);\n        } else {\n          return null; // let TogetherJS auto-assign an animal name\n        }\n      } else {\n        return null; // let TogetherJS auto-assign an animal name\n      }\n    },\n    // A function that will return the color of the user:\n    getUserColor: null,\n    // A function that will return the avatar of the user:\n    getUserAvatar: null,\n    // The siteName is used in the walkthrough (defaults to document.title):\n    siteName: null,\n    // Whether to use the minimized version of the code (overriding the built setting)\n    useMinimizedCode: undefined,\n    // Any events to bind to\n    on: {},\n    // Hub events to bind to\n    hub_on: {},\n    // Enables the alt-T alt-T TogetherJS shortcut; however, this setting\n    // must be enabled early as TogetherJSConfig_enableShortcut = true;\n    enableShortcut: false,\n    // The name of this tool as provided to users.  The UI is updated to use this.\n    // Because of how it is used in text it should be a proper noun, e.g.,\n    // \"MySite's Collaboration Tool\"\n    toolName: \"Python Tutor shared sessions\", // pgbovine\n    // Used to auto-start TogetherJS with a {prefix: pageName, max: participants}\n    // Also with findRoom: \"roomName\" it will connect to the given room name\n    findRoom: null,\n    // If true, starts TogetherJS automatically (of course!)\n    autoStart: false,\n    // If true, then the \"Join TogetherJS Session?\" confirmation dialog\n    // won't come up\n    suppressJoinConfirmation: true, // pgbovine\n    // If true, then the \"Invite a friend\" window won't automatically come up\n    suppressInvite: true, // pgbovine\n    // A room in which to find people to invite to this session,\n    inviteFromRoom: null,\n    // This is used to keep sessions from crossing over on the same\n    // domain, if for some reason you want sessions that are limited\n    // to only a portion of the domain:\n    storagePrefix: \"togetherjs\",\n    // When true, we treat the entire URL, including the hash, as the identifier\n    // of the page; i.e., if you one person is on `http://example.com/#view1`\n    // and another person is at `http://example.com/#view2` then these two people\n    // are considered to be at completely different URLs\n    includeHashInUrl: false,\n    // When true, the WebRTC-based mic/chat will be disabled\n    disableWebRTC: true, // pgbovine\n    // When true, youTube videos will synchronize\n    youtube: true,\n    // Ignores the following console messages, disables all messages if set to true\n    ignoreMessages: [\"cursor-update\", \"keydown\", \"scroll-update\"],\n    // Ignores the following forms (will ignore all forms if set to true):\n    ignoreForms: [\":password\", '.togetherjsIgnore'], // pgbovine\n    fallbackLang: \"en_US\"\n  };\n\n  var styleSheet = \"/togetherjs/togetherjs.css\";\n\n  var baseUrl = \"\";\n  if (baseUrl == \"__\" + \"baseUrl__\") {\n    // Reset the variable if it doesn't get substituted\n    baseUrl = \"\";\n  }\n  // True if this file should use minimized sub-resources:\n  var min = \"yes\" == \"__\" + \"min__\" ? false : \"yes\" == \"yes\";\n\n  var baseUrlOverride = localStorage.getItem(\"togetherjs.baseUrlOverride\");\n  if (baseUrlOverride) {\n    try {\n      baseUrlOverride = JSON.parse(baseUrlOverride);\n    } catch (e) {\n      baseUrlOverride = null;\n    }\n    if ((! baseUrlOverride) || baseUrlOverride.expiresAt < Date.now()) {\n      // Ignore because it has expired\n      localStorage.removeItem(\"togetherjs.baseUrlOverride\");\n    } else {\n      baseUrl = baseUrlOverride.baseUrl;\n      var logger = console.warn || console.log;\n      logger.call(console, \"Using TogetherJS baseUrlOverride:\", baseUrl);\n      logger.call(console, \"To undo run: localStorage.removeItem('togetherjs.baseUrlOverride')\");\n    }\n  }\n\n  var configOverride = localStorage.getItem(\"togetherjs.configOverride\");\n  if (configOverride) {\n    try {\n      configOverride = JSON.parse(configOverride);\n    } catch (e) {\n      configOverride = null;\n    }\n    if ((! configOverride) || configOverride.expiresAt < Date.now()) {\n      localStorage.removeItem(\"togetherjs.configOverride\");\n    } else {\n      var shownAny = false;\n      for (var attr in configOverride) {\n        if (! configOverride.hasOwnProperty(attr)) {\n          continue;\n        }\n        if (attr == \"expiresAt\" || ! configOverride.hasOwnProperty(attr)) {\n          continue;\n        }\n        if (! shownAny) {\n          console.warn(\"Using TogetherJS configOverride\");\n          console.warn(\"To undo run: localStorage.removeItem('togetherjs.configOverride')\");\n        }\n        window[\"TogetherJSConfig_\" + attr] = configOverride[attr];\n        console.log(\"Config override:\", attr, \"=\", configOverride[attr]);\n      }\n    }\n  }\n\n  var version = \"unknown\";\n  // FIXME: we could/should use a version from the checkout, at least\n  // for production\n  var cacheBust = \"\";\n  if ((! cacheBust) || cacheBust == \"\") {\n    cacheBust = Date.now() + \"\";\n  } else {\n    version = cacheBust;\n  }\n\n  // Make sure we have all of the console.* methods:\n  if (typeof console == \"undefined\") {\n    console = {};\n  }\n  if (! console.log) {\n    console.log = function () {};\n  }\n  [\"debug\", \"info\", \"warn\", \"error\"].forEach(function (method) {\n    if (! console[method]) {\n      console[method] = console.log;\n    }\n  });\n\n  if (! baseUrl) {\n    var scripts = document.getElementsByTagName(\"script\");\n    for (var i=0; i<scripts.length; i++) {\n      var src = scripts[i].src;\n      if (src && src.search(/togetherjs(-min)?.js(\\?.*)?$/) !== -1) {\n        baseUrl = src.replace(/\\/*togetherjs(-min)?.js(\\?.*)?$/, \"\");\n        //console.warn(\"Detected baseUrl as\", baseUrl); // pgbovine commented out\n        break;\n      } else if (src && src.search(/togetherjs-min.js(\\?.*)?$/) !== -1) {\n        baseUrl = src.replace(/\\/*togetherjs-min.js(\\?.*)?$/, \"\");\n        //console.warn(\"Detected baseUrl as\", baseUrl); // pgbovine commented out\n        break;\n      }\n    }\n  }\n  // pgbovine - hacked to make it work within Webpack\n  if (! baseUrl) {\n    baseUrl = window.location.protocol + '//' + window.location.host + '/js/lib/togetherjs';\n    //console.warn(\"Detected baseUrl as\", baseUrl);\n  }\n  if (! baseUrl) {\n    console.warn(\"Could not determine TogetherJS's baseUrl (looked for a <script> with togetherjs.js and togetherjs-min.js)\");\n  }\n\n  function addStyle() {\n    var existing = document.getElementById(\"togetherjs-stylesheet\");\n    if (! existing) {\n      var link = document.createElement(\"link\");\n      link.id = \"togetherjs-stylesheet\";\n      link.setAttribute(\"rel\", \"stylesheet\");\n      link.href = baseUrl + styleSheet + \"?bust=\" + cacheBust;\n      document.head.appendChild(link);\n    }\n  }\n\n  function addScript(url) {\n    var script = document.createElement(\"script\");\n    script.src = baseUrl + url + \"?bust=\" + cacheBust;\n    document.head.appendChild(script);\n  }\n\n  var TogetherJS = window.TogetherJS = function TogetherJS(event) {\n    if (TogetherJS.running) {\n      var session = TogetherJS.require(\"session\");\n      session.close();\n      return;\n    }\n    TogetherJS.startup.button = null;\n    try {\n      if (event && typeof event == \"object\") {\n        if (event.target && typeof event) {\n          TogetherJS.startup.button = event.target;\n        } else if (event.nodeType == 1) {\n          TogetherJS.startup.button = event;\n        } else if (event[0] && event[0].nodeType == 1) {\n          // Probably a jQuery element\n          TogetherJS.startup.button = event[0];\n        }\n      }\n    } catch (e) {\n      console.warn(\"Error determining starting button:\", e);\n    }\n    if (window.TowTruckConfig) {\n      console.warn(\"TowTruckConfig is deprecated; please use TogetherJSConfig\");\n      if (window.TogetherJSConfig) {\n        console.warn(\"Ignoring TowTruckConfig in favor of TogetherJSConfig\");\n      } else {\n        window.TogetherJSConfig = TowTruckConfig;\n      }\n    }\n    if (window.TogetherJSConfig && (! window.TogetherJSConfig.loaded)) {\n      TogetherJS.config(window.TogetherJSConfig);\n      window.TogetherJSConfig.loaded = true;\n    }\n\n    // This handles loading configuration from global variables.  This\n    // includes TogetherJSConfig_on_*, which are attributes folded into\n    // the \"on\" configuration value.\n    var attr;\n    var attrName;\n    var globalOns = {};\n    for (attr in window) {\n      if (attr.indexOf(\"TogetherJSConfig_on_\") === 0) {\n        attrName = attr.substr((\"TogetherJSConfig_on_\").length);\n        globalOns[attrName] = window[attr];\n      } else if (attr.indexOf(\"TogetherJSConfig_\") === 0) {\n        attrName = attr.substr((\"TogetherJSConfig_\").length);\n        TogetherJS.config(attrName, window[attr]);\n      } else if (attr.indexOf(\"TowTruckConfig_on_\") === 0) {\n        attrName = attr.substr((\"TowTruckConfig_on_\").length);\n        console.warn(\"TowTruckConfig_* is deprecated, please rename\", attr, \"to TogetherJSConfig_on_\" + attrName);\n        globalOns[attrName] = window[attr];\n      } else if (attr.indexOf(\"TowTruckConfig_\") === 0) {\n        attrName = attr.substr((\"TowTruckConfig_\").length);\n        console.warn(\"TowTruckConfig_* is deprecated, please rename\", attr, \"to TogetherJSConfig_\" + attrName);\n        TogetherJS.config(attrName, window[attr]);\n      }\n\n\n    }\n    // FIXME: copy existing config?\n    // FIXME: do this directly in TogetherJS.config() ?\n    // FIXME: close these configs?\n    var ons = TogetherJS.config.get(\"on\");\n    for (attr in globalOns) {\n      if (globalOns.hasOwnProperty(attr)) {\n        // FIXME: should we avoid overwriting?  Maybe use arrays?\n        ons[attr] = globalOns[attr];\n      }\n    }\n    TogetherJS.config(\"on\", ons);\n    for (attr in ons) {\n      TogetherJS.on(attr, ons[attr]);\n    }\n    var hubOns = TogetherJS.config.get(\"hub_on\");\n    if (hubOns) {\n      for (attr in hubOns) {\n        if (hubOns.hasOwnProperty(attr)) {\n          TogetherJS.hub.on(attr, hubOns[attr]);\n        }\n      }\n    }\n\n    if (! TogetherJS.startup.reason) {\n      // Then a call to TogetherJS() from a button must be started TogetherJS\n      TogetherJS.startup.reason = \"started\";\n    }\n\n    // FIXME: maybe I should just test for TogetherJS.require:\n    if (TogetherJS._loaded) {\n      var session = TogetherJS.require(\"session\");\n      addStyle();\n      session.start();\n      return;\n    }\n    // A sort of signal to session.js to tell it to actually\n    // start itself (i.e., put up a UI and try to activate)\n    TogetherJS.startup._launch = true;\n\n    addStyle();\n    var minSetting = TogetherJS.config.get(\"useMinimizedCode\");\n    TogetherJS.config.close(\"useMinimizedCode\");\n    if (minSetting !== undefined) {\n      min = !! minSetting;\n    }\n    var requireConfig = TogetherJS._extend(TogetherJS.requireConfig);\n    var deps = [\"session\", \"jquery\"];\n    var lang = TogetherJS.getConfig(\"lang\");\n    // [igoryen]: We should generate this value in Gruntfile.js, based on the available translations\n    var availableTranslations = {\n      \"en-US\": true,\n      \"ru\": true,\n      \"ru-RU\": true\n    };\n\n    if(lang === undefined) {\n      var navigatorLang = navigator.language.replace(/_/g, \"-\");\n      if (!availableTranslations[navigatorLang]) {\n        lang = TogetherJS.config.get(\"fallbackLang\");\n      } else {\n        lang = navigatorLang;\n      }\n     TogetherJS.config(\"lang\", lang);\n    }\n\n    TogetherJS.config(\"lang\", lang.replace(/_/g, \"-\")); // rename into TogetherJS.config.get()?\n    var localeTemplates = \"templates-\" + lang;// rename into TogetherJS.config.get()?\n    deps.splice(0, 0, localeTemplates);\n    function callback(session, jquery) {\n      TogetherJS._loaded = true;\n      if (! min) {\n        TogetherJS.require = require.config({context: \"togetherjs\"});\n        TogetherJS._requireObject = require;\n      }\n    }\n    if (! min) {\n      if (typeof require == \"function\") {\n        if (! require.config) {\n          console.warn(\"The global require (\", require, \") is not requirejs; please use togetherjs-min.js\");\n          throw new Error(\"Conflict with window.require\");\n        }\n        TogetherJS.require = require.config(requireConfig);\n      }\n    }\n    if (typeof TogetherJS.require == \"function\") {\n      // This is an already-configured version of require\n      TogetherJS.require(deps, callback);\n    } else {\n      requireConfig.deps = deps;\n      requireConfig.callback = callback;\n      if (! min) {\n        window.require = requireConfig;\n      }\n    }\n    if (min) {\n      addScript(\"/togetherjs/togetherjsPackage.js\");\n    } else {\n      addScript(\"/togetherjs/libs/require.js\");\n    }\n  };\n\n  TogetherJS.pageLoaded = Date.now();\n\n  TogetherJS._extend = function (base, extensions) {\n    if (! extensions) {\n      extensions = base;\n      base = {};\n    }\n    for (var a in extensions) {\n      if (extensions.hasOwnProperty(a)) {\n        base[a] = extensions[a];\n      }\n    }\n    return base;\n  };\n\n  TogetherJS._startupInit = {\n    // What element, if any, was used to start the session:\n    button: null,\n    // The startReason is the reason TogetherJS was started.  One of:\n    //   null: not started\n    //   started: hit the start button (first page view)\n    //   joined: joined the session (first page view)\n    reason: null,\n    // Also, the session may have started on \"this\" page, or maybe is continued\n    // from a past page.  TogetherJS.continued indicates the difference (false the\n    // first time TogetherJS is started or joined, true on later page loads).\n    continued: false,\n    // This is set to tell the session what shareId to use, if the boot\n    // code knows (mostly because the URL indicates the id).\n    _joinShareId: null,\n    // This tells session to start up immediately (otherwise it would wait\n    // for session.start() to be run)\n    _launch: false\n  };\n  TogetherJS.startup = TogetherJS._extend(TogetherJS._startupInit);\n  TogetherJS.running = false;\n\n  TogetherJS.requireConfig = {\n    context: \"togetherjs\",\n    baseUrl: baseUrl + \"/togetherjs\",\n    urlArgs: \"bust=\" + cacheBust,\n    paths: {\n      jquery: \"libs/jquery-1.8.3.min\",\n      walkabout: \"libs/walkabout/walkabout\",\n      esprima: \"libs/walkabout/lib/esprima\",\n      falafel: \"libs/walkabout/lib/falafel\",\n      tinycolor: \"libs/tinycolor\",\n      whrandom: \"libs/whrandom/random\"\n    }\n  };\n\n  TogetherJS._mixinEvents = function (proto) {\n    proto.on = function on(name, callback) {\n      if (typeof callback != \"function\") {\n        console.warn(\"Bad callback for\", this, \".once(\", name, \", \", callback, \")\");\n        throw \"Error: .once() called with non-callback\";\n      }\n      if (name.search(\" \") != -1) {\n        var names = name.split(/ +/g);\n        names.forEach(function (n) {\n          this.on(n, callback);\n        }, this);\n        return;\n      }\n      if (this._knownEvents && this._knownEvents.indexOf(name) == -1) {\n        var thisString = \"\" + this;\n        if (thisString.length > 20) {\n          thisString = thisString.substr(0, 20) + \"...\";\n        }\n        console.warn(thisString + \".on('\" + name + \"', ...): unknown event\");\n        if (console.trace) {\n          console.trace();\n        }\n      }\n      if (! this._listeners) {\n        this._listeners = {};\n      }\n      if (! this._listeners[name]) {\n        this._listeners[name] = [];\n      }\n      if (this._listeners[name].indexOf(callback) == -1) {\n        this._listeners[name].push(callback);\n      }\n    };\n    proto.once = function once(name, callback) {\n      if (typeof callback != \"function\") {\n        console.warn(\"Bad callback for\", this, \".once(\", name, \", \", callback, \")\");\n        throw \"Error: .once() called with non-callback\";\n      }\n      var attr = \"onceCallback_\" + name;\n      // FIXME: maybe I should add the event name to the .once attribute:\n      if (! callback[attr]) {\n        callback[attr] = function onceCallback() {\n          callback.apply(this, arguments);\n          this.off(name, onceCallback);\n          delete callback[attr];\n        };\n      }\n      this.on(name, callback[attr]);\n    };\n    proto.off = proto.removeListener = function off(name, callback) {\n      if (this._listenerOffs) {\n        // Defer the .off() call until the .emit() is done.\n        this._listenerOffs.push([name, callback]);\n        return;\n      }\n      if (name.search(\" \") != -1) {\n        var names = name.split(/ +/g);\n        names.forEach(function (n) {\n          this.off(n, callback);\n        }, this);\n        return;\n      }\n      if ((! this._listeners) || ! this._listeners[name]) {\n        return;\n      }\n      var l = this._listeners[name], _len = l.length;\n      for (var i=0; i<_len; i++) {\n        if (l[i] == callback) {\n          l.splice(i, 1);\n          break;\n        }\n      }\n    };\n    proto.emit = function emit(name) {\n      var offs = this._listenerOffs = [];\n      if ((! this._listeners) || ! this._listeners[name]) {\n        return;\n      }\n      var args = Array.prototype.slice.call(arguments, 1);\n      var l = this._listeners[name];\n      l.forEach(function (callback) {\n\n        callback.apply(this, args);\n      }, this);\n      delete this._listenerOffs;\n      if (offs.length) {\n        offs.forEach(function (item) {\n          this.off(item[0], item[1]);\n        }, this);\n      }\n\n    };\n    return proto;\n  };\n\n  /* This finalizes the unloading of TogetherJS, including unloading modules */\n  TogetherJS._teardown = function () {\n    var requireObject = TogetherJS._requireObject || window.require;\n    // FIXME: this doesn't clear the context for min-case\n    if (requireObject.s && requireObject.s.contexts) {\n      delete requireObject.s.contexts.togetherjs;\n    }\n    TogetherJS._loaded = false;\n    TogetherJS.startup = TogetherJS._extend(TogetherJS._startupInit);\n    TogetherJS.running = false;\n  };\n\n  TogetherJS._mixinEvents(TogetherJS);\n  TogetherJS._knownEvents = [\"ready\", \"close\"];\n  TogetherJS.toString = function () {\n    return \"TogetherJS\";\n  };\n\n  var defaultHubBase = \"https://hub.togetherjs.com\";\n  if (defaultHubBase == \"__\" + \"hubUrl\"+ \"__\") {\n    // Substitution wasn't made\n    defaultHubBase = \"https://hub.togetherjs.mozillalabs.com\";\n  }\n\n  TogetherJS._configuration = {};\n  TogetherJS._defaultConfiguration = {\n    // Disables clicks for a certain element.\n    // (e.g., 'canvas' would not show clicks on canvas elements.)\n    // Setting this to true will disable clicks globally.\n    dontShowClicks: false,\n    // Experimental feature to echo clicks to certain elements across clients:\n    cloneClicks: false,\n    // Enable Mozilla or Google analytics on the page when TogetherJS is activated:\n    // FIXME: these don't seem to be working, and probably should be removed in favor\n    // of the hub analytics\n    enableAnalytics: false,\n    // The code to enable (this is defaulting to a Mozilla code):\n    analyticsCode: \"UA-35433268-28\",\n    // The base URL of the hub\n    hubBase: defaultHubBase,\n    // A function that will return the name of the user:\n    getUserName: null,\n    // A function that will return the color of the user:\n    getUserColor: null,\n    // A function that will return the avatar of the user:\n    getUserAvatar: null,\n    // The siteName is used in the walkthrough (defaults to document.title):\n    siteName: null,\n    // Whether to use the minimized version of the code (overriding the built setting)\n    useMinimizedCode: undefined,\n    // Any events to bind to\n    on: {},\n    // Hub events to bind to\n    hub_on: {},\n    // Enables the alt-T alt-T TogetherJS shortcut; however, this setting\n    // must be enabled early as TogetherJSConfig_enableShortcut = true;\n    enableShortcut: false,\n    // The name of this tool as provided to users.  The UI is updated to use this.\n    // Because of how it is used in text it should be a proper noun, e.g.,\n    // \"MySite's Collaboration Tool\"\n    toolName: null,\n    // Used to auto-start TogetherJS with a {prefix: pageName, max: participants}\n    // Also with findRoom: \"roomName\" it will connect to the given room name\n    findRoom: null,\n    // If true, starts TogetherJS automatically (of course!)\n    autoStart: false,\n    // If true, then the \"Join TogetherJS Session?\" confirmation dialog\n    // won't come up\n    suppressJoinConfirmation: false,\n    // If true, then the \"Invite a friend\" window won't automatically come up\n    suppressInvite: false,\n    // A room in which to find people to invite to this session,\n    inviteFromRoom: null,\n    // This is used to keep sessions from crossing over on the same\n    // domain, if for some reason you want sessions that are limited\n    // to only a portion of the domain:\n    storagePrefix: \"togetherjs\",\n    // When true, we treat the entire URL, including the hash, as the identifier\n    // of the page; i.e., if you one person is on `http://example.com/#view1`\n    // and another person is at `http://example.com/#view2` then these two people\n    // are considered to be at completely different URLs\n    includeHashInUrl: false,\n    // The language to present the tool in, such as \"en-US\" or \"ru-RU\"\n    // Note this must be set as TogetherJSConfig_lang, as it effects the loader\n    // and must be set as soon as this file is included\n    lang: null\n  };\n  // FIXME: there's a point at which configuration can't be updated\n  // (e.g., hubBase after the TogetherJS has loaded).  We should keep\n  // track of these and signal an error if someone attempts to\n  // reconfigure too late\n\n  TogetherJS.getConfig = function (name) { // rename into TogetherJS.config.get()?\n    var value = TogetherJS._configuration[name];\n    if (value === undefined) {\n      if (! TogetherJS._defaultConfiguration.hasOwnProperty(name)) {\n        console.error(\"Tried to load unknown configuration value:\", name);\n      }\n      value = TogetherJS._defaultConfiguration[name];\n    }\n    return value;\n  };\n  TogetherJS._defaultConfiguration = defaultConfiguration;\n  TogetherJS._configTrackers = {};\n  TogetherJS._configClosed = {};\n\n  /* TogetherJS.config(configurationObject)\n     or: TogetherJS.config(configName, value)\n\n     Adds configuration to TogetherJS.  You may also set the global variable TogetherJSConfig\n     and when TogetherJS is started that configuration will be loaded.\n\n     Unknown configuration values will lead to console error messages.\n     */\n  TogetherJS.config = function (name, maybeValue) {\n    var settings;\n    if (arguments.length == 1) {\n      if (typeof name != \"object\") {\n        throw new Error('TogetherJS.config(value) must have an object value (not: ' + name + ')');\n      }\n      settings = name;\n    } else {\n      settings = {};\n      settings[name] = maybeValue;\n    }\n    var i;\n    var tracker;\n    for (var attr in settings) {\n      if (settings.hasOwnProperty(attr)) {\n        if (TogetherJS._configClosed[attr] && TogetherJS.running) {\n          throw new Error(\"The configuration \" + attr + \" is finalized and cannot be changed\");\n        }\n      }\n    }\n    for (var attr in settings) {\n      if (! settings.hasOwnProperty(attr)) {\n        continue;\n      }\n      if (attr == \"loaded\" || attr == \"callToStart\") {\n        continue;\n      }\n      if (! TogetherJS._defaultConfiguration.hasOwnProperty(attr)) {\n        console.warn(\"Unknown configuration value passed to TogetherJS.config():\", attr);\n      }\n      var previous = TogetherJS._configuration[attr];\n      var value = settings[attr];\n      TogetherJS._configuration[attr] = value;\n      var trackers = TogetherJS._configTrackers[name] || [];\n      var failed = false;\n      for (i=0; i<trackers.length; i++) {\n        try {\n          tracker = trackers[i];\n          tracker(value, previous);\n        } catch (e) {\n          console.warn(\"Error setting configuration\", name, \"to\", value,\n                       \":\", e, \"; reverting to\", previous);\n          failed = true;\n          break;\n        }\n      }\n      if (failed) {\n        TogetherJS._configuration[attr] = previous;\n        for (i=0; i<trackers.length; i++) {\n          try {\n            tracker = trackers[i];\n            tracker(value);\n          } catch (e) {\n            console.warn(\"Error REsetting configuration\", name, \"to\", previous,\n                         \":\", e, \"(ignoring)\");\n          }\n        }\n      }\n    }\n  };\n\n  TogetherJS.config.get = function (name) {\n    var value = TogetherJS._configuration[name];\n    if (value === undefined) {\n      if (! TogetherJS._defaultConfiguration.hasOwnProperty(name)) {\n        console.error(\"Tried to load unknown configuration value:\", name);\n      }\n      value = TogetherJS._defaultConfiguration[name];\n    }\n    return value;\n  };\n\n  TogetherJS.config.track = function (name, callback) {\n    if (! TogetherJS._defaultConfiguration.hasOwnProperty(name)) {\n      throw new Error(\"Configuration is unknown: \" + name);\n    }\n    callback(TogetherJS.config.get(name));\n    if (! TogetherJS._configTrackers[name]) {\n      TogetherJS._configTrackers[name] = [];\n    }\n    TogetherJS._configTrackers[name].push(callback);\n    return callback;\n  };\n\n  TogetherJS.config.close = function (name) {\n    if (! TogetherJS._defaultConfiguration.hasOwnProperty(name)) {\n      throw new Error(\"Configuration is unknown: \" + name);\n    }\n    TogetherJS._configClosed[name] = true;\n  };\n\n  TogetherJS.reinitialize = function () {\n    if (TogetherJS.running && typeof TogetherJS.require == \"function\") {\n      TogetherJS.require([\"session\"], function (session) {\n        session.emit(\"reinitialize\");\n      });\n    }\n    // If it's not set, TogetherJS has not been loaded, and reinitialization is not needed\n  };\n\n  TogetherJS.refreshUserData = function () {\n    if (TogetherJS.running && typeof TogetherJS.require ==  \"function\") {\n      TogetherJS.require([\"session\"], function (session) {\n        session.emit(\"refresh-user-data\");\n      });\n    }\n  };\n\n  // This should contain the output of \"git describe --always --dirty\"\n  // FIXME: substitute this on the server (and update make-static-client)\n  TogetherJS.version = version;\n  TogetherJS.baseUrl = baseUrl;\n\n  TogetherJS.hub = TogetherJS._mixinEvents({});\n\n  TogetherJS._onmessage = function (msg) {\n    var type = msg.type;\n    if (type.search(/^app\\./) === 0) {\n      type = type.substr(\"app.\".length);\n    } else {\n      type = \"togetherjs.\" + type;\n    }\n    msg.type = type;\n    TogetherJS.hub.emit(msg.type, msg);\n  };\n\n  TogetherJS.send = function (msg) {\n    if (! TogetherJS.require) {\n      throw \"You cannot use TogetherJS.send() when TogetherJS is not running\";\n    }\n    var session = TogetherJS.require(\"session\");\n    session.appSend(msg);\n  };\n\n  TogetherJS.shareUrl = function () {\n    if (! TogetherJS.require) {\n      return null;\n    }\n    var session = TogetherJS.require(\"session\");\n    return session.shareUrl();\n  };\n\n  // pgbovine - added\n  TogetherJS.shareId = function () {\n    if (! TogetherJS.require) {\n      return null;\n    }\n    var session = TogetherJS.require(\"session\");\n    return session.shareId;\n  };\n\n  // pgbovine - added\n  TogetherJS.clientId = function () {\n    if (! TogetherJS.require) {\n      return null;\n    }\n    var session = TogetherJS.require(\"session\");\n    return session.clientId;\n  };\n\n  var listener = null;\n\n  TogetherJS.listenForShortcut = function () {\n    console.warn(\"Listening for alt-T alt-T to start TogetherJS\");\n    TogetherJS.removeShortcut();\n    listener = function listener(event) {\n      if (event.which == 84 && event.altKey) {\n        if (listener.pressed) {\n          // Second hit\n          TogetherJS();\n        } else {\n          listener.pressed = true;\n        }\n      } else {\n        listener.pressed = false;\n      }\n    };\n    TogetherJS.once(\"ready\", TogetherJS.removeShortcut);\n    document.addEventListener(\"keyup\", listener, false);\n  };\n\n  TogetherJS.removeShortcut = function () {\n    if (listener) {\n      document.addEventListener(\"keyup\", listener, false);\n      listener = null;\n    }\n  };\n\n  TogetherJS.config.track(\"enableShortcut\", function (enable, previous) {\n    if (enable) {\n      TogetherJS.listenForShortcut();\n    } else if (previous) {\n      TogetherJS.removeShortcut();\n    }\n  });\n\n  TogetherJS.checkForUsersOnChannel = function (address, callback) {\n    if (address.search(/^https?:/i) === 0) {\n      address = address.replace(/^http/i, 'ws');\n    }\n    var socket = new WebSocket(address);\n    var gotAnswer = false;\n    socket.onmessage = function (event) {\n      var msg = JSON.parse(event.data);\n      if (msg.type != \"init-connection\") {\n        console.warn(\"Got unexpected first message (should be init-connection):\", msg);\n        return;\n      }\n      if (gotAnswer) {\n        console.warn(\"Somehow received two responses from channel; ignoring second\");\n        socket.close();\n        return;\n      }\n      gotAnswer = true;\n      socket.close();\n      callback(msg.peerCount);\n    };\n    socket.onclose = socket.onerror = function () {\n      if (! gotAnswer) {\n        console.warn(\"Socket was closed without receiving answer\");\n        gotAnswer = true;\n        callback(undefined);\n      }\n    };\n  };\n\n  // It's nice to replace this early, before the load event fires, so we conflict\n  // as little as possible with the app we are embedded in:\n  var hash = location.hash.replace(/^#/, \"\");\n  var m = /&?togetherjs=([^&]*)/.exec(hash);\n  if (m) {\n    TogetherJS.startup._joinShareId = m[1];\n    TogetherJS.startup.reason = \"joined\";\n    var newHash = hash.substr(0, m.index) + hash.substr(m.index + m[0].length);\n    location.hash = newHash;\n  }\n  if (window._TogetherJSShareId) {\n    // A weird hack for something the addon does, to force a shareId.\n    // FIXME: probably should remove, it's a wonky feature.\n    TogetherJS.startup._joinShareId = window._TogetherJSShareId;\n    delete window._TogetherJSShareId;\n  }\n\n  function conditionalActivate() {\n    if (window.TogetherJSConfig_noAutoStart) {\n      return;\n    }\n    // A page can define this function to defer TogetherJS from starting\n    var callToStart = window.TogetherJSConfig_callToStart;\n    if (! callToStart && window.TowTruckConfig_callToStart) {\n      callToStart = window.TowTruckConfig_callToStart;\n      console.warn(\"Please rename TowTruckConfig_callToStart to TogetherJSConfig_callToStart\");\n    }\n    if (window.TogetherJSConfig && window.TogetherJSConfig.callToStart) {\n      callToStart = window.TogetherJSConfig.callToStart;\n    }\n    if (callToStart) {\n      // FIXME: need to document this:\n      callToStart(onload);\n    } else {\n      onload();\n    }\n  }\n\n  // FIXME: can we push this up before the load event?\n  // Do we need to wait at all?\n  function onload() {\n    if (TogetherJS.startup._joinShareId) {\n      TogetherJS();\n    } else if (window._TogetherJSBookmarklet) {\n      delete window._TogetherJSBookmarklet;\n      TogetherJS();\n    } else {\n      // FIXME: this doesn't respect storagePrefix:\n      var key = \"togetherjs-session.status\";\n      var value = sessionStorage.getItem(key);\n      if (value) {\n        value = JSON.parse(value);\n        if (value && value.running) {\n          TogetherJS.startup.continued = true;\n          TogetherJS.startup.reason = value.startupReason;\n          TogetherJS();\n        }\n      } else if (window.TogetherJSConfig_autoStart ||\n                 (window.TogetherJSConfig && window.TogetherJSConfig.autoStart)) {\n        TogetherJS.startup.reason = \"joined\";\n        TogetherJS();\n      }\n    }\n  }\n\n  conditionalActivate();\n\n  // FIXME: wait until load event to double check if this gets set?\n  if (window.TogetherJSConfig_enableShortcut) {\n    TogetherJS.listenForShortcut();\n  }\n\n  // For compatibility:\n  window.TowTruck = TogetherJS;\n\n})();\n"
 
 /***/ }),
 /* 44 */
@@ -25162,7 +25515,7 @@ exports.push([module.i, ".testCaseEditor {\n  width: 300px;\n  height: 90px; /* 
 
 "use strict";
 
-exports.footerHtml = "\n<p>\n  <button id=\"genUrlBtn\" class=\"smallBtn\" type=\"button\">Generate permanent link</button> <input type=\"text\" id=\"urlOutput\" size=\"70\"/>\n</p>\n<p>\n  <button id=\"genUrlShortenedBtn\" class=\"smallBtn\" type=\"button\">Generate shortened link</button> <input type=\"text\" id=\"urlOutputShortened\" size=\"25\"/>\n</p>\n\n<p>Click the button above to create a permanent link to your\nvisualization. To report a bug, paste the link along with a brief error\ndescription in an email addressed to philip@pgbovine.net</p>\n\n<div id=\"embedLinkDiv\">\n<p>\n  <button id=\"genEmbedBtn\" class=\"smallBtn\" type=\"button\">Generate embed code</button> <input type=\"text\" id=\"embedCodeOutput\" size=\"70\"/>\n</p>\n\n<p>To embed this visualization in your webpage, click the 'Generate\nembed code' button above and paste the resulting HTML code into your\nwebpage. Adjust the height and width parameters and\nchange the link to <b>https://</b> if needed.</p>\n</div>\n\n<p style=\"margin-top: 25px;\">\n<a href=\"http://pythontutor.com/\">Python Tutor</a> (<a href=\"https://github.com/pgbovine/OnlinePythonTutor\">code on GitHub</a>) supports seven\nlanguages (despite its name!):</p>\n\n<p>1. Python <a href=\"https://docs.python.org/2.7/\">2.7</a> and <a\nhref=\"https://docs.python.org/3.6/\">3.6</a> with limited module\nimports and no file I/O.\nThe following modules may be imported: \nbisect,\ncollections,\ncopy,\ndatetime,\nfunctools,\nhashlib,\nheapq,\nitertools,\njson,\nmath,\noperator,\nrandom,\nre,\nstring,\ntime,\ntyping,\nio/StringIO.\n<a\nhref=\"https://github.com/pgbovine/OnlinePythonTutor/tree/master/v3\">Backend source code</a>.\n</p>\n\n<p>2. Java using Oracle's Java 8. The original <a\nhref=\"http://cscircles.cemc.uwaterloo.ca/java_visualize/\">Java\nvisualizer</a> was created by <a href=\"https://github.com/daveagp\">David Pritchard</a> and Will Gwozdz.\nIt supports\n<code><a href=\"http://introcs.cs.princeton.edu/java/stdlib/javadoc/StdIn.html\">StdIn</a></code>, \n<code><a href=\"http://introcs.cs.princeton.edu/java/stdlib/javadoc/StdOut.html\">StdOut</a></code>, \nmost other <a href=\"http://introcs.cs.princeton.edu/java/stdlib\"><tt>stdlib</tt> libraries</a>,\n<a href=\"http://introcs.cs.princeton.edu/java/43stack/Stack.java.html\"><tt>Stack</tt></a>,\n<a href=\"http://introcs.cs.princeton.edu/java/43stack/Queue.java.html\"><tt>Queue</tt></a>,\nand <a href=\"http://introcs.cs.princeton.edu/java/44st/ST.java.html\"><tt>ST</tt></a>.\n(To access Java's built-in <tt>Stack</tt>/<tt>Queue</tt> classes, write\n<tt>import java.util.Stack;</tt> &mdash; note, <tt>import\njava.util.*;</tt> won't work.)\n<a\nhref=\"https://github.com/pgbovine/OnlinePythonTutor/tree/master/v4-cokapi/backends/java\">Backend\nsource code</a>.</p>\n\n<p>3. JavaScript running in Node.js v6.0.0 with limited support for ES6. <a\nhref=\"https://github.com/pgbovine/OnlinePythonTutor/tree/master/v4-cokapi/backends/javascript\">Backend\nsource code</a>.</p>\n\n<p>4. <a href=\"http://www.typescriptlang.org\">TypeScript</a> 1.4.1 running in Node.js v6.0.0. <a\nhref=\"https://github.com/pgbovine/OnlinePythonTutor/tree/master/v4-cokapi/backends/javascript\">Backend\nsource code</a>.</p>\n\n<p>5. Ruby 2 using MRI 2.2.2. <a\nhref=\"https://github.com/pgbovine/OnlinePythonTutor/tree/master/v4-cokapi/backends/ruby\">Backend\nsource code</a>.</p>\n\n<p>6. C using gcc 4.8, C11, and Valgrind Memcheck.\n<a href=\"https://github.com/pgbovine/opt-cpp-backend\">Backend source code</a>.</p>\n\n<p>7. C++ using gcc 4.8, C++11, and Valgrind Memcheck.\n<a href=\"https://github.com/pgbovine/opt-cpp-backend\">Backend source code</a>.</p>\n\n<p style=\"margin-top: 30px;\">Privacy Policy: By using Online Python\nTutor, your visualized code, options, user interactions, text chats, and\nIP address are logged on our server and may be analyzed for research\npurposes. Nearly all Web services collect this basic information from\nusers. However, the Online Python Tutor website (pythontutor.com) does\nnot collect any personal information or session state from users, nor\ndoes it issue any cookies.</p>\n\n<p>Use this website at your own risk. The developers of Python Tutor are\nnot responsible for the chat messages or behaviors of any of the users\non this website. We are also not responsible for any damages caused by\nusing this website.</p>\n\n<p style=\"margin-top: 25px;\">\nCopyright &copy; <a href=\"http://www.pgbovine.net/\">Philip Guo</a>.  All rights reserved.\n</p>\n";
+exports.footerHtml = "\n<p>\n  <button id=\"genUrlBtn\" class=\"smallBtn\" type=\"button\">Generate permanent link</button> <input type=\"text\" id=\"urlOutput\" size=\"70\"/>\n</p>\n<p>\n  <button id=\"genUrlShortenedBtn\" class=\"smallBtn\" type=\"button\">Generate shortened link</button> <input type=\"text\" id=\"urlOutputShortened\" size=\"25\"/>\n</p>\n\n<p>Click above to create a permanent link to your\nvisualization (<a href=\"https://www.youtube.com/watch?v=h4q3UKdEFKE\" target=\"_blank\">video demo</a>). To report bugs, paste the link along with an error\ndescription in an email to philip@pgbovine.net</p>\n\n<div id=\"embedLinkDiv\">\n<p>\n  <button id=\"genEmbedBtn\" class=\"smallBtn\" type=\"button\">Generate embed code</button> <input type=\"text\" id=\"embedCodeOutput\" size=\"70\"/>\n</p>\n\n<p>To embed this visualization in your webpage, click the 'Generate\nembed code' button above and paste the resulting HTML code into your\nwebpage. Adjust the height and width parameters and\nchange the link to <b>https://</b> if needed.</p>\n</div>\n\n<p style=\"margin-top: 25px;\">\n<a href=\"http://pythontutor.com/\">Python Tutor</a> (<a href=\"https://github.com/pgbovine/OnlinePythonTutor\">code on GitHub</a>) supports seven\nlanguages (despite its name!):</p>\n\n<p>1. Python <a href=\"https://docs.python.org/2.7/\">2.7</a> and <a\nhref=\"https://docs.python.org/3.6/\">3.6</a> with limited module\nimports:\nbisect,\ncollections,\ncopy,\ndatetime,\nfunctools,\nhashlib,\nheapq,\nitertools,\njson,\nmath,\noperator,\nrandom,\nre,\nstring,\ntime,\ntyping,\nio/StringIO.\n<a\nhref=\"https://github.com/pgbovine/OnlinePythonTutor/tree/master/v3\">Backend source code</a>.\n</p>\n\n<p>2. Java using Oracle's Java 8. The original <a\nhref=\"http://cscircles.cemc.uwaterloo.ca/java_visualize/\">Java\nvisualizer</a> was created by <a href=\"https://github.com/daveagp\">David Pritchard</a> and Will Gwozdz.\nIt supports\n<code><a href=\"http://introcs.cs.princeton.edu/java/stdlib/javadoc/StdIn.html\">StdIn</a></code>, \n<code><a href=\"http://introcs.cs.princeton.edu/java/stdlib/javadoc/StdOut.html\">StdOut</a></code>, \nmost other <a href=\"http://introcs.cs.princeton.edu/java/stdlib\"><tt>stdlib</tt> libraries</a>,\n<a href=\"http://introcs.cs.princeton.edu/java/43stack/Stack.java.html\"><tt>Stack</tt></a>,\n<a href=\"http://introcs.cs.princeton.edu/java/43stack/Queue.java.html\"><tt>Queue</tt></a>,\nand <a href=\"http://introcs.cs.princeton.edu/java/44st/ST.java.html\"><tt>ST</tt></a>.\n(To access Java's built-in <tt>Stack</tt>/<tt>Queue</tt> classes, write\n<tt>import java.util.Stack;</tt> &mdash; note, <tt>import\njava.util.*;</tt> won't work.)\n<a\nhref=\"https://github.com/pgbovine/OnlinePythonTutor/tree/master/v4-cokapi/backends/java\">Backend\nsource code</a>.</p>\n\n<p>3. JavaScript running in Node.js v6.0.0 with limited support for ES6. <a\nhref=\"https://github.com/pgbovine/OnlinePythonTutor/tree/master/v4-cokapi/backends/javascript\">Backend\nsource code</a>.</p>\n\n<p>4. <a href=\"http://www.typescriptlang.org\">TypeScript</a> 1.4.1 running in Node.js v6.0.0. <a\nhref=\"https://github.com/pgbovine/OnlinePythonTutor/tree/master/v4-cokapi/backends/javascript\">Backend\nsource code</a>.</p>\n\n<p>5. Ruby 2 using MRI 2.2.2. <a\nhref=\"https://github.com/pgbovine/OnlinePythonTutor/tree/master/v4-cokapi/backends/ruby\">Backend\nsource code</a>.</p>\n\n<p>6. C using gcc 4.8, C11, and Valgrind Memcheck.\n<a href=\"https://github.com/pgbovine/opt-cpp-backend\">Backend source code</a>.</p>\n\n<p>7. C++ using gcc 4.8, C++11, and Valgrind Memcheck.\n<a href=\"https://github.com/pgbovine/opt-cpp-backend\">Backend source code</a>.</p>\n\n<p style=\"margin-top: 30px;\">Privacy Policy: By using Python\nTutor, your visualized code, options, user interactions, text chats, and\nIP address are logged on our server and may be analyzed for research\npurposes. Nearly all Web services collect this basic information from\nusers. However, the Python Tutor website (pythontutor.com) does\nnot collect any personal information or session state from users, nor\ndoes it issue any cookies.</p>\n\n<p>Use this website at your own risk. The developers of Python Tutor are\nnot responsible for the chat messages or behaviors of any of the users\non this website. We are also not responsible for any damages caused by\nusing this website. It is your responsibility to follow appropriate academic integrity standards.</p>\n\n<p style=\"margin-top: 25px;\">\nCopyright &copy; <a href=\"http://www.pgbovine.net/\">Philip Guo</a>.  All rights reserved.\n</p>\n";
 
 
 /***/ }),
@@ -25248,3 +25601,4 @@ $(document).ready(function () {
 
 /***/ })
 /******/ ]);
+//# sourceMappingURL=composingprograms.bundle.js.map

@@ -5,6 +5,8 @@ JS logger backend for Online Python Tutor runtime visualizer
 First version created on: 2015-01-02 by Philip Guo
 - originally made for Node v0.10.25, which supports ES5 (Jan 2015)
 - on 2016-05-01, ported over to also work on Node v6.0.0, which supports ES6
+- NB on 2018-04-05: this script seems *very* sensitive to Node version,
+  so even a slightly newer version of Node v6 won't work; it seems very brittle
 
 Run as:
 node --expose-debug-as=Debug jslogger.js
@@ -837,6 +839,15 @@ function listener(event, execState, eventData, data) {
           for (jj = 0; jj < localScopePairs.length; jj++) {
             var mungedVarName = e[0] + ' (block ' + scopeIdx + ')';
             e = localScopePairs[jj];
+
+            // TODO: decide later whether to do this or not, still undecided ...
+            //
+            // don't display 'undefined' values within blocks since
+            // sometimes it shows extraneous ones like in for-of loops
+            //if (_.isUndefined(e[1])) {
+            //  continue;
+            //}
+
             traceStackEntry.ordered_varnames.push(mungedVarName);
             assert(!_.has(traceStackEntry.encoded_locals, mungedVarName));
             traceStackEntry.encoded_locals[mungedVarName] = encodeObject(e[1]);
@@ -951,6 +962,15 @@ function listener(event, execState, eventData, data) {
         for (jj = 0; jj < globalScopePairs.length; jj++) {
           var globalVarname = globalScopePairs[jj][0] + ' (block ' + scopeIdx + ')';
           var globalVal = globalScopePairs[jj][1];
+
+          // TODO: decide later whether to do this or not, still undecided ...
+          //
+          // don't display 'undefined' values within blocks since
+          // sometimes it shows extraneous ones like in for-of loops
+          //if (_.isUndefined(globalVal)) {
+          //  continue;
+          //}
+
           if (!_.has(IGNORE_GLOBAL_VARS, globalVarname)) {
             curTraceEntry.ordered_globals.push(globalVarname);
             assert(!_.has(curTraceEntry.globals, globalVarname));

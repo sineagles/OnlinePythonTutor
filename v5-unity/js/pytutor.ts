@@ -400,11 +400,11 @@ export class ExecutionVisualizer {
 
       // add an extra label to link back to the main site, so that viewers
       // on the embedded page know that they're seeing an OPT visualization
-      base.append('<div style="font-size: 8pt; margin-bottom: 10px;"><a href="http://pythontutor.com" target="_blank" style="color: #3D58A2;">Python Tutor</a> by <a href="http://www.pgbovine.net/" target="_blank" style="color: #3D58A2;">Philip Guo</a>. Support by <a href="http://pgbovine.net/support.htm" target="_blank">making a small donation</a></div>');
+      base.append('<div style="font-size: 8pt; margin-bottom: 10px;"><a href="http://pythontutor.com" target="_blank" style="color: #3D58A2;">Python Tutor</a> by <a href="https://twitter.com/pgbovine" target="_blank" style="color: #3D58A2;">Philip Guo</a>. Support with a <a href="http://pgbovine.net/support.htm" target="_blank">small donation</a>.</div>');
       base.find('#codeFooterDocs').hide(); // cut out extraneous docs
     } else {
       // also display credits:
-      base.append('<div style="font-size: 9pt; margin-bottom: 10px;">Keep this tool free for everyone by <a href="http://pgbovine.net/support.htm" target="_blank"><b>making a small donation</b></a></div>');
+      base.append('<div style="font-size: 9pt; margin-top: 5px; margin-bottom: 10px;">Created by <a href="https://twitter.com/pgbovine" target="_blank">@pgbovine</a>. Support with a <a href="http://pgbovine.net/support.htm" target="_blank">small donation</a>.</div>');
     }
 
     // not enough room for these extra buttons ...
@@ -3146,7 +3146,7 @@ class ProgramOutputBox {
     var stdoutHeight = '75px';
     // heuristic for code with really small outputs
     if (this.numStdoutLines <= 3) {
-      stdoutHeight = (18 * this.numStdoutLines) + 'px';
+      stdoutHeight = (25 * this.numStdoutLines) + 'px';
     }
     if (heightOverride) {
       stdoutHeight = heightOverride;
@@ -3200,12 +3200,19 @@ class CodeDisplay {
     this.domRootD3 = domRootD3;
     this.codToDisplay = codToDisplay;
 
+    // 2018-03-15 - removed "Live programming" link from
+    // visualization mode to simplify the UI, even if it drives
+    // fewer people to live programming mode; they can always click
+    // the "Live Programming Mode" button in the code editor:
+    //<span id="liveModeSpan" style="display: none;">| <a id="editLiveModeBtn" href="#">Live programming</a></a>\
+    //
+    // also changed 'Edit code' link to 'Edit this code' to make
+    // it more clear to users
     var codeDisplayHTML =
       '<div id="codeDisplayDiv">\
          <div id="langDisplayDiv"></div>\
          <div id="pyCodeOutputDiv"/>\
-         <div id="editCodeLinkDiv"><a id="editBtn">Edit code</a>\
-         <span id="liveModeSpan" style="display: none;">| <a id="editLiveModeBtn" href="#">Live programming</a></a>\
+         <div id="editCodeLinkDiv"><a id="editBtn">Edit this code</a>\
          </div>\
          <div id="legendDiv"/>\
          <div id="codeFooterDocs">Click a line of code to set a breakpoint; use the Back and Forward buttons to jump there.</div>\
@@ -3272,13 +3279,13 @@ class CodeDisplay {
         if (this.owner.params.embeddedMode) {
           this.domRoot.find('#langDisplayDiv').html('C (gcc 4.8, C11)');
         } else {
-          this.domRoot.find('#langDisplayDiv').html('C (gcc 4.8, C11) <font color="#e93f34">EXPERIMENTAL!</font><br/>see <a href="https://github.com/pgbovine/opt-cpp-backend/issues" target="_blank">known bugs</a> and report to philip@pgbovine.net');
+          this.domRoot.find('#langDisplayDiv').html('C (gcc 4.8, C11)<br/><font color="#e93f34">EXPERIMENTAL!</font> <a href="https://github.com/pgbovine/OnlinePythonTutor/blob/master/unsupported-features.md" target="_blank">known bugs/limitations</a>');
         }
       } else if (lang === 'cpp') {
         if (this.owner.params.embeddedMode) {
           this.domRoot.find('#langDisplayDiv').html('C++ (gcc 4.8, C++11)');
         } else {
-          this.domRoot.find('#langDisplayDiv').html('C++ (gcc 4.8, C++11) <font color="#e93f34">EXPERIMENTAL!</font><br/>see <a href="https://github.com/pgbovine/opt-cpp-backend/issues" target="_blank">known bugs</a> and report to philip@pgbovine.net');
+          this.domRoot.find('#langDisplayDiv').html('C++ (gcc 4.8, C++11)<br/><font color="#e93f34">EXPERIMENTAL!</font> <a href="https://github.com/pgbovine/OnlinePythonTutor/blob/master/unsupported-features.md" target="_blank">known bugs/limitations</a>');
         }
       } else {
         this.domRoot.find('#langDisplayDiv').hide();
@@ -3690,7 +3697,8 @@ class NavigationController {
 
   showError(msg: string) {
     if (msg) {
-      this.domRoot.find("#errorOutput").html(htmlspecialchars(msg)).show();
+      this.domRoot.find("#errorOutput").html(htmlspecialchars(msg) + `
+      <span style="font-size: 9pt; color: #666">(see <a href="https://github.com/pgbovine/OnlinePythonTutor/blob/master/unsupported-features.md" target="_blank">unsupported features</a>)</span>`).show();
     } else {
       this.domRoot.find("#errorOutput").hide();
     }

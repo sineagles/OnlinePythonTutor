@@ -35,16 +35,38 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // Run with an 'https' command-line flag to use https (must have
 // the proper certificate and key files, though)
 
-var IS_DEBUG = false;
-
-var PRODUCTION_PORT = 3000;
-var PRODUCTION_HTTPS_PORT = 8001;
-var DEBUG_PORT = 5001;
-
 var assert = require('assert');
 var child_process = require('child_process');
 var express = require('express');
 var util = require('util');
+
+
+// to use low-numbered ports, Node must be allowed to bind to ports lower than 1024.
+// e.g., run: sudo setcap 'cap_net_bind_service=+ep' <node executable>
+// defaults:
+var PORT = 80;
+var useHttps = false;
+var local = false;
+
+var args = process.argv.slice(2);
+if (args.length > 0) {
+  if (args[0] === 'https') {
+    PORT = 443;
+    useHttps = true;
+  } else if (args[0] === 'http3000') {
+    PORT = 3000;
+  } else if (args[0] === 'https8001') {
+    PORT = 8001;
+    useHttps = true;
+  } else if (args[0] === 'local') {
+    PORT = 3000;
+    local = true;
+    console.log('running in local mode');
+  } else {
+    assert(false);
+  }
+}
+
 
 
 // We use this to execute since it supports utf8 and also an optional
@@ -56,7 +78,7 @@ var TIMEOUT_SECS = 15;
 
 var MAX_BUFFER_SIZE = 10 * 1024 * 1024;
 
-var MEM_LIMIT = "512M";
+var MEM_LIMIT = "1024m"; // raise it from 512MB to 1024MB and measure what happens
 
 
 // bind() res and useJSONP before using
@@ -67,7 +89,7 @@ function postExecHandler(res, useJSONP, err, stdout, stderr) {
     if (err.killed) {
       // timeout!
       errTrace = {code: '', trace: [{'event': 'uncaught_exception',
-                                     'exception_msg': 'Error: Your code ran for more than ' + TIMEOUT_SECS + ' seconds.\nThe server may be overloaded right now.\nPlease try again later, or shorten your code.'}]};
+                                     'exception_msg': 'Error: Your code ran for more than ' + TIMEOUT_SECS + ' seconds. It may have an INFINITE LOOP.\nOr the server may be OVERLOADED right now.\nPlease try again later, or shorten your code. [#BackendError]'}]};
       if (useJSONP) {
         res.jsonp(errTrace /* return an actual object, not a string */);
       } else {
@@ -80,7 +102,9 @@ function postExecHandler(res, useJSONP, err, stdout, stderr) {
                                        'exception_msg': 'Error: stopped after running 1000 steps and cannot display visualization.\nShorten your code, since Python Tutor is not designed to handle long-running code.'}]};
       } else {
         errTrace = {code: '', trace: [{'event': 'uncaught_exception',
-                                       'exception_msg': "Unknown error. The server may be down or overloaded right now.\nReport a bug to philip@pgbovine.net by clicking on the\n'Generate permanent link' button at the bottom and including a URL in your email."}]};
+                                       'exception_msg': "Unknown error. The server may be OVERLOADED right now; please try again later.\nYour code may also contain UNSUPPORTED FEATURES that the tool cannot handle.\nReport a bug to philip@pgbovine.net by clicking on the 'Generate shortened link'\nbutton at the bottom and including a URL in your email. [#BackendError]"}]};
+                                       // old error message, retired on 2018-03-02
+                                       //'exception_msg': "Unknown error. The server may be down or overloaded right now.\nReport a bug to philip@pgbovine.net by clicking on the\n'Generate permanent link' button at the bottom and including a URL in your email."}]};
       }
 
       if (useJSONP) {
@@ -97,7 +121,9 @@ function postExecHandler(res, useJSONP, err, stdout, stderr) {
         res.jsonp(stdoutParsed /* return an actual object, not a string */);
       } catch(e) {
         errTrace = {code: '', trace: [{'event': 'uncaught_exception',
-                                       'exception_msg': "Unknown error. The server may be down or overloaded right now.\nReport a bug to philip@pgbovine.net by clicking on the\n'Generate permanent link' button at the bottom and including a URL in your email."}]};
+                                       'exception_msg': "Unknown error. The server may be OVERLOADED right now; please try again later.\nYour code may also contain UNSUPPORTED FEATURES that the tool cannot handle.\nReport a bug to philip@pgbovine.net by clicking on the 'Generate shortened link'\nbutton at the bottom and including a URL in your email. [#BackendError]"}]};
+                                       // old error message, retired on 2018-03-02
+                                       //'exception_msg': "Unknown error. The server may be down or overloaded right now.\nReport a bug to philip@pgbovine.net by clicking on the\n'Generate permanent link' button at the bottom and including a URL in your email."}]};
         res.jsonp(errTrace /* return an actual object, not a string */);
       }
     } else {
@@ -146,6 +172,33 @@ function exec_js_handler(useJSONP /* use bind first */, isTypescript /* use bind
                           // double-check with 'docker ps -a'
                           killSignal: 'SIGINT'},
                          postExecHandler.bind(null, res, useJSONP));
+}
+
+
+// for running *natively* on localhost my Mac (must customize for Linux):
+if (local) {
+  app.get('/exec_js_native', function(req, res) {
+    res.setHeader('Access-Control-Allow-Origin', '*'); // enable CORS
+
+    var usrCod = req.query.user_script;
+
+    var exeFile = 'backends/javascript/node-v6.0.0-darwin-x64/bin/node';
+    var args = [];
+    args.push('--expose-debug-as=Debug',
+              'backends/javascript/jslogger.js',
+              '--jsondump=true',
+              '--code=' + usrCod);
+
+    child_process.execFile(exeFile, args,
+                           {timeout: TIMEOUT_SECS * 1000 /* milliseconds */,
+                            maxBuffer: MAX_BUFFER_SIZE,
+                            // make SURE docker gets the kill signal;
+                            // this signal seems to allow docker to clean
+                            // up after itself to --rm the container, but
+                            // double-check with 'docker ps -a'
+                            killSignal: 'SIGINT'},
+                           postExecHandler.bind(null, res, false));
+  });
 }
 
 
@@ -236,7 +289,7 @@ function exec_cpp_handler(useCPP /* use bind first */, useJSONP /* use bind firs
   var exeFile;
   var args = [];
 
-  // this needs to match the docker setup in opt-cpp-backend/Dockerfile (in the https://github.com/pgbovine/opt-cpp-backend repo)
+  // must match the docker setup in backends/c_cpp/Dockerfile
   exeFile = '/usr/bin/docker'; // absolute path to docker executable
   args.push('run', '-m', MEM_LIMIT, '--rm', '--user=netuser', '--net=none', '--cap-drop', 'all', 'pgbovine/opt-cpp-backend:v1',
             'python',
@@ -256,37 +309,36 @@ function exec_cpp_handler(useCPP /* use bind first */, useJSONP /* use bind firs
 }
 
 
+// test
+app.get('/test_failure_jsonp', function(req, res) {
+  var errTrace = {code: '', trace: [{'event': 'uncaught_exception',
+                                 'exception_msg': "Unknown error. The server may be OVERLOADED right now; please try again later.\nYour code may also contain UNSUPPORTED FEATURES that the tool cannot handle.\nReport a bug to philip@pgbovine.net by clicking on the 'Generate shortened link'\nbutton at the bottom and including a URL in your email. [#BackendError]"}]};
+  res.jsonp(errTrace /* return an actual object, not a string */);
+});
+
+
 // https support
 var https = require('https');
 var fs = require('fs');
 
-// obsolete as of 2017-06-28
-/*
-var options = {
-  key: fs.readFileSync('cokapi.com.key'),
-  cert: fs.readFileSync('cokapi.com-BUNDLE.crt')
-};
-*/
+if (useHttps) {
+  // added letsencrypt support on 2017-06-28 -- MAKE SURE we have read permissions
+  var options = {
+    key: fs.readFileSync('/etc/letsencrypt/live/cokapi.com/privkey.pem'),
+    cert: fs.readFileSync('/etc/letsencrypt/live/cokapi.com/cert.pem'),
+    ca: fs.readFileSync('/etc/letsencrypt/live/cokapi.com/chain.pem')
+  };
 
-// added letsencrypt support on 2017-06-28 -- MAKE SURE we have read permissions
-var options = {
-  key: fs.readFileSync('/etc/letsencrypt/live/cokapi.com/privkey.pem'),
-  cert: fs.readFileSync('/etc/letsencrypt/live/cokapi.com/cert.pem'),
-  ca: fs.readFileSync('/etc/letsencrypt/live/cokapi.com/chain.pem')
-};
-
-var args = process.argv.slice(2);
-if (args.length > 0 && args[0] === 'https') {
   var server = https.createServer(options, app).listen(
-    IS_DEBUG ? DEBUG_PORT : PRODUCTION_HTTPS_PORT,
+    PORT,
     function() {
       var host = server.address().address;
       var port = server.address().port;
-      console.log('https app listening at http://%s:%s', host, port);
+      console.log('https app listening at https://%s:%s', host, port);
   });
 } else {
   var server = app.listen(
-    IS_DEBUG ? DEBUG_PORT : PRODUCTION_PORT,
+    PORT,
     function() {
       var host = server.address().address;
       var port = server.address().port;

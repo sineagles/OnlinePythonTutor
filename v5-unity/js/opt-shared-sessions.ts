@@ -190,6 +190,7 @@ var liveHelpSurvey = {
 */
 
 // third version, deployed on 2018-01-22 (modeled off of the second version above)
+/*
 var liveHelpSurvey = {
   requestHelp:   [ {prompt: 'You\'re now on the help queue. Support our research by answering below:\n\nWhy did you decide to ask for help at this time?',
                     v: 'r3a'}, // almost identical to 'r2a'
@@ -204,6 +205,39 @@ var liveHelpSurvey = {
                     v: 'h3c'},
                  ]
 };
+*/
+
+// fourth version, deployed on 2018-03-12
+/*
+var liveHelpSurvey = {
+  requestHelp:   [ {prompt: 'You\'re now on the help queue. Support our research by answering below:\n\nWhy did you decide to ask for help at this time?',
+                    v: 'r4a'},
+                   {prompt: 'You\'re now on the help queue. Support our research by answering below:\n\nWhy did you ask for help anonymously on this website rather than getting help from someone you know?',
+                    v: 'r4b'},
+                 ],
+  volunteerHelp: [ {prompt: "Thanks for volunteering! Support our research by answering below:\n\nWhy did you decide to volunteer at this time? What motivated you to click on this particular help link?",
+                    v: 'h4a'},
+                   {prompt: "Thanks for volunteering! Support our research by answering below:\n\nWhat is your current job or profession?",
+                    v: 'h4b'},
+                 ]
+};
+*/
+
+// 2018-03-17: minor tweaks on version 4's wording to make it sound a bit more optional and casual
+var liveHelpSurvey = {
+  requestHelp:   [ {prompt: 'You are now on the help queue. Please wait for help to arrive.\n\n[OPTIONAL] Support our research by letting us know:\nWhy did you decide to ask for help at this time?',
+                    v: 'r4a'},
+                   {prompt: 'You are now on the help queue. Please wait for help to arrive.\n\n[OPTIONAL] Support our research by letting us know:\nWhy did you ask for help anonymously on this website rather than getting help from someone you know?',
+                    v: 'r4b'},
+                 ],
+  volunteerHelp: [ {prompt: "Thanks for volunteering! You are about to join a live chat.\n\n[OPTIONAL] Support our research by letting us know:\nWhy did you decide to volunteer at this time? What motivated you to click on this particular help link?",
+                    v: 'h4a'},
+                   {prompt: "Thanks for volunteering! You are about to join a live chat.\n\n[OPTIONAL] Support our research by letting us know:\nWhat is your current job or profession?",
+                    v: 'h4b'},
+                 ]
+};
+
+
 
 
 // randomly picks a survey item from liveHelpSurvey and mutates
@@ -751,16 +785,22 @@ export class OptFrontendSharedSessions extends OptFrontend {
   pendingCodeOutputScrollTop = null;
   updateOutputSignalFromRemote = false;
 
-  // TODO: unify these 3 booleans into 1 unified one:
-  wantsPublicHelp = false;
+  // for demo recording:
   isRecordingDemo = false;
   isPlayingDemo = false;
-
   demoVideo: OptDemoVideo;
 
-  disableSharedSessions = false; // if we're on mobile/tablets, disable this entirely since it doesn't work on mobile
+  wantsPublicHelp = false;
+  iMadeAPublicHelpRequest = false; // subtly different than wantsPublicHelp (see usage)
+  disableSharedSessions = false;
   isIdle = false;
   peopleIveKickedOut = []; // #savage
+
+  sessionActivityStats = {};
+  abTestSettings; // for A/B testing
+
+  payItForwardMsg = "If you found this service useful, please take the time to help others in the future. We depend on volunteers like you to provide help.";
+  payItForwardMsgVersion = 'v1';
 
   fullCodeSnapshots = []; // a list of full snapshots of code taken at given times, with:
   curPeekSnapshotIndex = -1;  // current index you're peeking at inside of fullCodeSnapshots, -1 if not peeking at anything
@@ -768,6 +808,7 @@ export class OptFrontendSharedSessions extends OptFrontend {
   constructor(params={}) {
     super(params);
     this.initTogetherJS();
+    this.initABTest();
 
     this.pyInputAceEditor.getSession().on("change", (e) => {
       // unfortunately, Ace doesn't detect whether a change was caused
@@ -803,13 +844,13 @@ export class OptFrontendSharedSessions extends OptFrontend {
 
     var ssDiv = `
 
-<button id="requestHelpBtn" type="button" class="togetherjsBtn" style="margin-bottom: 6pt; font-weight: bold;">
-Get live help! (NEW!)
+<button id="requestHelpBtn" type="button" class="togetherjsBtn" style="font-size: 11pt; margin-bottom: 6pt; font-weight: bold;">
+Get live help!
 </button>
 
 <div id="ssDiv">
   <button id="sharedSessionBtn" type="button" class="togetherjsBtn" style="font-size: 9pt;">
-  Start private chat session
+  Start private chat
   </button>
 
   <br/>
@@ -831,11 +872,6 @@ Get live help! (NEW!)
   <button id="stopTogetherJSBtn" type="button" class="togetherjsBtn">
   Stop this chat session
   </button>
-
-  <div style="width: 200px; font-size: 8pt; color: #666; margin-top: 8px;">
-  Note that your chat logs and code may be recorded, anonymized, and
-  analyzed for our research.
-  </div>
 </div>
 `;
 
@@ -878,7 +914,6 @@ Get live help! (NEW!)
     // resources and get a more accurate indicator of who is active at
     // the moment
     setInterval(this.getHelpQueue.bind(this), 5 * 1000);
-    this.getHelpQueue(); // call it once on page load
 
     // update this pretty frequently; doesn't require any ajax calls:
     setInterval(this.updateModerationPanel.bind(this), 2 * 1000);
@@ -914,6 +949,64 @@ Get live help! (NEW!)
     });
   }
 
+  parseQueryString() {
+    super.parseQueryString();
+    // AFTERWARDS, immediately get help queue. this way, if the query
+    // string option demo=true is set, then it will properly disable
+    // shared sessions before getting the help queue
+    this.getHelpQueue();
+  }
+
+  demoModeChanged() {
+    console.log('demoModeChanged', this.demoMode);
+    if (this.demoMode) {
+      // hide the shared sessions header ...
+      $("td#headerTdLeft,td#headerTdRight").hide();
+      // we need to not only hide this header, but also NOT call
+      // getHelpQueue periodically, or else the server will *think* that
+      // we're monitoring the help queue when in fact we aren't:
+      this.disableSharedSessions = true;
+
+      // disable all surveys too
+      this.activateSyntaxErrorSurvey = false;
+      this.activateRuntimeErrorSurvey = false;
+      this.activateEurekaSurvey = false;
+    } else {
+      $("td#headerTdLeft,td#headerTdRight").show();
+      this.disableSharedSessions = false;
+    }
+  }
+
+  // for A/B testing -- store this information PER USER in localStorage,
+  // so that it can last throughout all sessions where this user
+  // used the same browser. that way, every user will consistently get
+  // put into one particular A/B test bucket.
+  initABTest() {
+    if (supports_html5_storage() && localStorage.getItem('abtest_settings')) {
+      this.abTestSettings = JSON.parse(localStorage.getItem('abtest_settings'));
+    } else {
+      this.abTestSettings = {};
+    }
+
+    // all values in the range of [0, 1)
+    if (this.abTestSettings.nudge === undefined) {
+      this.abTestSettings.nudge = Math.random();
+    }
+    if (this.abTestSettings.payItForward === undefined) {
+      this.abTestSettings.payItForward = Math.random();
+    }
+    if (this.abTestSettings.helperGreeting === undefined) {
+      this.abTestSettings.helperGreeting = Math.random();
+    }
+
+    // always save it again for robustness (we might have added some new
+    // keys to this user's abTestSettings object)
+    if (supports_html5_storage()) {
+      localStorage.setItem('abtest_settings', JSON.stringify(this.abTestSettings));
+    }
+    console.log('initABTest:', this.abTestSettings);
+  }
+
   langToEnglish(lang) {
     if (lang === '2') {
       return 'Python2';
@@ -937,19 +1030,36 @@ Get live help! (NEW!)
 
   getHelpQueue() {
     // VERY IMPORTANT: to avoid overloading the server, don't send these
-    // requests when you're idle
-    if (this.isIdle) {
+    // requests when you're idle or disableSharedSessions is on.
+    // this is important also for accurate logging, since if you're not
+    // currently looking at the queue, the server shouldn't count you as
+    // an "observer" who is looking at the queue at the moment, or else
+    // it might overestimate the number of people who are observing the
+    // queue at each moment ...
+    if (this.isIdle || this.disableSharedSessions) {
       $("#publicHelpQueue").empty(); // clear when idle so that you don't have stale results
-      return; // return early!
+      return; // return early before making a GET request to server!
+    }
+
+    // if we can't even see the help queue for some reason, then don't bother
+    // calling /getHelpQueue on the server since we can't see the help queue!!
+    if (!$("#publicHelpQueue").is(":visible") ){
+      console.log('getHelpQueue canned because #publicHelpQueue not visible');
+      return; // return early before making a GET request to server!
     }
 
     var ghqUrl = TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/getHelpQueue";
+    var curState = this.getAppState();
     $.ajax({
       url: ghqUrl,
       dataType: "json",
-      data: {user_uuid: this.userUUID}, // tell the server who you are
+      data: {user_uuid: this.userUUID, lang: curState.py, mode: curState.mode, origin: curState.origin},
       error: () => {
         console.log('/getHelpQueue error');
+        // hide all shared session related stuff if you can't even
+        // getHelpQueue successfully, because that means you likely
+        // can't get connected to the chat server at all:
+        $("td#headerTdLeft").hide(); // TODO: make a better name for this!
 
         if (this.wantsPublicHelp) {
           $("#publicHelpQueue").html('ERROR: help server is down. If you had previously asked for help, something is wrong; stop this session and try again later.');
@@ -958,6 +1068,11 @@ Get live help! (NEW!)
         }
       },
       success: (resp) => {
+        if (!$("td#headerTdLeft").is(":visible") ){
+          console.log('td#headerTdLeft show');
+          $("td#headerTdLeft").show(); // TODO: make a better name for this!
+        }
+
         var displayEmptyQueueMsg = false;
         var me = this;
         if (resp && resp.length > 0) {
@@ -1088,9 +1203,9 @@ Get live help! (NEW!)
 
         if (displayEmptyQueueMsg) {
           if (this.wantsPublicHelp) {
-            $("#publicHelpQueue").html('Nobody is currently asking for help. If you had previously asked for help, something is wrong; stop this session and try again later.');
+            $("#publicHelpQueue").html('Nobody is currently on the help queue. <span style="color: red; font-weight: bold;">If you have asked for help, something is not working</span>; stop this session and try again later.');
           } else {
-            $("#publicHelpQueue").html('Nobody is currently asking for help using the "Get live help!" button.');
+            $("#publicHelpQueue").html('Nobody is currently asking for help using the "Get live help!" button. Be the first!');
           }
         }
       },
@@ -1138,7 +1253,7 @@ Get live help! (NEW!)
           </button><br/>`);
         $("#stopRequestHelpBtn").click(this.initStopRequestingPublicHelp.bind(this));
       } else {
-        $("#moderationPanel").append('This is a private session. ');
+        $("#moderationPanel").append('This is a private session.<br/><br/>');
         if (!$("#requestHelpBtn").is(':visible')) {
           $("#requestHelpBtn").show(); // make sure there's a way to get back on the queue
         }
@@ -1155,10 +1270,11 @@ Get live help! (NEW!)
       var me = this; // ugh
       $("#moderationPanel .kickLink").click(function() { // need jQuery $(this) so can't use => arrow function
         var idToKick = $(this).data('clientId');
-        var confirmation = confirm('Press OK to kick and ban ' + $(this).data('username') + ' from this session.');
+        var confirmation = confirm('Press OK to kick and ban ' + $(this).data('username') + ' from this session.\n\nUndo their code changes using the UNDO/restore buttons.');
         if (confirmation) {
           TogetherJS.send({type: "kickOut", idToKick: idToKick});
           me.peopleIveKickedOut.push(idToKick);
+          me.takeFullCodeSnapshot(); // 2018-03-15: save a snapshot at the time when you kick someone out, so that UNDO button will appear to show you older snapshots
         }
       });
     } else {
@@ -1400,6 +1516,72 @@ Get live help! (NEW!)
         } while ($.inArray(newName, peerNames) >= 0); // i.e., is newName in peerNames?
 
         p.Self.update({name: newName}); // change our own name
+      }
+    });
+
+    // someone ELSE sent a chat
+    TogetherJS.hub.on("togetherjs.chat", (msg) => {
+      var obj = (this.sessionActivityStats as any).numChatsByPeers;
+      if (!(obj[msg.clientId])) {
+        obj[msg.clientId] = 0;
+      }
+      obj[msg.clientId]++;
+    });
+
+    // someone ELSE edited code
+    TogetherJS.hub.on("editCode", (msg) => {
+      var obj = (this.sessionActivityStats as any).numCodeEditsByPeers;
+      if (!(obj[msg.clientId])) {
+        obj[msg.clientId] = 0;
+      }
+      obj[msg.clientId]++;
+    });
+
+    // someone (other than you) left this session; if *you* left, then
+    // TogetherJS will be shut off by the time this signal is sent, so
+    // this callback function won't run
+    TogetherJS.hub.on("togetherjs.bye", (msg) => {
+      this.takeFullCodeSnapshot(); // take a snapshot whenever someone leaves so that we can undo to the point right before they left
+
+      console.log('PEER JUST LEFT: # chats, # code edits:',
+                  (this.sessionActivityStats as any).numChatsByPeers[msg.clientId],
+                  (this.sessionActivityStats as any).numCodeEditsByPeers[msg.clientId]);
+
+      // A/B test the pay-it-forward nudge
+      //
+      // if YOU were the help requester, and the person who just left had
+      // >= 10 chats or code edits, then they did SOMETHING non-trivial, so
+      // possibly pop up a pay-it-forward message. they're not
+      // guaranteed to have successfully helped you, but at least they
+      // did something and weren't just lurking silently.
+      //
+      // note that we use this.iMadeAPublicHelpRequest, which will pick up
+      // on only those requests you made by putting yourself on the public
+      // help queue
+      if (this.iMadeAPublicHelpRequest &&
+          (((this.sessionActivityStats as any).numChatsByPeers[msg.clientId] >= 10) ||
+           ((this.sessionActivityStats as any).numCodeEditsByPeers[msg.clientId] >= 10))) {
+        var isRealPayItForward = (this.abTestSettings && this.abTestSettings.payItForward < 0.5);
+
+        if (isRealPayItForward) {
+          this.chatbotPostMsg(this.payItForwardMsg);
+        }
+
+        // regardless of isRealPayItForward, log an entry on the server to aid in data analysis later:
+        // note that we co-opt the 'nudge' endpoint for simplicity
+        var nudgeUrl = TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/nudge";
+        $.ajax({
+          url: nudgeUrl,
+          dataType: "json",
+          data: {nudgeType: 'payItForward',
+                 v: this.payItForwardMsgVersion,
+                 info: 'peerJustLeft',
+                 isRealNudge: isRealPayItForward,
+                 id: TogetherJS.shareId(),
+                 user_uuid: this.userUUID},
+          success: function() {}, // NOP
+          error: function() {},   // NOP
+        });
       }
     });
 
@@ -1659,6 +1841,13 @@ Get live help! (NEW!)
     this.activateEurekaSurvey = false;
     $("#eureka_survey").remove(); // if a survey is already displayed on-screen, then kill it
 
+    this.sessionActivityStats = {
+      // Key: clientId of another person who's joined this session
+      // Value: number of times these events occurred
+      numChatsByPeers: {},
+      numCodeEditsByPeers: {},
+    };
+
     if (this.isRecordingDemo) {
       this.demoVideo.recordTogetherJsReady();
     } else if (this.isPlayingDemo) {
@@ -1671,10 +1860,66 @@ Get live help! (NEW!)
   }
 
   TogetherjsCloseHandler() {
+    // A/B test the pay-it-forward nudge
+    //
+    // if YOU were the help requester and ANYONE in your session had
+    // >= 10 chats or code edits, then they did SOMETHING non-trivial, so
+    // possibly pop up a pay-it-forward message. they're not
+    // guaranteed to have successfully helped you, but at least they
+    // did something and weren't just lurking silently.
+    //
+    // note that we use this.iMadeAPublicHelpRequest, which will pick up
+    // on only those requests you made by putting yourself on the public
+    // help queue
+    if (this.iMadeAPublicHelpRequest) {
+      var nonTrivialSession = false;
+      var ncbp = (this.sessionActivityStats as any).numChatsByPeers;
+      var ncebp = (this.sessionActivityStats as any).numCodeEditsByPeers;
+      for (var key in ncbp) {
+        if (ncbp[key] >= 10) {
+          nonTrivialSession = true;
+          break;
+        }
+      }
+      for (var key in ncebp) {
+        if (ncebp[key] >= 10) {
+          nonTrivialSession = true;
+          break;
+        }
+      }
+
+      if (nonTrivialSession) {
+        var isRealPayItForward = (this.abTestSettings && this.abTestSettings.payItForward < 0.5);
+
+        if (isRealPayItForward) {
+          // we can't use the chatbot since we just closed the TogetherJS session, so we'll have to go with an alert
+          // TODO: replace with a less annoying modal pop-up in the future, maybe from jQuery UI
+          alert(this.payItForwardMsg);
+        }
+
+        // regardless of isRealPayItForward, log an entry on the server to aid in data analysis later:
+        // note that we co-opt the 'nudge' endpoint for simplicity
+        var nudgeUrl = TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/nudge";
+        $.ajax({
+          url: nudgeUrl,
+          dataType: "json",
+          data: {nudgeType: 'payItForward',
+                 v: this.payItForwardMsgVersion,
+                 info: 'sessionStopped',
+                 isRealNudge: isRealPayItForward,
+                 //id: TogetherJS.shareId(), // we don't have a shareId anymore since the session has been stopped
+                 user_uuid: this.userUUID},
+          success: function() {}, // NOP
+          error: function() {},   // NOP
+        });
+      }
+    }
+
     if (this.appMode === "display") {
       $("#surveyHeader").show();
     }
     this.wantsPublicHelp = false; // explicitly reset it
+    this.iMadeAPublicHelpRequest = false; // explicitly reset it
 
     // reset all recording-related stuff too!
     if (this.isRecordingDemo) {
@@ -1841,10 +2086,31 @@ Get live help! (NEW!)
   initRequestPublicHelp() {
     assert(this.wantsPublicHelp);
     assert(TogetherJS.running);
+    var shareId = TogetherJS.shareId();
+
+
+    // pop up the survey BEFORE you make the request, so in case you get
+    // hung up on the prompt() and take a long time to answer the question,
+    // you're not put on the queue yet until you finish or click Cancel:
+    var surveyItem = randomlyPickSurveyItem('requestHelp');
+    var miniSurveyResponse = prompt(surveyItem.prompt);
+
+    // always log every impression, even if miniSurveyResponse is blank,
+    // since we can know how many times that survey question was ever seen:
+    var surveyUrl = TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/survey";
+    $.ajax({
+      url: surveyUrl,
+      dataType: "json",
+      data: {id: shareId, user_uuid: this.userUUID, kind: 'requestHelp', v: surveyItem.v, response: miniSurveyResponse},
+      success: function() {}, // NOP
+      error: function() {},   // NOP
+    });
+
+
+    this.iMadeAPublicHelpRequest = true; // this will always be true even if you shut the door later and don't let people in (i.e., make this into a private session)
 
     // first make a /requestPublicHelp request to the TogetherJS server:
     var rphUrl = TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/requestPublicHelp";
-    var shareId = TogetherJS.shareId();
     var shareUrl = TogetherJS.shareUrl();
     var lang = this.getAppState().py;
     var getUserName = TogetherJS.config.get("getUserName");
@@ -1876,7 +2142,7 @@ Get live help! (NEW!)
         <div id="moderationPanel"></div>
         <div style="margin-bottom: 10px;">You have requested help as <b>` +
         TogetherJS.config.get("getUserName")() +
-        `</b> (see below for queue). Anyone currently on this website can volunteer to help you, but there is no guarantee that someone will come help. <span style="color: #888; font-size: 8pt;">Use this service at your own risk. We are not responsible for the chat messages or behaviors of this site's users.</span></div>
+        `</b> (see below for queue).<br/>Anyone on this website can volunteer to help you, but there is no guarantee that someone will come help.</div>
         <div id="publicHelpQueue"></div>`);
       this.updateModerationPanel(); // update it right away
       this.getHelpQueue(); // update it right away
@@ -1888,21 +2154,6 @@ Get live help! (NEW!)
         TogetherJS(); // shut down TogetherJS
       }
     }
-
-    var surveyItem = randomlyPickSurveyItem('requestHelp');
-    var miniSurveyResponse = prompt(surveyItem.prompt);
-
-    // always log every impression, even if miniSurveyResponse is blank,
-    // since we can know how many times that survey question was ever seen:
-    var shareId = TogetherJS.shareId();
-    var surveyUrl = TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/survey";
-    $.ajax({
-      url: surveyUrl,
-      dataType: "json",
-      data: {id: shareId, user_uuid: this.userUUID, kind: 'requestHelp', v: surveyItem.v, response: miniSurveyResponse},
-      success: function() {}, // NOP
-      error: function() {},   // NOP
-    });
 
     this.redrawConnectors(); // update all arrows at the end
   }
@@ -1956,7 +2207,12 @@ Get live help! (NEW!)
   }
 
   appendTogetherJsFooter() {
-    var extraHtml = '<div style="margin-top: 3px; margin-bottom: 10px; font-size: 8pt;">This is a <span style="color: #e93f34;">highly experimental</span> feature. Use at your own risk. Do not move or type too quickly. If you get out of sync, click: <button id="syncBtn" type="button">force sync</button> <a href="https://docs.google.com/forms/d/126ZijTGux_peoDusn1F9C1prkR226897DQ0MTTB5Q4M/viewform" target="_blank">Report bugs/feedback</a></div>';
+    // deployed on 2018-03-24
+    var extraHtml = '<div style="margin-top: 3px; margin-bottom: 6px; font-size: 9pt;"><a href="https://docs.google.com/forms/d/126ZijTGux_peoDusn1F9C1prkR226897DQ0MTTB5Q4M/viewform" target="_blank">Report bugs & feedback</a>. Don\'t move or type too fast. If you get out of sync, click <button id="syncBtn" type="button">force sync</button> </div>';
+
+    // retired on 2018-03-24 to simplify the text on the page:
+    //var extraHtml = '<div style="margin-top: 3px; margin-bottom: 10px; font-size: 8pt;">This is a <span style="color: #e93f34;">highly experimental</span> feature. Use at your own risk. Do not move or type too quickly. If you get out of sync, click: <button id="syncBtn" type="button">force sync</button> <a href="https://docs.google.com/forms/d/126ZijTGux_peoDusn1F9C1prkR226897DQ0MTTB5Q4M/viewform" target="_blank">Report bugs/feedback</a></div>';
+
     $("#togetherjsStatus").append(extraHtml);
     $("#syncBtn").click(this.requestSync.bind(this));
   }
@@ -1996,7 +2252,7 @@ Get live help! (NEW!)
       $("#codeInputWarnings #liveModeExtraWarning").remove(); // for ../live.html
       $("#codeInputWarnings").append(`
         <span id="snapshotHistory" style="font-size: 9pt; margin-left: 5px;">
-          Restore old code:
+          <span style="color: red; font-weight: bold;">UNDO</span>/restore old code:
           <button id="prevSnapshot">&lt; Prev</button>
           <span id="curSnapIndex"/>/<span id="numTotalSnaps"/>
           <button id="nextSnapshot">Next &gt;</button>
@@ -2079,6 +2335,11 @@ Get live help! (NEW!)
 
   // send an encouraging nudge message in the chat box if you're not idle ...
   // deployed on 2017-12-10
+  //
+  // starting on 2018-03-16, set this up as an A/B test where if
+  // (this.abTestSettings.nudge < 0.5), then we do a real nudge;
+  // otherwise we don't do a nudge but log to the server that we did a
+  // fake one so we have a record if it
   periodicMaybeChatNudge() {
     // only do this if you're:
     // - currently in a chat
@@ -2103,10 +2364,11 @@ Get live help! (NEW!)
 
     // MASSIVE MASSIVE MASSIVE copy-and-paste from getHelpQueue()
     var ghqUrl = TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/getHelpQueue";
+    var curState = this.getAppState();
     $.ajax({
       url: ghqUrl,
       dataType: "json",
-      data: {user_uuid: this.userUUID}, // tell the server who you are
+      data: {user_uuid: this.userUUID, lang: curState.py, mode: curState.mode, origin: curState.origin},
       error: () => {
         console.log('/getHelpQueue error');
       },
@@ -2171,7 +2433,7 @@ Get live help! (NEW!)
           });
 
           otherActiveEntries.forEach((e) => {
-            var curStr = '\n- Click to help ' + e.username;
+            var curStr = '\n- Help ' + e.username;
             var langName = this.langToEnglish(e.lang);
 
             if (e.country && e.city) {
@@ -2195,18 +2457,23 @@ Get live help! (NEW!)
           });
 
           if (chatMsgs.length > 0) {
-            var finalMsg = 'Please be patient and keep working normally. Note that these other users also need help. If you help them, maybe they can help you in return.';
+            var finalMsg = 'Please be patient and keep working normally. These other users also need help right now. If you help them, maybe they can help you in return.';
             chatMsgs.forEach((e) => {
               finalMsg += e;
             });
-            this.chatbotPostMsg(finalMsg);
 
-            // log an entry on the server to aid in data analysis later:
+            // A/B test: log all nudges but only display it if it's real:
+            var isRealNudge = (this.abTestSettings && this.abTestSettings.nudge < 0.5);
+            if (isRealNudge) {
+              this.chatbotPostMsg(finalMsg);
+            }
+
+            // regardless of isRealNudge, log an entry on the server to aid in data analysis later:
             var nudgeUrl = TogetherJS.config.get("hubBase").replace(/\/*$/, "") + "/nudge";
             $.ajax({
               url: nudgeUrl,
               dataType: "json",
-              data: {id: myShareId, user_uuid: this.userUUID, entriesJSON: JSON.stringify(otherActiveEntries)},
+              data: {isRealNudge: isRealNudge, id: myShareId, user_uuid: this.userUUID, entriesJSON: JSON.stringify(otherActiveEntries)},
               success: function() {}, // NOP
               error: function() {},   // NOP
             });

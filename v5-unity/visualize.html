@@ -8,18 +8,14 @@
 -->
 
 <head>
-  <title>Visualize Python, Java, JavaScript, TypeScript, and Ruby code execution</title>
+  <title>Visualize Python, Java, JavaScript, C, C++, Ruby code execution</title>
 
   <meta http-equiv="Content-type" content="text/html; charset=UTF-8"/>
 
   <!-- let Webpack take care of everything. Use the [hash] feature to
        create unique filenames for releases:
        https://webpack.github.io/docs/long-term-caching.html -->
-<<<<<<< HEAD
-  <script type="text/javascript" src="build/visualize.bundle.js?145c3662a9" charset="utf-8"></script>
-=======
-  <script type="text/javascript" src="build/visualize.bundle.js?577852bbec" charset="utf-8"></script>
->>>>>>> master
+  <script type="text/javascript" src="build/visualize.bundle.js?06f85e09f4" charset="utf-8"></script>
 
 <!-- insert google-analytics.txt contents here -->
 
@@ -49,14 +45,14 @@
 <div id="codeInputWarnings">Write code in
 
   <select id="pythonVersionSelector">
-    <option value="2">Python 2.7</option>
     <option value="3" selected>Python 3.6</option>
+    <option value="2">Python 2.7</option>
     <option value="java">Java 8</option>
+    <option value="c">C (gcc 4.8, C11)</option>
+    <option value="cpp">C++ (gcc 4.8, C++11)</option>
     <option value="js">JavaScript ES6</option>
     <option value="ts">TypeScript 1.4</option>
     <option value="ruby">Ruby 2.2</option>
-    <option value="c">C (gcc 4.8, C11) EXPERIMENTAL</option>
-    <option value="cpp">C++ (gcc 4.8, C++11) EXPERIMENTAL</option>
   </select>
 
 </div>
@@ -75,7 +71,7 @@
 <div id="instructionsPane"></div>
 
 <div id="javaOptionsPane" style="margin-top: 20px;">
-[<i>coming soon!</i>] Java options: pass in command-line arguments and feed user input to stdin
+<!--[<i>coming soon!</i>] Java options: pass in command-line arguments and feed user input to stdin-->
 </div>
 
 <div id="optionsPane">
@@ -84,7 +80,8 @@
     <option value="true">show all frames (Python)</option>
   </select>
   <select id="heapPrimitivesSelector">
-    <option value="false">inline primitives &amp; nested objects [default]</option>
+    <option value="false">inline primitives and try to nest objects</option>
+    <option value="nevernest" selected>inline primitives but don't nest objects [default]</option>
     <option value="true">render all objects on the heap (Python/Java)</option>
   </select>
   <select id="textualMemoryLabelsSelector">

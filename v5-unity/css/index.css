@@ -23,14 +23,13 @@ p, li {
 
 h1 {
   font-weight: normal;
-  margin-top: 0px;
-  margin-bottom: 8px;
+  margin-top: 15px;
+  margin-bottom: 0px;
   line-height: 1.5;
 }
 
 .smallH1 {
-  font-size: 14pt;
-  margin-left: -2px;
+  font-size: 15pt;
 }
 
 #optLink {
@@ -64,7 +63,10 @@ div.mainBodyPane {
 
 div.activityPane {
   /* TOP RIGHT BOTTOM LEFT */
-  padding: 15px 0px /* make right padding ZERO and just right-pad 'p' */ 5px 20px;
+  /*padding: 15px 0px 5px 20px;*/
+
+  padding: 15px 0px /* make right padding ZERO and just right-pad 'p' */ 0px 25px;
+
   text-align: left;
   border: 3px solid #005583;
   border-radius: 15px; /* for rounded corners */
@@ -76,7 +78,7 @@ div.activityPane p {
 
 div.activityPane h1 {
   font-size: 22pt;
-  margin-bottom: 20pt;
+  /*margin-bottom: 20pt;*/
 }
 
 
@@ -107,19 +109,20 @@ a:hover {
 
 div#learnPane {
   margin-top: 6pt;
-  margin-bottom: 8pt;
+  padding-bottom: 20px;
   border: 5px solid #062270;
 }
 
 div#learnPane p {
-  padding-right: 140px;
+  /*padding-right: 140px;*/
+  padding-right: 100px;
 }
 
-div#learnPane #startLink {
+#startLink {
   font-size: 16pt;
   font-weight: normal;
   margin-top: 20px;
-  margin-bottom: 25px;
+  margin-bottom: 35px;
   font-family: verdana, arial, helvetica, sans-serif;
 }
 
@@ -188,13 +191,14 @@ table.layoutTbl td#sharePaneTd {
 
 
 #footer {
-  color: #666666;
-  font-size: 9pt;
-  border-top: 1px solid #bbbbbb;
+  color: #444;
+  font-size: 10pt;
+  /*border-top: 1px solid #bbbbbb;*/
   padding-top: 0px;
-  margin-top: 20px;
+  margin-top: 0px;
 
   /* center align */
+  text-align: center;
   margin-left: auto;
   margin-right: auto;
 

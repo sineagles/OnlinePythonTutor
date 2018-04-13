@@ -20,7 +20,7 @@ window.optOverride.frontendLang = 'java'; // hacky override before including vis
   <!-- let Webpack take care of everything. Use the [hash] feature to
        create unique filenames for releases:
        https://webpack.github.io/docs/long-term-caching.html -->
-  <script type="text/javascript" src="build/visualize.bundle.js?577852bbec" charset="utf-8"></script>
+  <script type="text/javascript" src="build/visualize.bundle.js?06f85e09f4" charset="utf-8"></script>
 
 <!-- insert google-analytics.txt contents here -->
 
@@ -83,7 +83,7 @@ code)
 <div id="instructionsPane"></div>
 
 <div id="javaOptionsPane" style="margin-top: 20px;">
-[<i>coming soon!</i>] Java options: pass in command-line arguments and feed user input to stdin
+<!--[<i>coming soon!</i>] Java options: pass in command-line arguments and feed user input to stdin-->
 </div>
 
 <div id="optionsPane">
@@ -92,7 +92,8 @@ code)
     <option value="true">show all frames (Python)</option>
   </select>
   <select id="heapPrimitivesSelector">
-    <option value="false">inline primitives &amp; nested objects [default]</option>
+    <option value="false">inline primitives and try to nest objects</option>
+    <option value="nevernest" selected>inline primitives but don't nest objects [default]</option>
     <option value="true">render all objects on the heap (Python/Java)</option>
   </select>
   <select id="textualMemoryLabelsSelector">

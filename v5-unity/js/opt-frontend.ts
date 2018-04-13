@@ -73,6 +73,8 @@ export class OptFrontend extends AbstractBaseFrontend {
   activateRuntimeErrorSurvey: boolean = true;
   activateEurekaSurvey: boolean = true;
 
+  demoMode: boolean = false; // if true, then we're giving a live demo, so hide a bunch of excess stuff on page
+
   preseededCurInstr: number = undefined;
 
   constructor(params={}) {
@@ -140,7 +142,10 @@ export class OptFrontend extends AbstractBaseFrontend {
              });
     });
 
-    $("#instructionsPane").html('Instructions: <a href="https://www.youtube.com/watch?v=h4q3UKdEFKE" target="_blank">sharing permanent links</a> | <a href="https://www.youtube.com/watch?v=Mxt9HZWgwAM" target="_blank">hiding variables</a> | <a href="https://www.youtube.com/watch?v=80ztTXP90Vs" target="_blank">setting breakpoints</a>');
+    $("#instructionsPane").html(`Advanced instructions:
+      <a href="https://www.youtube.com/watch?v=80ztTXP90Vs&list=PLzV58Zm8FuBL2WxxZKGZ6j1dH8NKb_HYI&index=5" target="_blank">setting breakpoints</a> |
+      <a href="https://www.youtube.com/watch?v=Mxt9HZWgwAM&list=PLzV58Zm8FuBL2WxxZKGZ6j1dH8NKb_HYI&index=6" target="_blank">hiding variables</a> |
+      <a href="https://www.youtube.com/watch?v=JjGt95Te0wo&index=3&list=PLzV58Zm8FuBL2WxxZKGZ6j1dH8NKb_HYI" target="_blank">live programming</a>`);
 
     // first initialize options from HTML LocalStorage. very important
     // that this code runs FIRST so that options get overridden by query
@@ -277,8 +282,12 @@ export class OptFrontend extends AbstractBaseFrontend {
       }
 
       $.doTimeout('pyInputAceEditorChange', CODE_SNAPSHOT_DEBOUNCE_MS, this.snapshotCodeDiff.bind(this)); // debounce
-      this.clearFrontendError();
-      s.clearAnnotations();
+
+      // starting on 2018-03-14 -- do NOT clear frontend errors and
+      // annotations when you edit the code, since you may still want to
+      // see the old error messages ... commented out these two lines:
+      //this.clearFrontendError();
+      //s.clearAnnotations();
     });
 
     // don't do real-time syntax checks:
@@ -372,7 +381,7 @@ export class OptFrontend extends AbstractBaseFrontend {
   executeCodeFromScratch() {
     // don't execute empty string:
     if (this.pyInputAceEditor && $.trim(this.pyInputGetValue()) == '') {
-      this.setFronendError(["Type in some code to visualize."]);
+      this.setFronendError(["Type in some code to visualize."], true);
       return;
     }
     super.executeCodeFromScratch();
@@ -500,6 +509,7 @@ export class OptFrontend extends AbstractBaseFrontend {
     if ((settings.url.indexOf('syntax_err_survey.py') > -1) ||
         (settings.url.indexOf('runtime_err_survey.py') > -1) ||
         (settings.url.indexOf('eureka_survey.py') > -1) ||
+        (settings.url.indexOf('error_log.py') > -1) ||
         (settings.url.indexOf('viz_interaction.py') > -1)) {
       return true;
     }
@@ -598,14 +608,21 @@ export class OptFrontend extends AbstractBaseFrontend {
         this.enterEditMode();
       });
       var v = $('#pythonVersionSelector').val();
+
+      // 2018-03-15 - removed "Live programming" link from
+      // visualization mode to simplify the UI, even if it drives
+      // fewer people to live programming mode; they can always click
+      // the "Live Programming Mode" button in the code editor:
+      /*
       if (v === 'js' || v === '2' || v === '3') {
         var myArgs = this.getAppState();
-        var urlStr = $.param.fragment('live.html', myArgs, 2 /* clobber all */);
+        var urlStr = $.param.fragment('live.html', myArgs, 2); // clobber all
         $("#pyOutputPane #liveModeSpan").show();
         $('#pyOutputPane #editLiveModeBtn').off().click(this.openLiveModeUrl.bind(this));
       } else {
         $("#pyOutputPane #liveModeSpan").hide();
       }
+      */
 
       $(document).scrollTop(0); // scroll to top to make UX better on small monitors
 
@@ -694,6 +711,8 @@ export class OptFrontend extends AbstractBaseFrontend {
     }
   }
 
+  demoModeChanged() {}; // NOP; subclasses need to override
+
   parseQueryString() {
     var queryStrOptions = this.getQueryStringOptions();
     this.setToggleOptions(queryStrOptions);
@@ -705,6 +724,11 @@ export class OptFrontend extends AbstractBaseFrontend {
     this.preseededCurInstr = queryStrOptions.preseededCurInstr;
     if (isNaN(this.preseededCurInstr)) {
       this.preseededCurInstr = undefined;
+    }
+
+    if (queryStrOptions.demoMode) {
+      this.demoMode = true;
+      this.demoModeChanged();
     }
 
     if (queryStrOptions.codeopticonSession) {

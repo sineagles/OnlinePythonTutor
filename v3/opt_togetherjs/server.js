@@ -8,6 +8,8 @@
 // endpoint so that people can request help from anyone currently on the
 // OPT website rather than needing to find their own tutors/peers to help them.
 // (also added a /getHelpQueue endpoint to get the current help queue state)
+//
+// 2018-03-18: added a /serverStats endpoint to report on latest server stats
 
 // Try to run with the following options to (hopefully!) prevent it from
 // mysteriously crashing and failing to restart (use --spinSleepTime to
@@ -34,6 +36,8 @@ var http = require('http');
 var parseUrl = require('url').parse;
 var fs = require('fs');
 var requestFunc = require('request');
+
+var child_process = require('child_process');
 
 // FIXME: not sure what logger to use
 //var logger = require('../../lib/logger');
@@ -223,20 +227,21 @@ var server = http.createServer(function(request, response) {
       return;
     }
 
+    // copied from createLogEntry
+    // Webfaction forwards IP addresses via proxy, so use this ...
+    // http://stackoverflow.com/questions/8107856/how-can-i-get-the-users-ip-address-using-node-js
+    var ip = request.remoteAddress /* check this FIRST since it's for WebSockets */ ||
+      request.headers['x-forwarded-for'] ||
+      request.connection.remoteAddress ||
+      request.socket.remoteAddress ||
+      (request.connection.socket ? request.connection.socket.remoteAddress : null);
+
     // if we don't have a user_uuid, use IP address as the next best proxy for unique user identity
     var uniqueId = url.query.user_uuid;
     if (!uniqueId) {
-      // copied from createLogEntry
-      // Webfaction forwards IP addresses via proxy, so use this ...
-      // http://stackoverflow.com/questions/8107856/how-can-i-get-the-users-ip-address-using-node-js
-      var ip = request.remoteAddress /* check this FIRST since it's for WebSockets */ ||
-        request.headers['x-forwarded-for'] ||
-        request.connection.remoteAddress ||
-        request.socket.remoteAddress ||
-        (req.connection.socket ? req.connection.socket.remoteAddress : null);
       uniqueId = 'IP_' + ip;
     }
-    allRecentHelpQueueQueries.add(uniqueId);
+    allRecentHelpQueueQueries.set(uniqueId, Object.assign({ip: ip}, url.query));
 
     response.writeHead(200, {
       "Content-Type": "application/json",
@@ -280,6 +285,29 @@ var server = http.createServer(function(request, response) {
       "Access-Control-Allow-Origin": "*"
     });
     response.end(JSON.stringify({status: 'OKIE DOKIE'}));
+  } else if (url.pathname == '/serverStats') {
+
+    // reference code from /load endpoint ...
+    //var load = getLoad();
+    //response.writeHead(200, {"Content-Type": "text/plain"});
+    //response.end("OK " + load.connections + " connections " +
+    //             load.sessions + " sessions; " +
+    //             load.solo + " are single-user and " +
+    //             (load.sessions - load.solo) + " active sessions");
+
+    // use "free -m" to get operating system memory stats:
+    child_process.execFile('/usr/bin/free', ['-m'], (err, stdout, stderr) => {
+      response.writeHead(200, {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*"
+      });
+      var nowTime = Date.now();
+      response.end(JSON.stringify({
+                    curTime: nowTime,
+                    queue: getPHRStats(undefined),
+                    freem: {errcode: err ? err.code : null, stdout: stdout, stderr: stderr},
+                    connectionStats: connectionStats}));
+    });
   } else {
     write404(response);
   }
@@ -531,7 +559,7 @@ wsServer.on('request', function(request) {
           request.headers['x-forwarded-for'] ||
           request.connection.remoteAddress ||
           request.socket.remoteAddress ||
-          (req.connection.socket ? req.connection.socket.remoteAddress : null);
+          (request.connection.socket ? request.connection.socket.remoteAddress : null);
         uniqueId = 'IP_' + ip;
       }
       if (bannedUsers.indexOf(uniqueId) < 0) {
@@ -551,7 +579,7 @@ wsServer.on('request', function(request) {
         request.headers['x-forwarded-for'] ||
         request.connection.remoteAddress ||
         request.socket.remoteAddress ||
-        (req.connection.socket ? req.connection.socket.remoteAddress : null);
+        (request.connection.socket ? request.connection.socket.remoteAddress : null);
 
 
       requestFunc("http://freegeoip.net/json/" + String(ip), function(error, resp, body) {
@@ -642,6 +670,32 @@ wsServer.on('request', function(request) {
     pgLogWrite(logObj);
   });
 });
+
+// periodically clean up connectionStats so that it doesn't grow out of  control:
+setInterval(function () {
+  for (var id in connectionStats) {
+    if (connectionStats[id].lastLeft && Date.now() - connectionStats[id].lastLeft > EMPTY_ROOM_LOG_TIMEOUT) {
+      //logStats(id, connectionStats[id]);
+      delete connectionStats[id]; // clean up!!!
+      continue;
+    }
+
+    // pgbovine - don't sample since it will just take up space
+    /*
+    var totalClients = countClients(connectionStats[id].clients);
+    var connections = 0;
+    if (allConnections[id]) {
+      connections = allConnections[id].length;
+    }
+
+    connectionStats[id].sample.push({
+      time: Date.now(),
+      totalClients: totalClients,
+      connections: connections
+    });
+    */
+  }
+}, SAMPLE_STATS_INTERVAL);
 
 // pgbovine - kill these since they seem unnecessary for OPT
 /*
@@ -882,7 +936,8 @@ function getPHRStats(uniqueId) {
 // which gives a rough indicator of how many people are currently logged onto
 // the OPT website at the moment. Reset this periodically.
 // Key: user_uuid or ip address starting with 'IP_'
-var allRecentHelpQueueQueries = new Set();
+// Value: JSON string of current app state of this user
+var allRecentHelpQueueQueries = new Map();
 
 function logPHRStats() {
   // periodically log the help queue stats:
@@ -890,7 +945,7 @@ function logPHRStats() {
   logObj.date = (new Date()).toISOString();
   logObj.type = 'PHRStats';
   logObj.queue = getPHRStats(undefined);
-  logObj.recentQueries = Array.from(allRecentHelpQueueQueries);
+  logObj.recentQueries = [...allRecentHelpQueueQueries]; // spread operator
   pgLogWrite(logObj);
   //console.log(logObj);
 }

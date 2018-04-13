@@ -1,7 +1,9 @@
 # Frequently Asked Questions from users of Online Python Tutor
 
-Email philip@pgbovine.net if you have a question that isn't addressed here.
+This document is **deprecated**; instead refer to the [**current list of unsupported features**](https://github.com/pgbovine/OnlinePythonTutor/blob/master/unsupported-features.md)
 
+
+Email philip@pgbovine.net if you have a question that isn't addressed here.
 
 #### I thought all objects in Python are (conceptually) on the heap; why does Python Tutor render primitive values (e.g., numbers, strings) inside of stack frames?
 
