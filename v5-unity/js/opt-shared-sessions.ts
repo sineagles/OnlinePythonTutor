@@ -472,10 +472,10 @@ class OptDemoVideo {
     // do NOT record cursor-click since that's too much noise
     return ((e.type == 'form-update') ||
             (e.type == 'cursor-update') ||
-            (e.type == 'bye') || // important to mark the ENDING of a recording
             (e.type == 'app.executeCode') ||
             (e.type == 'app.updateOutput') ||
             (e.type == 'app.startRecordingAudio') ||
+            (e.type == 'app.stopRecordingDemo') ||
             (e.type == 'pyCodeOutputDivScroll') ||
             (e.type == 'app.hashchange'));
   }
@@ -704,6 +704,8 @@ class OptDemoVideo {
       this.audioElt.src = this.mp3AudioRecording;
     }
     if (this.audioElt) {
+      this.audioElt.currentTime = this.frameToSeconds(startingFrame);
+      console.log('audioElt.currentTime:', this.audioElt.currentTime);
       this.audioElt.play();
     }
   }
@@ -890,6 +892,10 @@ class OptDemoVideo {
 
   secondsToFrames(secs) {
     return Math.floor(secs * this.fps);
+  }
+
+  frameToSeconds(frame) {
+    return frame / this.fps;
   }
 }
 
@@ -2103,6 +2109,9 @@ Get live help!
 
   recordButtonClicked() {
     if ($("#recordBtn").data('status') === 'recording') {
+      // issue this event right before stopping the recording
+      TogetherJS.send({type: "stopRecordingDemo"});
+
       TogetherJS(); // this will stop recording
       $("#recordBtn").data('status', 'stopped');
       $("#recordBtn").html("Record demo");
