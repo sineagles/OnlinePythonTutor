@@ -429,6 +429,8 @@ class OptDemoVideo {
 
   audioRecorder = null; // Recorder object from Recordmp3js
 
+  mp3AudioRecording = null; // a data URL representing the contents of the mp3 audio (if available)
+
   sess; // the current live TogetherJS session object
 
   constructor(frontend, serializedJsonStr=null) {
@@ -441,6 +443,7 @@ class OptDemoVideo {
       this.initialAppState = obj.initialAppState;
       this.events = obj.events;
       this.traceCache = obj.traceCache;
+      this.mp3AudioRecording = obj.mp3AudioRecording;
 
       // VERY IMPORTANT -- set the traceCache entry of the frontend so
       // that it can actually be used. #tricky!
@@ -526,14 +529,14 @@ class OptDemoVideo {
   doneEncodingMp3(mp3Data) {
     console.log('doneEncodingMp3!!!');
     var dataUrl = 'data:audio/mp3;base64,'+encode64(mp3Data);
-
-    (window as any).mp3URL = dataUrl; // TODO: get rid of this debugging global
+    this.mp3AudioRecording = dataUrl;
+    localStorage['demoVideo'] = this.serializeToJSON(); // serialize 'this' AGAIN after audio is ready
 
     // reference code for a new Audio object, then play it:
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLAudioElement
-    var audio = new Audio();
-    audio.src = dataUrl;
-    audio.play();
+    //var audio = new Audio();
+    //audio.src = dataUrl;
+    //audio.play();
 
     // this stuff below creates an HTML audio player node, which we
     // don't need right now ... and it's kind of flaky sometimes because
@@ -558,6 +561,7 @@ class OptDemoVideo {
   startRecordingAudio() {
     assert(this.audioRecorder);
     console.warn('startRecordingAudio()');
+    this.mp3AudioRecording = null; // erase any existing audio data
     this.audioRecorder.record();
   }
 
@@ -827,7 +831,8 @@ class OptDemoVideo {
 
     var ret = {initialAppState: this.initialAppState,
                events: this.events,
-               traceCache: this.traceCache};
+               traceCache: this.traceCache,
+               mp3AudioRecording: this.mp3AudioRecording};
     return JSON.stringify(ret);
   }
 
