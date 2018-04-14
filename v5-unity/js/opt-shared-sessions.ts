@@ -472,6 +472,7 @@ class OptDemoVideo {
     // do NOT record cursor-click since that's too much noise
     return ((e.type == 'form-update') ||
             (e.type == 'cursor-update') ||
+            (e.type == 'bye') || // important to mark the ENDING of a recording
             (e.type == 'app.executeCode') ||
             (e.type == 'app.updateOutput') ||
             (e.type == 'app.startRecordingAudio') ||
@@ -568,6 +569,7 @@ class OptDemoVideo {
   // lifted from Recordmp3js
   startRecordingAudio() {
     TogetherJS.send({type: "startRecordingAudio"});
+
     assert(this.audioRecorder);
     console.warn('startRecordingAudio()');
     this.mp3AudioRecording = null; // erase any existing audio data
