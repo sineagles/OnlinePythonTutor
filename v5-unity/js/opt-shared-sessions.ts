@@ -300,17 +300,14 @@ function randomlyPickSurveyItem(key) {
 
 /* Record/replay TODOs (from first hacking on it on 2018-01-01)
 
-  - the audio playback lags a wee bit behind the replayed motions; gotta
-    figure out how to sync the playback better!
-    - i think it has to do with the STARTING POINT being off ... try to
-      record a bunch of content without moving your mouse at the beginning
-      and then try to move your mouse and start typing and you'll see where
-      there's a sync problem
+  - eventRecorderFunc gives some errors in the JS console sometimes
 
   - be able to store the localStorage.demoVideo data somewhere remotely
     (maybe in a file in GitHub, or a simple database that only I control?)
-    since it probably won't fit into a URL when there's audio added. maybe
-    try Firebase?
+    since it probably won't fit into a URL when there's audio added.
+    - create a data download link to download recording JSON files, and
+      have a way to load them server-side (this avoids using a klunky
+      database)
 
   - we need to 'lock' the UI while the video is playing and only
     allow modifications once you push the 'pause' button and it's
@@ -476,6 +473,7 @@ class OptDemoVideo {
             (e.type == 'cursor-update') ||
             (e.type == 'app.executeCode') ||
             (e.type == 'app.updateOutput') ||
+            (e.type == 'app.startRecordingAudio') ||
             (e.type == 'pyCodeOutputDivScroll') ||
             (e.type == 'app.hashchange'));
   }
@@ -501,8 +499,6 @@ class OptDemoVideo {
       this.frontend.traceCacheAdd();
     }
 
-    this.startRecordingAudio();
-
     this.frontend.isRecordingDemo = true;
     TogetherJS.config('isDemoSession', true);
     TogetherJS(); // activate TogetherJS as the last step to start the recording
@@ -515,6 +511,10 @@ class OptDemoVideo {
     // set the TogetherJS eventRecorderFunc to this.demoVideo.addEvent
     // (don't forget to bind it as 'this', ergh!)
     TogetherJS.config('eventRecorderFunc', this.addEvent.bind(this));
+
+    // start recording audio only after TogetherJS is ready and
+    // eventRecorderFunc has been set so that it can log the event:
+    this.startRecordingAudio();
   }
 
   stopRecording() {
@@ -566,6 +566,7 @@ class OptDemoVideo {
 
   // lifted from Recordmp3js
   startRecordingAudio() {
+    TogetherJS.send({type: "startRecordingAudio"});
     assert(this.audioRecorder);
     console.warn('startRecordingAudio()');
     this.mp3AudioRecording = null; // erase any existing audio data
