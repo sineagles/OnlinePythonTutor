@@ -307,35 +307,11 @@ function randomlyPickSurveyItem(key) {
       have a way to load them server-side (this avoids using a klunky
       database)
 
-  - we need to 'lock' the UI while the video is playing and only
-    allow modifications once you push the 'pause' button and it's
-    gotten a chance to save state
-    - maybe just set Ace editor to read-only? is that enough?
-    - as soon as you UNPAUSE, always play up until the current step to
-      refresh the display and erase the user's edits
-
   - refactor the code so that OptDemoVideo doesn't have to know about
     GUI elements
 
   - things sometimes get flaky if you *ALREADY* have code in the editor
     and then try to record a demo; sometimes it doesn't work properly.
-
-  - how can we best synchronize with my voice audio, since playback
-    of events may lag a bit; make sure to set timeouts as precisely as
-    possible in that case to prevent 'drift'; hopefully it's OK for the
-    short-ish video clips that i'll be recording, but drift may worsen
-    for longer clips
-
-  - it would be nice to see a CURSOR in the Ace editor as the video
-    is being played back ... right now the cursor doesn't visibly move
-    - maybe issue an app-specific cursor event to show the cursor's
-      position after each keystroke? this might be overkill, though.
-      - oh, OR take the delta from the form-update event object and
-        infer the cursor position from that, and then stick it into Ace;
-        that could work!
-    - also, it would be cool to get the user's current text block SELECTION
-      too (bonus)
-    - https://stackoverflow.com/questions/27625028/how-to-move-the-cursor-to-the-end-of-the-line-in-ace-editor
 
   - minor: set a more instructive username for the tutor's mouse pointer
     - and also a better and more consistent COLOR
@@ -708,6 +684,8 @@ class OptDemoVideo {
       console.log('audioElt.currentTime:', this.audioElt.currentTime);
       this.audioElt.play();
     }
+
+    this.frontend.pyInputAceEditor.setReadOnly(true); // don't let the user edit code when demo is playing
   }
 
   pause() {
@@ -722,6 +700,7 @@ class OptDemoVideo {
     if (this.audioElt) {
       this.audioElt.pause();
     }
+    this.frontend.pyInputAceEditor.setReadOnly(false); // let the user edit code when paused
   }
 
   // this is run as soon as TogetherJS is ready in playback mode
