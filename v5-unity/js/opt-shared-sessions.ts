@@ -434,6 +434,7 @@ class OptDemoVideo {
   audioRecorder = null; // Recorder object from Recordmp3js
 
   mp3AudioRecording = null; // a data URL representing the contents of the mp3 audio (if available)
+  audioElt = null; // HTML5 Audio() object
 
   sess; // the current live TogetherJS session object
 
@@ -694,6 +695,15 @@ class OptDemoVideo {
       starttime = timestamp;
       rafHelper(timestamp);
     });
+
+    // handle audio
+    if (!this.audioElt && this.mp3AudioRecording) {
+      this.audioElt = new Audio();
+      this.audioElt.src = this.mp3AudioRecording;
+    }
+    if (this.audioElt) {
+      this.audioElt.play();
+    }
   }
 
   pause() {
@@ -703,6 +713,10 @@ class OptDemoVideo {
     if (this.rafTimerId) {
       cancelAnimationFrame(this.rafTimerId);
       this.rafTimerId = undefined;
+    }
+
+    if (this.audioElt) {
+      this.audioElt.pause();
     }
   }
 
@@ -2132,23 +2146,14 @@ Get live help!
 
     assert(this.demoVideo);
 
-    // TODO: this is a janky setup -- improve it!
-    var audioElt = null;
-    if (this.demoVideo.mp3AudioRecording) {
-      audioElt = new Audio();
-      audioElt.src = this.demoVideo.mp3AudioRecording;
-    }
-
     $("#demoPlayBtn").data('status', 'paused');
     $("#demoPlayBtn").click(() => {
       var me = $("#demoPlayBtn");
       if (me.data('status') == 'paused') {
         this.setPlayPauseButton('playing');
-        audioElt.play();
       } else {
         assert(me.data('status') == 'playing');
         this.setPlayPauseButton('paused');
-        audioElt.pause();
       }
     });
 
