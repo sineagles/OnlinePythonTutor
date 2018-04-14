@@ -300,6 +300,9 @@ function randomlyPickSurveyItem(key) {
 
 /* Record/replay TODOs (from first hacking on it on 2018-01-01)
 
+  - the audio playback lags a wee bit behind the replayed motions; gotta
+    figure out how to sync the playback better!
+
   - be able to store the localStorage.demoVideo data somewhere remotely
     (maybe in a file in GitHub, or a simple database that only I control?)
     since it probably won't fit into a URL when there's audio added. maybe
@@ -2123,14 +2126,23 @@ Get live help!
 
     assert(this.demoVideo);
 
+    // TODO: this is a janky setup -- improve it!
+    var audioElt = null;
+    if (this.demoVideo.mp3AudioRecording) {
+      audioElt = new Audio();
+      audioElt.src = this.demoVideo.mp3AudioRecording;
+    }
+
     $("#demoPlayBtn").data('status', 'paused');
     $("#demoPlayBtn").click(() => {
       var me = $("#demoPlayBtn");
       if (me.data('status') == 'paused') {
         this.setPlayPauseButton('playing');
+        audioElt.play();
       } else {
         assert(me.data('status') == 'playing');
         this.setPlayPauseButton('paused');
+        audioElt.pause();
       }
     });
 

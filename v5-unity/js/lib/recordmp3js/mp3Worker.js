@@ -15,7 +15,8 @@ self.onmessage = function(e) {
 		Lame.set_num_samples(mp3codec, e.data.config.samples || -1);
 		Lame.set_in_samplerate(mp3codec, e.data.config.samplerate || 44100);
 		Lame.set_out_samplerate(mp3codec, e.data.config.samplerate || 44100);
-		Lame.set_bitrate(mp3codec, 128); // set 128kbps bitrate per mp3 standards //e.data.config.bitrate || 128);
+		Lame.set_bitrate(mp3codec, 64); // don't set it too high or else processing takes forever and files get too big-ish
+		//Lame.set_bitrate(mp3codec, 128); // set 128kbps bitrate per mp3 standards //e.data.config.bitrate || 128);
 
 		Lame.init_params(mp3codec);
 		console.log('Version :', Lame.get_version() + ' / ',
