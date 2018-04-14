@@ -302,6 +302,10 @@ function randomlyPickSurveyItem(key) {
 
   - the audio playback lags a wee bit behind the replayed motions; gotta
     figure out how to sync the playback better!
+    - i think it has to do with the STARTING POINT being off ... try to
+      record a bunch of content without moving your mouse at the beginning
+      and then try to move your mouse and start typing and you'll see where
+      there's a sync problem
 
   - be able to store the localStorage.demoVideo data somewhere remotely
     (maybe in a file in GitHub, or a simple database that only I control?)
