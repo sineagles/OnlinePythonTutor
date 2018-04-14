@@ -699,6 +699,7 @@ class OptDemoVideo {
   pause() {
     assert(TogetherJS.running && this.frontend.isPlayingDemo);
     this.isPaused = true;
+    console.log('pause: currentFrame:', this.currentFrame);
     if (this.rafTimerId) {
       cancelAnimationFrame(this.rafTimerId);
       this.rafTimerId = undefined;
@@ -761,7 +762,7 @@ class OptDemoVideo {
 
   // play all steps from [lower, upper], inclusive
   playStepRange(lower: number, upper: number) {
-    console.log('playStepRange', lower, upper, 'curStep:', this.currentStep);
+    //console.log('playStepRange', lower, upper, 'curStep:', this.currentStep);
     assert(lower <= upper);
     for (var i = lower; i <= upper; i++) {
       this.playStep(i);
@@ -771,7 +772,7 @@ class OptDemoVideo {
   // this method *instantaneously* plays all steps from 0 to n
   // (so everything it calls should work SYNCHRONOUSLY)
   playFirstNSteps(n: number) {
-    console.log('playFirstNSteps', n, 'curStep', this.currentStep, 'curFrame', this.currentFrame);
+    //console.log('playFirstNSteps', n, 'curStep', this.currentStep, 'curFrame', this.currentFrame);
     assert(this.isFrozen);
     assert(TogetherJS.running && this.frontend.isPlayingDemo);
     assert(n >= 0 && n < this.events.length);
