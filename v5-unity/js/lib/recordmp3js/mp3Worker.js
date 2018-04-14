@@ -15,7 +15,7 @@ self.onmessage = function(e) {
 		Lame.set_num_samples(mp3codec, e.data.config.samples || -1);
 		Lame.set_in_samplerate(mp3codec, e.data.config.samplerate || 44100);
 		Lame.set_out_samplerate(mp3codec, e.data.config.samplerate || 44100);
-		Lame.set_bitrate(mp3codec, e.data.config.bitrate || 128);
+		Lame.set_bitrate(mp3codec, 128); // set 128kbps bitrate per mp3 standards //e.data.config.bitrate || 128);
 
 		Lame.init_params(mp3codec);
 		console.log('Version :', Lame.get_version() + ' / ',
@@ -24,7 +24,7 @@ self.onmessage = function(e) {
 			'Channels: '+Lame.get_num_channels(mp3codec) + ' / ',
 			'Input Samplate: '+ Lame.get_in_samplerate(mp3codec) + ' / ',
 			'Output Samplate: '+ Lame.get_in_samplerate(mp3codec) + ' / ',
-			'Bitlate :' +Lame.get_bitrate(mp3codec) + ' / ',
+			'Bitrate :' +Lame.get_bitrate(mp3codec) + ' / ',
 			'VBR :' + Lame.get_VBR(mp3codec));
 		break;
 	case 'encode':
