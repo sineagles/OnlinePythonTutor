@@ -300,8 +300,6 @@ function randomlyPickSurveyItem(key) {
 
 /* Record/replay TODOs (from first hacking on it on 2018-01-01)
 
-  - eventRecorderFunc gives some errors in the JS console sometimes
-
   - be able to store the localStorage.demoVideo data somewhere remotely
     (maybe in a file in GitHub, or a simple database that only I control?)
     since it probably won't fit into a URL when there's audio added.
@@ -476,6 +474,8 @@ class OptDemoVideo {
             (e.type == 'app.updateOutput') ||
             (e.type == 'app.startRecordingAudio') ||
             (e.type == 'app.stopRecordingDemo') ||
+            (e.type == 'app.aceChangeCursor') ||
+            (e.type == 'app.aceChangeSelection') ||
             (e.type == 'pyCodeOutputDivScroll') ||
             (e.type == 'app.hashchange'));
   }
@@ -926,10 +926,14 @@ export class OptFrontendSharedSessions extends OptFrontend {
   fullCodeSnapshots = []; // a list of full snapshots of code taken at given times, with:
   curPeekSnapshotIndex = -1;  // current index you're peeking at inside of fullCodeSnapshots, -1 if not peeking at anything
 
+  Range; // reference to imported Ace Range() object -- ergh
+
   constructor(params={}) {
     super(params);
     this.initTogetherJS();
     this.initABTest();
+
+    window.pyInputAceEditor = this.pyInputAceEditor; // STENT for debugging
 
     this.pyInputAceEditor.getSession().on("change", (e) => {
       // unfortunately, Ace doesn't detect whether a change was caused
@@ -938,6 +942,14 @@ export class OptFrontendSharedSessions extends OptFrontend {
         TogetherJS.send({type: "codemirror-edit"});
       }
     });
+
+    // NB: note that we DON'T have multiple cursors or selections like
+    // in Google Docs, so activating this feature might lead to some
+    // confusion as there is only *one* cursor/selection that multiple
+    // users might be fighting over. (in contrast, there are multiple
+    // mouse cursors.)
+    this.pyInputAceEditor.selection.on("changeCursor", this.cursorOrSelectionChanged.bind(this));
+    this.pyInputAceEditor.selection.on("changeSelection", this.cursorOrSelectionChanged.bind(this));
 
     // NB: don't sync changeScrollTop for Ace since I can't get it working yet
     //this.pyInputAceEditor.getSession().on('changeScrollTop', () => {
@@ -1056,6 +1068,8 @@ Get live help!
     });
 
 
+    this.Range = ace.require('ace/range').Range; // for Ace Range() objects
+
     // TODO: definitely break this off into its own top-level file so
     // that this activates only for users who are making recordings:
 
@@ -1092,6 +1106,23 @@ Get live help!
       }
     );
     // END - lifted from Recordmp3js
+  }
+
+  cursorOrSelectionChanged(e) {
+    if (e.type === 'changeCursor') {
+      let c = this.pyInputAceEditor.selection.getCursor();
+      //console.log('changeCursor', c);
+      TogetherJS.send({type: "aceChangeCursor",
+                       row: c.row, column: c.column});
+    } else if (e.type === 'changeSelection') {
+      let s = this.pyInputAceEditor.selection.getRange();
+      //console.log('changeSelection', s);
+      TogetherJS.send({type: "aceChangeSelection",
+                       start: s.start, end: s.end});
+    } else {
+      // fail soft
+      console.warn('cursorOrSelectionChanged weird type', e.type);
+    }
   }
 
   parseQueryString() {
@@ -1927,6 +1958,21 @@ Get live help!
 
         TogetherJS(); // ... then shut down TogetherJS
       }
+    });
+
+
+    TogetherJS.hub.on("aceChangeCursor", (msg) => {
+      //console.warn('TogetherJS.hub.on("aceChangeCursor"', msg.row, msg.column);
+      this.pyInputAceEditor.selection.moveCursorTo(msg.row, msg.column,
+                                                   false /* keepDesiredColumn */);
+    });
+
+    TogetherJS.hub.on("aceChangeSelection", (msg) => {
+      //console.warn('TogetherJS.hub.on("aceChangeSelection"', msg.start, msg.end);
+      this.pyInputAceEditor.selection.setSelectionRange(
+        new this.Range(msg.start.row, msg.start.column, msg.end.row, msg.end.column),
+        false /* reverse */
+      );
     });
 
     // fired when TogetherJS is activated. might fire on page load if there's
