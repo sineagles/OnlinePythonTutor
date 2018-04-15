@@ -2,6 +2,75 @@
 // Copyright (C) Philip Guo (philip@pgbovine.net)
 // LICENSE: https://github.com/pgbovine/OnlinePythonTutor/blob/master/LICENSE.txt
 
+// 'codcasts' demo recorder and player for OPT
+// first started hacking on it on 2018-01-01 (happy new year!)
+// ... concrete idea inception around 2017-12-29, although it's been
+// stewing around in my brain for a lot longer than that
+
+/* TODOs:
+
+  - *CRAZY* bug where you can't type code in non-recording mode without
+    it getting duplicated; super super super super super super bad!!!
+
+  - test by recording locally (with python/js/etc. backends running on
+    localhost) and then replaying remotely on pythontutor.com, since
+    that's what students will ultimately be doing. also make a special
+    entry in TogetherJS logs for tutorial replays.
+
+  - in the video player UI, put a time indicator in seconds
+
+  - in playback mode, set a more instructive username for the tutor's
+    mouse pointer - and also a better and more consistent COLOR
+    - #0095DD may be good (matches chat window header background)
+
+  - add a special "app.startPlayingDemo" event to the TogetherJS logs
+    so that we can know to FILTER OUT those demo replay log entries
+    from TogetherJS logs
+
+  - ideally don't send events to the togetherjs when you're in recording
+    or playback mode, so as not to overwhelm the logs. also it seems
+    kinda silly that you need to connect to a remote server for this
+    to work, since we don't require anything from the server
+    - maybe make a mock websockets interface to FAKE a connection to the
+      server so that we don't need a server at all? this seems critical
+      both for performance and for being able to ship tutorials as
+      self-contained packages
+
+
+minor-ish:
+
+  - minor: save UI adjustment preferences such as the width of the code
+    pane or visualizer pane so that when the video replays, it will
+    preserve those widths instead of always setting them back to the
+    defaults, which is helpful for users with smaller monitors
+
+  - refactor the code so that OptDemoVideo doesn't have to know about
+    GUI elements
+
+  - things sometimes get flaky if you *ALREADY* have code in the editor
+    and then try to record a demo; sometimes it doesn't work properly.
+
+  - to prevent weird crashes from encoding mp3's in JS itself, maybe
+    simply export the raw .wav files into the JSON data file, then run a
+    python script offline to compress it to mp3? that would decouple the
+    tutorial recording from the compressing and also give more flexibility
+    to the format
+    - maybe i can just use the original record to .wav program that
+      Recordmp3js forked?
+      - https://github.com/mattdiamond/Recorderjs
+    - i already use ffmpeg to convert my vlog/podcast audio to mp3, so i
+      could adapt that into my workflow as well
+    - but i do like the 100% in-browser workflow since it's nice & crisp
+
+  - NB: this recorder won't work well in live mode since we don't have a
+    notion of an explicit "execute" event, so if you play back the trace
+    too "slowly", then the live mode will auto-execute the code at weird
+    unintended times and cause syntax errors and such; just use it in
+    REGULAR visualize.html mode for now!
+
+*/
+
+
 import {OptFrontendSharedSessions,TogetherJS} from './opt-shared-sessions';
 import {assert,htmlspecialchars} from './pytutor';
 import {footerHtml} from './footer-html';
@@ -12,7 +81,7 @@ require('./lib/jquery.qtip.js');
 require('../css/jquery.qtip.css');
 
 // using this library to record audio to mp3: https://github.com/Audior/Recordmp3js
-require('script-loader!./lib/recordmp3.js'); // TODO: break the recorder off into its own .ts file so that this library is imported ONLY when we're recording a demo and not all the time
+require('script-loader!./lib/recordmp3.js');
 declare var Recorder: any; // for TypeScript
 
 // lifted from Recordmp3js
@@ -26,74 +95,6 @@ function encode64(buffer) {
   }
   return window.btoa( binary );
 }
-
-/* Record/replay TODOs (from first hacking on it on 2018-01-01)
-
-  - CRAZY bug where you can't type code in non-recording mode without it
-    getting duplicated; super super bad!!!
-
-  - test by recording locally (with python/js/etc. backends running on
-    localhost) and then replaying remotely on pythontutor.com, since
-    that's what students will ultimately be doing. also make a special
-    entry in TogetherJS logs for tutorial replays.
-
-  - in the video player, put a time indicator in seconds
-
-  - to prevent weird crashes from encoding mp3's in JS itself, maybe
-    simply export the raw .wav files into the JSON data file, then run a
-    python script offline to compress it to mp3? that would decouple the
-    tutorial recording from the compressing and also give more flexibility
-    to the format
-    - maybe i can just use the original record to .wav program that
-      Recordmp3js forked?
-      - https://github.com/mattdiamond/Recorderjs
-    - i already use ffmpeg to convert my vlog/podcast audio to mp3, so i
-      could adapt that into my workflow as well
-    - but i do like the 100% in-browser workflow since it's nice and
-      crisp; maybe up the mp3 bitrate to 96kbps?
-
-  - refactor the code so that OptDemoVideo doesn't have to know about
-    GUI elements
-
-  - things sometimes get flaky if you *ALREADY* have code in the editor
-    and then try to record a demo; sometimes it doesn't work properly.
-
-  - in playback mode, set a more instructive username for the tutor's
-    mouse pointer - and also a better and more consistent COLOR
-    - #0095DD may be good (matches chat window header background)
-
-  - minor: save UI adjustment preferences such as the width of the code
-    pane or visualizer pane so that when the video replays, it will
-    preserve those widths instead of always setting them back to the
-    defaults, which is helpful for users with smaller monitors
-
-  - don't send events to the togetherjs when you're in recording or
-    playback mode, so as not to overwhelm the logs. also it seems
-    kinda silly that you need to connect to a remote server for this
-    to work, since we don't require anything from the server
-    - maybe make a mock websockets interface to FAKE a connection to the
-      server so that we don't need a server at all? this seems critical
-      both for performance and for being able to ship tutorials as
-      self-contained packages
-    - or if that's too hard, then make the recorder/player a subclass of
-      OptFrontendSharedSessions with a separate html file and everything
-      and special frontend tag (this.originFrontendJsFile) so that we can
-      diambiguate its log entries in our server logs; otherwise it will
-      look like people are executing a ton of the same pieces of code when
-      they're simply executing demo code (just like the iframe-embed.ts
-      label)
-      - also, add a special "app.startPlayingDemo" event to the
-        TogetherJS logs so that we can know to FILTER OUT those log
-        entries from the TogetherJS logs
-
-  - NB: this recorder won't work well in live mode since we don't have a
-    notion of an explicit "execute" event, so if you play back the trace
-    too "slowly", then the live mode will auto-execute the code at weird
-    unintended times and cause syntax errors and such; just use it in
-    REGULAR visualize.html mode for now!
-
-*/
-
 
 // polyfill from https://gist.github.com/paulirish/1579671
 //
