@@ -645,22 +645,27 @@ class OptDemoVideo {
         return;
       }
 
-      // always use the latest values of this.audioElt.currentTime to
-      // calculate the current frame so that we can try to keep the
-      // audio and animation in sync as much as possible:
-      let frameNum = this.secondsToFrames(this.audioElt.currentTime);
-      // keep going until you're out of frames!
-      if (frameNum < totalFrames && !this.audioElt.ended /* quit when your audio has stopped playing */) {
+      // keep going until your audio dies:
+      if (!this.audioElt.ended) {
         this.rafTimerId = requestAnimationFrame(rafHelper);
+
+        // always use the latest values of this.audioElt.currentTime to
+        // calculate the current frame so that we can try to keep the
+        // audio and animation in sync as much as possible:
+        let frameNum = this.secondsToFrames(this.audioElt.currentTime);
         this.currentFrame = frameNum;
+
+        //console.log('audioElt.currentTime:', this.audioElt.currentTime, frameNum, totalFrames, this.audioElt.ended);
 
         // TODO: this is an abstraction violation since OptDemoVideo
         // shouldn't know about #timeSlider, which is part of the GUI!
         // (maybe tunnel this through a callback?)
         $("#timeSlider").slider("value", frameNum); // triggers slider 'change' event
-
-        //console.log('audioElt.currentTime:', this.audioElt.currentTime, frameNum, totalFrames);
       } else {
+        // set currentFrame and slider to the very end for consistency
+        this.currentFrame = totalFrames;
+        $("#timeSlider").slider("value", totalFrames);
+
         this.frontend.setPlayPauseButton('paused');
       }
     }
@@ -902,7 +907,7 @@ export class OptFrontendSharedSessions extends OptFrontend {
     this.initTogetherJS();
     this.initABTest();
 
-    window.pyInputAceEditor = this.pyInputAceEditor; // STENT for debugging
+    //window.pyInputAceEditor = this.pyInputAceEditor; // STENT for debugging
 
     this.pyInputAceEditor.getSession().on("change", (e) => {
       // unfortunately, Ace doesn't detect whether a change was caused
