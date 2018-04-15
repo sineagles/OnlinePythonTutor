@@ -337,6 +337,9 @@ function randomlyPickSurveyItem(key) {
       look like people are executing a ton of the same pieces of code when
       they're simply executing demo code (just like the iframe-embed.ts
       label)
+      - also, add a special "app.startPlayingDemo" event to the
+        TogetherJS logs so that we can know to FILTER OUT those log
+        entries from the TogetherJS logs
 
   - NB: this recorder won't work well in live mode since we don't have a
     notion of an explicit "execute" event, so if you play back the trace
@@ -615,7 +618,6 @@ class OptDemoVideo {
     }
 
     var startingFrame = this.currentFrame;
-    console.log('playFromCurrentFrame', startingFrame, 'totalFrames', totalFrames);
 
     // play the first N steps to get up to right before this.currentFrame
     // TODO: it's kinda klunky to convert "video" frames to steps, which
@@ -634,6 +636,7 @@ class OptDemoVideo {
 
     if (this.audioElt) {
       this.audioElt.currentTime = this.frameToSeconds(startingFrame);
+      console.log('playFromCurrentFrame', startingFrame, 'totalFrames', totalFrames, 'currentTime:', this.audioElt.currentTime);
       this.audioElt.play();
     }
 
