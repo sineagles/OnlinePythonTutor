@@ -300,12 +300,16 @@ function randomlyPickSurveyItem(key) {
 
 /* Record/replay TODOs (from first hacking on it on 2018-01-01)
 
-  - be able to store the localStorage.demoVideo data somewhere remotely
-    (maybe in a file in GitHub, or a simple database that only I control?)
-    since it probably won't fit into a URL when there's audio added.
-    - create a data download link to download recording JSON files, and
-      have a way to load them server-side (this avoids using a klunky
-      database)
+  - test by recording locally (with python/js/etc. backends running on
+    localhost) and then replaying remotely on pythontutor.com, since
+    that's what students will ultimately be doing. also make a special
+    entry in TogetherJS logs for tutorial replays.
+
+  - to prevent weird crashes from encoding mp3's in JS itself, maybe
+    simply export the raw .wav files into the JSON data file, then run a
+    python script offline to compress it to mp3? that would decouple the
+    tutorial recording from the compressing and also give more flexibility
+    to the format
 
   - refactor the code so that OptDemoVideo doesn't have to know about
     GUI elements
@@ -313,9 +317,9 @@ function randomlyPickSurveyItem(key) {
   - things sometimes get flaky if you *ALREADY* have code in the editor
     and then try to record a demo; sometimes it doesn't work properly.
 
-  - minor: set a more instructive username for the tutor's mouse pointer
-    - and also a better and more consistent COLOR
-      - #0095DD may be good (matches chat window header background)
+  - in playback mode, set a more instructive username for the tutor's
+    mouse pointer - and also a better and more consistent COLOR
+    - #0095DD may be good (matches chat window header background)
 
   - minor: save UI adjustment preferences such as the width of the code
     pane or visualizer pane so that when the video replays, it will
@@ -327,7 +331,7 @@ function randomlyPickSurveyItem(key) {
     kinda silly that you need to connect to a remote server for this
     to work, since we don't require anything from the server
     - maybe make a mock websockets interface to FAKE a connection to the
-      server so that we don't need a server at all? this seems crucial
+      server so that we don't need a server at all? this seems critical
       both for performance and for being able to ship tutorials as
       self-contained packages
     - or if that's too hard, then make the recorder/player a subclass of
