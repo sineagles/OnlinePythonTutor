@@ -344,13 +344,6 @@ function randomlyPickSurveyItem(key) {
     unintended times and cause syntax errors and such; just use it in
     REGULAR visualize.html mode for now!
 
-potentially useful links:
-
-http://air.ghost.io/recording-to-an-audio-file-using-html5-and-js/
-http://audior.ec/blog/recording-mp3-using-only-html5-and-javascript-recordmp3-js/
-https://developers.google.com/web/fundamentals/media/recording-audio/
-https://www.html5rocks.com/en/tutorials/getusermedia/intro/
-
 */
 
 
@@ -448,7 +441,7 @@ class OptDemoVideo {
             (e.type == 'cursor-update') ||
             (e.type == 'app.executeCode') ||
             (e.type == 'app.updateOutput') ||
-            (e.type == 'app.startRecordingAudio') ||
+            (e.type == 'app.startRecordingDemo') ||
             (e.type == 'app.stopRecordingDemo') ||
             (e.type == 'app.aceChangeCursor') ||
             (e.type == 'app.aceChangeSelection') ||
@@ -493,6 +486,8 @@ class OptDemoVideo {
     // start recording audio only after TogetherJS is ready and
     // eventRecorderFunc has been set so that it can log the event:
     this.startRecordingAudio();
+
+    TogetherJS.send({type: "startRecordingDemo"}); // special start marker, to coincide with when audio starts recording
   }
 
   stopRecording() {
@@ -544,8 +539,6 @@ class OptDemoVideo {
 
   // lifted from Recordmp3js
   startRecordingAudio() {
-    TogetherJS.send({type: "startRecordingAudio"});
-
     assert(this.audioRecorder);
     console.warn('startRecordingAudio()');
     this.mp3AudioRecording = null; // erase any existing audio data
@@ -596,6 +589,7 @@ class OptDemoVideo {
   startPlayback() {
     assert(this.isFrozen);
     assert(!TogetherJS.running); // do this before TogetherJS is initialized
+    assert(this.mp3AudioRecording); // audio must be initialized before you start playing
 
     // save the original value of ignoreForms
     this.origIgnoreForms = TogetherJS.config.get('ignoreForms');
@@ -631,21 +625,32 @@ class OptDemoVideo {
       this.playFirstNSteps(step);
     }
 
+
+    // handle audio
+    if (!this.audioElt && this.mp3AudioRecording) {
+      this.audioElt = new Audio();
+      this.audioElt.src = this.mp3AudioRecording;
+    }
+
+    if (this.audioElt) {
+      this.audioElt.currentTime = this.frameToSeconds(startingFrame);
+      this.audioElt.play();
+    }
+
+
     var starttime = -1;
     var rafHelper = (timestamp) => {
+      assert(this.audioElt); // we will always synchronize with the audio, so if you don't have audio, it's a dealbreaker
       if (this.isPaused) {
         return;
       }
 
-      var diff_ms = timestamp - starttime;
-      var diff_sec = diff_ms / 1000;
-      //console.log(diff_sec);
-
-      // don't forget to add this to startingFrame!
-      var frameNum = (this.secondsToFrames(diff_sec) + startingFrame);
-
+      // always use the latest values of this.audioElt.currentTime to
+      // calculate the current frame so that we can try to keep the
+      // audio and animation in sync as much as possible:
+      let frameNum = this.secondsToFrames(this.audioElt.currentTime);
       // keep going until you're out of frames!
-      if (frameNum <= totalFrames) {
+      if (frameNum < totalFrames) {
         this.rafTimerId = requestAnimationFrame(rafHelper);
         this.currentFrame = frameNum;
 
@@ -654,14 +659,7 @@ class OptDemoVideo {
         // (maybe tunnel this through a callback?)
         $("#timeSlider").slider("value", frameNum); // triggers slider 'change' event
 
-        // hack to throttle the frame rate to approximately this.fps
-        // (maybe necessary later if things seem too slow)
-        /*
-        setTimeout(() => {
-          this.rafTimerId = requestAnimationFrame(rafHelper);
-          // do stuff here!
-        }, 1000 / this.fps);
-        */
+        //console.log('audioElt.currentTime:', this.audioElt.currentTime, frameNum, totalFrames);
       } else {
         this.frontend.setPlayPauseButton('paused');
       }
@@ -673,17 +671,6 @@ class OptDemoVideo {
       starttime = timestamp;
       rafHelper(timestamp);
     });
-
-    // handle audio
-    if (!this.audioElt && this.mp3AudioRecording) {
-      this.audioElt = new Audio();
-      this.audioElt.src = this.mp3AudioRecording;
-    }
-    if (this.audioElt) {
-      this.audioElt.currentTime = this.frameToSeconds(startingFrame);
-      console.log('audioElt.currentTime:', this.audioElt.currentTime);
-      this.audioElt.play();
-    }
 
     this.frontend.pyInputAceEditor.setReadOnly(true); // don't let the user edit code when demo is playing
   }
@@ -865,8 +852,11 @@ class OptDemoVideo {
     var firstTs = this.events[0].ts;
     var lastTs = this.events[this.events.length-1].ts;
 
+    return this.getFrameDiff(firstTs, lastTs);
+
     // add 1 at the end for extra padding
-    return this.getFrameDiff(firstTs, lastTs) + 1;
+    // NIX THIS!!!
+    //return this.getFrameDiff(firstTs, lastTs) + 1;
   }
 
   secondsToFrames(secs) {
