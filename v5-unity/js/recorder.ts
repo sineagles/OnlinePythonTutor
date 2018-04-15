@@ -268,7 +268,8 @@ class OptDemoVideo {
     (hf as any).download = 'codcast_' + (new Date().toISOString()) + '.json';
     hf.innerHTML = 'Download recording';
     (document.getElementById('headerTdLeft') as any).append(hf);
-    hf.click(); // automatically click to download the recording as a file
+    // disable auto-download, since it's kind of annoying and hidden
+    //hf.click(); // automatically click to download the recording as a file
   }
 
   // lifted from Recordmp3js

@@ -1,3 +1,5 @@
+// from https://github.com/Audior/Recordmp3js
+// all files in recordmp3js/ are also adapted from this projec
 (function(window){
 
   var WORKER_PATH = 'js/lib/recordmp3js/recorderWorker.js';

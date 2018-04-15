@@ -74,7 +74,6 @@ export class OptFrontend extends AbstractBaseFrontend {
   activateEurekaSurvey: boolean = true;
 
   demoMode: boolean = false; // if true, then we're giving a live demo, so hide a bunch of excess stuff on page
-  recorderMode: boolean = false; // if true, then we're doing a recording (hide a bunch of stuff, similar to demoMode)
 
   preseededCurInstr: number = undefined;
 
@@ -729,11 +728,6 @@ export class OptFrontend extends AbstractBaseFrontend {
 
     if (queryStrOptions.demoMode) {
       this.demoMode = true;
-      this.demoModeChanged();
-    }
-
-    if (queryStrOptions.recorderMode) {
-      this.recorderMode = true;
       this.demoModeChanged();
     }
 
