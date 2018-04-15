@@ -310,6 +310,10 @@ function randomlyPickSurveyItem(key) {
     python script offline to compress it to mp3? that would decouple the
     tutorial recording from the compressing and also give more flexibility
     to the format
+    - maybe i can just use the original record to .wav program that
+      Recordmp3js forked?
+    - i already use ffmpeg to convert my vlog/podcast audio to mp3, so i
+      could adapt that into my workflow as well
 
   - refactor the code so that OptDemoVideo doesn't have to know about
     GUI elements
