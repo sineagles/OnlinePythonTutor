@@ -629,17 +629,15 @@ class OptDemoVideo {
 
 
     // handle audio
-    if (!this.audioElt && this.mp3AudioRecording) {
-      this.audioElt = new Audio();
-      this.audioElt.src = this.mp3AudioRecording;
-    }
+    assert(this.mp3AudioRecording);
 
-    if (this.audioElt) {
-      this.audioElt.currentTime = this.frameToSeconds(startingFrame);
-      console.log('playFromCurrentFrame', startingFrame, 'totalFrames', totalFrames, 'currentTime:', this.audioElt.currentTime);
-      this.audioElt.play();
-    }
-
+    // always create a new element each time to avoid stale old ones
+    // being stuck at weird seek positions
+    this.audioElt = new Audio();
+    this.audioElt.src = this.mp3AudioRecording;
+    this.audioElt.currentTime = this.frameToSeconds(startingFrame);
+    this.audioElt.play();
+    console.log('playFromCurrentFrame', startingFrame, 'totalFrames', totalFrames, 'currentTime:', this.audioElt.currentTime, this.audioElt.ended);
 
     var starttime = -1;
     var rafHelper = (timestamp) => {
@@ -694,6 +692,9 @@ class OptDemoVideo {
 
     if (this.audioElt) {
       this.audioElt.pause();
+      // kill it and start afresh each time to (hopefully) avoid out of sync issues
+      this.audioElt.src = '';
+      this.audioElt = null;
     }
     this.frontend.pyInputAceEditor.setReadOnly(false); // let the user edit code when paused
   }
