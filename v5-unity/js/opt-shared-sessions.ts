@@ -305,6 +305,8 @@ function randomlyPickSurveyItem(key) {
     that's what students will ultimately be doing. also make a special
     entry in TogetherJS logs for tutorial replays.
 
+  - in the video player, put a time indicator in seconds
+
   - to prevent weird crashes from encoding mp3's in JS itself, maybe
     simply export the raw .wav files into the JSON data file, then run a
     python script offline to compress it to mp3? that would decouple the
@@ -312,8 +314,11 @@ function randomlyPickSurveyItem(key) {
     to the format
     - maybe i can just use the original record to .wav program that
       Recordmp3js forked?
+      - https://github.com/mattdiamond/Recorderjs
     - i already use ffmpeg to convert my vlog/podcast audio to mp3, so i
       could adapt that into my workflow as well
+    - but i do like the 100% in-browser workflow since it's nice and
+      crisp; maybe up the mp3 bitrate to 96kbps?
 
   - refactor the code so that OptDemoVideo doesn't have to know about
     GUI elements
