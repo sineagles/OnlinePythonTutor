@@ -650,7 +650,7 @@ class OptDemoVideo {
       // audio and animation in sync as much as possible:
       let frameNum = this.secondsToFrames(this.audioElt.currentTime);
       // keep going until you're out of frames!
-      if (frameNum < totalFrames) {
+      if (frameNum < totalFrames && !this.audioElt.ended /* quit when your audio has stopped playing */) {
         this.rafTimerId = requestAnimationFrame(rafHelper);
         this.currentFrame = frameNum;
 
