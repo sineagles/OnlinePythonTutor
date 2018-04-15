@@ -633,11 +633,6 @@ export class OptDemoRecorder extends OptFrontendSharedSessions {
 
     //window.pyInputAceEditor = this.pyInputAceEditor; // STENT for debugging
 
-    var queryStrOptions = this.getQueryStringOptions();
-    // TRICKY: call superclass's parseQueryString ONLY AFTER initializing optTests
-    super.parseQueryString();
-
-
     this.disableSharedSessions = true; // don't call getHelpQueue periodically
 
     // always use a localhost server for recording so that we don't
@@ -722,14 +717,8 @@ export class OptDemoRecorder extends OptFrontendSharedSessions {
     }
   }
 
-  // override to be a NOP
-  takeFullCodeSnapshot() {
-    return;
-  }
-
-  parseQueryString() {
-    super.parseQueryString();
-  }
+  // override from superclasses to be NOPs to cancel default superclass behavior
+  takeFullCodeSnapshot() {return;}
 
   recordButtonClicked() {
     if ($("#recordBtn").data('status') === 'recording') {
