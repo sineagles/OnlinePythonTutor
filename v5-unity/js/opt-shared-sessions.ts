@@ -504,40 +504,24 @@ class OptDemoVideo {
     TogetherJS.config('eventRecorderFunc', null);
 
     this.stopRecordingAudio(); // it will still take some time before the encoded mp3 data is ready and doneEncodingMp3 is called!
-
-    // STENT - save to localStorage to test it
-    localStorage['demoVideo'] = this.serializeToJSON();
   }
 
   doneEncodingMp3(mp3Data) {
     console.log('doneEncodingMp3!!!');
     var dataUrl = 'data:audio/mp3;base64,'+encode64(mp3Data);
     this.mp3AudioRecording = dataUrl;
-    localStorage['demoVideo'] = this.serializeToJSON(); // serialize 'this' AGAIN after audio is ready
 
-    // reference code for a new Audio object, then play it:
-    // https://developer.mozilla.org/en-US/docs/Web/API/HTMLAudioElement
-    //var audio = new Audio();
-    //audio.src = dataUrl;
-    //audio.play();
+    //(localStorage as any).demoVideo = this.serializeToJSON(); // serialize 'this' after audio is ready
 
-    // this stuff below creates an HTML audio player node, which we
-    // don't need right now ... and it's kind of flaky sometimes because
-    // it seems to play incomplete chunks of the audio:
-    /*
-    var li = document.createElement('li');
-    var au = document.createElement('audio');
-    //var hf = document.createElement('a');
-
-    au.controls = true;
-    au.src = dataUrl;
-    //hf.href = dataUrl;
-    //hf.download = 'audio_recording_' + new Date().getTime() + '.mp3';
-    //hf.innerHTML = hf.download;
-    li.appendChild(au);
-    //li.appendChild(hf);
-    recordingslist.appendChild(li);
-    */
+    // create a download link
+    let hf = document.createElement('a');
+    // serialize 'this' into a JSON string and turn it into a data URL:
+    hf.href = URL.createObjectURL(new Blob([this.serializeToJSON()], {type : 'application/json'}));
+    // set download filename based on timestamp:
+    (hf as any).download = 'codcast_' + (new Date().toISOString()) + '.json';
+    hf.innerHTML = 'Download recording';
+    (document.getElementById('headerTdLeft') as any).append(hf);
+    hf.click(); // automatically click to download the recording as a file
   }
 
   // lifted from Recordmp3js
@@ -2173,7 +2157,7 @@ Get live help!
 
     // temp. test for debugging only! load an existing video from localStorage
     if (!this.demoVideo) {
-      var savedVideoJson = localStorage['demoVideo'];
+      var savedVideoJson = (localStorage as any).demoVideo;
       if (savedVideoJson) {
         this.demoVideo = new OptDemoVideo(this, savedVideoJson);
       }
