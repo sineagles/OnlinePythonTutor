@@ -37,6 +37,7 @@ export var TogetherJS = (window as any).TogetherJS;
 import {supports_html5_storage} from './opt-frontend-common';
 import {OptFrontend} from './opt-frontend';
 import {assert} from './pytutor';
+import {OptDemoVideo} from './demovideo';
 
 
 // copy-pasta from // https://github.com/kidh0/jquery.idle
@@ -305,6 +306,7 @@ export class OptFrontendSharedSessions extends OptFrontend {
   // we use it at parts (yeah, abstraction violation, but oh wells,
   // it's too troublesome to clean up at this point ...)
   isPlayingDemo = false;
+  demoVideo: OptDemoVideo;
 
   constructor(params={}) {
     super(params);
@@ -1318,6 +1320,12 @@ Get live help!
 
   // TogetherJS is ready to rock and roll, so do real initiatlization all here:
   TogetherjsReadyHandler() {
+    if (this.isPlayingDemo) {
+      this.demoVideo.playbackTogetherJsReady();
+      TogetherJS.send({type: "startPlayingDemo"}); // so that we can tell in the TogetherJS logs which sessions are demo plays; we can filter those out later
+      return; // GET OUT EARLY!!! don't do the rest if you're playing a demo
+    }
+
     this.takeFullCodeSnapshot();
     $("#surveyHeader").hide();
 
@@ -1402,6 +1410,11 @@ Get live help!
     }
     this.wantsPublicHelp = false; // explicitly reset it
     this.iMadeAPublicHelpRequest = false; // explicitly reset it
+
+    if (this.isPlayingDemo) {
+      this.demoVideo.stopPlayback();
+      assert(!this.isPlayingDemo);
+    }
   }
 
   startSharedSession(wantsPublicHelp) {

@@ -127,15 +127,11 @@ function encode64(buffer) {
 
 
 export class OptDemoRecorder extends OptFrontendSharedSessions {
-  // TODO: test to see if this works
-  originFrontendJsFile: string = 'recorder.ts';
+  originFrontendJsFile: string = 'recorder.ts'; // TODO: test to see if this works
 
-  // for demo recording:
   isRecordingDemo = false;
-  isPlayingDemo = false;
-  demoVideo: OptDemoVideo;
-  audioInputStream = null;
 
+  audioInputStream = null;
   audioRecorder = null; // Recorder object from Recordmp3js
 
   Range; // reference to imported Ace Range() object -- ergh
@@ -465,8 +461,7 @@ export class OptDemoRecorder extends OptFrontendSharedSessions {
       this.startRecordingAudio();
       TogetherJS.send({type: "startRecordingDemo"}); // special start marker, to coincide with when audio starts recording
     } else if (this.isPlayingDemo) {
-      this.demoVideo.playbackTogetherJsReady();
-      TogetherJS.send({type: "startPlayingDemo"}); // so that we can tell in the TogetherJS logs which sessions are demo plays; we can filter those out later
+      super.TogetherjsReadyHandler(); // delegate to superclass
     } else {
       assert(false);
     }
@@ -480,10 +475,8 @@ export class OptDemoRecorder extends OptFrontendSharedSessions {
       this.stopRecordingAudio(); // it will still take some time before the encoded mp3 data is ready and doneEncodingMp3 is called!
       this.demoVideo.stopRecording();
       assert(!this.isRecordingDemo);
-    }
-    if (this.isPlayingDemo) {
-      this.demoVideo.stopPlayback();
-      assert(!this.isPlayingDemo);
+    } else {
+      assert(this.isPlayingDemo); // the 'super' call above should've already handled this case
     }
   }
 } // END Class OptDemoRecorder
