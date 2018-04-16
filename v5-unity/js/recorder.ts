@@ -221,14 +221,13 @@ export class OptDemoRecorder extends OptFrontendSharedSessions {
   // lifted from Recordmp3js
   startRecordingAudio() {
     assert(this.audioRecorder);
-    console.warn('startRecordingAudio()');
+    assert(this.demoVideo);
     this.demoVideo.mp3AudioRecording = null; // erase any existing audio data
     this.audioRecorder.record();
   }
 
   stopRecordingAudio() {
     assert(this.audioRecorder);
-    console.warn('stopRecordingAudio()');
     this.audioRecorder.stop();
 
     this.audioRecorder.exportWAV(function(blob) {
@@ -239,7 +238,8 @@ export class OptDemoRecorder extends OptFrontendSharedSessions {
   }
 
   doneEncodingMp3(mp3Data) {
-    console.log('doneEncodingMp3!!!');
+    console.log('doneEncodingMp3!');
+    assert(this.demoVideo);
     var dataUrl = 'data:audio/mp3;base64,'+encode64(mp3Data);
     this.demoVideo.mp3AudioRecording = dataUrl;
 
@@ -302,6 +302,7 @@ export class OptDemoRecorder extends OptFrontendSharedSessions {
   }
 
   setPlayPauseButton(state) {
+    assert(this.demoVideo);
     var me = $("#demoPlayBtn");
     if (state == 'playing') {
       me.data('status', 'playing')
@@ -408,7 +409,6 @@ export class OptDemoRecorder extends OptFrontendSharedSessions {
       .css('width', '0.6em')
       .css('height', '1.5em');
 
-
     this.demoVideo.startPlayback(); // do this last
   }
 
@@ -454,6 +454,7 @@ export class OptDemoRecorder extends OptFrontendSharedSessions {
 
   TogetherjsReadyHandler() {
     if (this.isRecordingDemo) {
+      assert (this.demoVideo);
       this.demoVideo.recordTogetherJsReady();
 
       // start recording audio only after TogetherJS is ready and
@@ -473,6 +474,7 @@ export class OptDemoRecorder extends OptFrontendSharedSessions {
     // reset all recording-related stuff too!
     if (this.isRecordingDemo) {
       this.stopRecordingAudio(); // it will still take some time before the encoded mp3 data is ready and doneEncodingMp3 is called!
+      assert (this.demoVideo);
       this.demoVideo.stopRecording();
       assert(!this.isRecordingDemo);
     } else {
