@@ -134,8 +134,6 @@ export class OptDemoRecorder extends OptFrontendSharedSessions {
   audioInputStream = null;
   audioRecorder = null; // Recorder object from Recordmp3js
 
-  Range; // reference to imported Ace Range() object -- ergh
-
   constructor(params={}) {
     super(params);
 
@@ -167,16 +165,10 @@ export class OptDemoRecorder extends OptFrontendSharedSessions {
     $("#playbackBtn").click(this.startPlayback.bind(this));
 
 
-    // NB: note that we DON'T have multiple cursors or selections like
-    // in Google Docs, so activating this feature might lead to some
-    // confusion as there is only *one* cursor/selection that multiple
-    // users might be fighting over. (in contrast, there are multiple
-    // mouse cursors.)
+    // TODO: move up to opt-shared-sessions.ts when you're ready
     this.pyInputAceEditor.selection.on("changeCursor", this.cursorOrSelectionChanged.bind(this));
     this.pyInputAceEditor.selection.on("changeSelection", this.cursorOrSelectionChanged.bind(this));
 
-
-    this.Range = ace.require('ace/range').Range; // for Ace Range() objects
 
     // BEGIN - lifted from Recordmp3js
     var audio_context;
@@ -257,6 +249,7 @@ export class OptDemoRecorder extends OptFrontendSharedSessions {
     //hf.click(); // automatically click to download the recording as a file
   }
 
+  // TODO: move up to opt-shared-sessions.ts when you're ready
   cursorOrSelectionChanged(e) {
     if (TogetherJS.running && !this.isPlayingDemo) {
       if (e.type === 'changeCursor') {
@@ -301,117 +294,6 @@ export class OptDemoRecorder extends OptFrontendSharedSessions {
     }
   }
 
-  setPlayPauseButton(state) {
-    assert(this.demoVideo);
-    var me = $("#demoPlayBtn");
-    if (state == 'playing') {
-      me.data('status', 'playing')
-      me.html('Pause');
-      this.demoVideo.playFromCurrentFrame();
-    } else {
-      assert(state == 'paused');
-      me.data('status', 'paused')
-      me.html('Play');
-      this.demoVideo.pause();
-    }
-  }
-
-  startPlayback() {
-    $("#ssDiv,#surveyHeader").hide(); // hide ASAP!
-
-    $("#togetherjsStatus").html(`<div><button id="demoPlayBtn">Play</button></div>
-                                  <div style="margin-top: 10px;" id="timeSlider"/>`);
-
-    // temp. test for debugging only! load an existing video from localStorage
-    if (!this.demoVideo) {
-      var savedVideoJson = (localStorage as any).demoVideo;
-      if (savedVideoJson) {
-        this.demoVideo = new OptDemoVideo(this, savedVideoJson);
-      }
-    }
-
-    assert(this.demoVideo);
-
-    $("#demoPlayBtn").data('status', 'paused');
-    $("#demoPlayBtn").click(() => {
-      var me = $("#demoPlayBtn");
-      if (me.data('status') == 'paused') {
-        this.setPlayPauseButton('playing');
-      } else {
-        assert(me.data('status') == 'playing');
-        this.setPlayPauseButton('paused');
-      }
-    });
-
-    var timeSliderDiv = $('#timeSlider');
-    timeSliderDiv.css('width', '700px');
-
-    var interruptedPlaying = false; // did we yank the slider while the video was playing?
-
-    var totalNumFrames = this.demoVideo.getTotalNumFrames();
-
-    timeSliderDiv.slider({
-      min: 0,
-      max: totalNumFrames,
-      step: 1,
-
-      // triggers only when the user *manually* slides, *not* when the
-      // value has been changed programmatically
-      slide: (evt, ui) => {
-        if (this.demoVideo.rafTimerId) {
-          // emulate YouTube by 'jumping' to the given frame and
-          // pausing, then resuming playback when you let go (see
-          // 'change' event handler)
-          this.demoVideo.pause();
-          interruptedPlaying = true;
-        }
-        this.demoVideo.jumpToFrame(ui.value);
-      },
-
-      // triggers both when user manually finishes sliding, and also
-      // when the slider's value is set programmatically
-      change: (evt, ui) => {
-        // this is SUPER subtle. if this value was changed programmatically,
-        // then evt.originalEvent will be undefined. however, if this value
-        // was changed by a user-initiated event, then this code should be
-        // executed ...
-        if ((evt as any).originalEvent) {
-          // slider value was changed by a user interaction; only do
-          // something special if interruptedPlaying is on, in which
-          // case resume playback. this happens AFTER a user-initiated
-          // 'slide' event is done:
-          if (interruptedPlaying) {
-            // literally an edge case -- if we've slid to the VERY END,
-            // don't resume playing since that will wrap back around to
-            // the beginning
-            if (ui.value < totalNumFrames) {
-              this.demoVideo.playFromCurrentFrame();
-            } else {
-              // if we've slide the slider to the very end, pause it!
-              this.setPlayPauseButton('paused');
-            }
-            interruptedPlaying = false;
-          }
-        } else {
-          // slider value was changed programmatically, so we're
-          // assuming that requestAnimationFrame has been used to schedule
-          // periodic changes to the slider
-          this.demoVideo.jumpToFrame(ui.value);
-        }
-      }
-    });
-
-    // disable keyboard actions on the slider itself (to prevent double-firing
-    // of events), and make skinnier and taller
-    timeSliderDiv
-      .find(".ui-slider-handle")
-      .unbind('keydown')
-      .css('width', '0.6em')
-      .css('height', '1.5em');
-
-    this.demoVideo.startPlayback(); // do this last
-  }
-
   finishSuccessfulExecution() {
     assert (this.myVisualizer);
 
@@ -430,26 +312,6 @@ export class OptDemoRecorder extends OptFrontendSharedSessions {
     if (this.isRecordingDemo) {
       this.traceCacheAdd(); // add to cache only if we're recording a demo
     }
-  }
-
-  initTogetherJS() {
-    super.initTogetherJS();
-
-    // TODO: move these into opt-shared-sessions.ts when we're ready
-
-    TogetherJS.hub.on("aceChangeCursor", (msg) => {
-      //console.warn('TogetherJS.hub.on("aceChangeCursor"', msg.row, msg.column);
-      this.pyInputAceEditor.selection.moveCursorTo(msg.row, msg.column,
-                                                   false /* keepDesiredColumn */);
-    });
-
-    TogetherJS.hub.on("aceChangeSelection", (msg) => {
-      //console.warn('TogetherJS.hub.on("aceChangeSelection"', msg.start, msg.end);
-      this.pyInputAceEditor.selection.setSelectionRange(
-        new this.Range(msg.start.row, msg.start.column, msg.end.row, msg.end.column),
-        false /* reverse */
-      );
-    });
   }
 
   TogetherjsReadyHandler() {
