@@ -457,7 +457,6 @@ export class OptDemoRecorder extends OptFrontendSharedSessions {
   }
 
   TogetherjsReadyHandler() {
-    //$("#surveyHeader").hide();
     if (this.isRecordingDemo) {
       this.demoVideo.recordTogetherJsReady();
 

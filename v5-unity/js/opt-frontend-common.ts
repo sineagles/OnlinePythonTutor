@@ -256,6 +256,7 @@ export abstract class AbstractBaseFrontend {
             textReferences: $.bbq.getState('textReferences'),
             rawInputLst: ril ? $.parseJSON(ril) : undefined,
             demoMode: $.bbq.getState('demo'), // is 'demo mode' on? if so, hide a lot of excess stuff
+            codcastFile: $.bbq.getState('codcast'), // load a codcast file created using ../recorder.html
             codeopticonSession: $.bbq.getState('cosession'),
             codeopticonUsername: $.bbq.getState('couser'),
             testCasesLst: testCasesLstJSON ? $.parseJSON(testCasesLstJSON) : undefined

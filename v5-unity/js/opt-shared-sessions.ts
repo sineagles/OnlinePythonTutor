@@ -464,6 +464,17 @@ Get live help!
     }
   }
 
+  loadCodcastFile() {
+    assert(this.codcastFile);
+    console.log('loadCodcastFile', this.codcastFile);
+
+    this.disableSharedSessions = true;
+    this.activateSyntaxErrorSurvey = false;
+    this.activateRuntimeErrorSurvey = false;
+    this.activateEurekaSurvey = false;
+    $("td#headerTdLeft").html(''); // clobber the existing contents
+  }
+
   // for A/B testing -- store this information PER USER in localStorage,
   // so that it can last throughout all sessions where this user
   // used the same browser. that way, every user will consistently get

@@ -74,6 +74,7 @@ export class OptFrontend extends AbstractBaseFrontend {
   activateEurekaSurvey: boolean = true;
 
   demoMode: boolean = false; // if true, then we're giving a live demo, so hide a bunch of excess stuff on page
+  codcastFile: string; // name of a codcast demo file to try to load
 
   preseededCurInstr: number = undefined;
 
@@ -712,6 +713,7 @@ export class OptFrontend extends AbstractBaseFrontend {
   }
 
   demoModeChanged() {}; // NOP; subclasses need to override
+  loadCodcastFile() {}; // NOP; subclasses need to override
 
   parseQueryString() {
     var queryStrOptions = this.getQueryStringOptions();
@@ -729,6 +731,11 @@ export class OptFrontend extends AbstractBaseFrontend {
     if (queryStrOptions.demoMode) {
       this.demoMode = true;
       this.demoModeChanged();
+    }
+
+    if (queryStrOptions.codcastFile) {
+      this.codcastFile = queryStrOptions.codcastFile;
+      this.loadCodcastFile();
     }
 
     if (queryStrOptions.codeopticonSession) {
