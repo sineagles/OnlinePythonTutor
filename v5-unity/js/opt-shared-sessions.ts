@@ -479,6 +479,13 @@ Get live help!
     this.activateRuntimeErrorSurvey = false;
     this.activateEurekaSurvey = false;
     $("td#headerTdLeft").html(''); // clobber the existing contents
+
+    $.get(this.codcastFile, {}, (dat) => {
+      // create an OptDemoVideo object from the serialized JSON data contained
+      // in that file
+      this.demoVideo = new OptDemoVideo(this, dat);
+      this.startPlayback();
+    }, 'text' /* grab data as plain text */);
   }
 
   // for A/B testing -- store this information PER USER in localStorage,
@@ -1907,14 +1914,6 @@ Get live help!
 
     $("#togetherjsStatus").html(`<div><button id="demoPlayBtn">Play</button></div>
                                   <div style="margin-top: 10px;" id="timeSlider"/>`);
-
-    // temp. test for debugging only! load an existing video from localStorage
-    if (!this.demoVideo) {
-      var savedVideoJson = (localStorage as any).demoVideo;
-      if (savedVideoJson) {
-        this.demoVideo = new OptDemoVideo(this, savedVideoJson);
-      }
-    }
 
     assert(this.demoVideo);
 
