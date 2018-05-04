@@ -9,6 +9,12 @@
 
 /* TODOs:
 
+assertion error on this playback:
+localhost:8003/visualize.html#mode=edit&codcast=testcod.json
+
+this works, though:
+localhost:8003/recorder.html#mode=edit&codcast=testcod.json
+
   - test by recording locally (with python/js/etc. backends running on
     localhost) and then replaying remotely on pythontutor.com, since
     that's what students will ultimately be doing. also make a special
@@ -32,13 +38,26 @@
       both for performance and for being able to ship tutorials as
       self-contained packages
 
+  - Mike Horn recommended making this like jsfiddle so that anyone can
+    record these demos (either with or without audio) and i just store it
+    in a local db (i'm storing user activity logs ANYWAYS) ... and just
+    create shortened URLs by indexing into that db
+    - if i do that, i might as well implement my own URL shortener for
+      regular code URLs as well since google's URL shortener is shutting
+      down, might as well!
+
 
 minor-ish:
+
+  - add title and description fields so that codcasts can serve as
+    independent mini-tutorials and WORKED EXAMPLES
 
   - minor: save UI adjustment preferences such as the width of the code
     pane or visualizer pane so that when the video replays, it will
     preserve those widths instead of always setting them back to the
     defaults, which is helpful for users with smaller monitors
+    - this is actually kinda important because resizing is a bit
+      annoying
 
   - refactor the code so that OptDemoVideo doesn't have to know about
     GUI elements
@@ -63,6 +82,17 @@ minor-ish:
     too "slowly", then the live mode will auto-execute the code at weird
     unintended times and cause syntax errors and such; just use it in
     REGULAR visualize.html mode for now!
+    - GET IT WORKING IN LIVE MODE, since i think it's doable!!!
+
+
+longer-term notes:
+
+- use codcasts as a more interactive type of WORKED EXAMPLES
+   - maybe also integrate text-based annotations like subtitles at
+     certain steps for mixed-media goodness
+
+- how can we turn this into active learning activities like "here's a
+  codcast, now you try something ..." and have the learner try something
 
 */
 
