@@ -17,10 +17,6 @@ repeated N times if there are N people in the session) since TogetherJS
 logs everyone's actions separately
 - app.editCode events are DEFINITELY duplicated
 
-UGH there's also a stray app.editCode whenever someone FIRST ENTERS A
-SESSION, which may not match prior editCode events of people who were
-previously in the session, so we need to account for that
-
 TODOs:
 - not sure how much hashchange events matter
 
@@ -59,8 +55,8 @@ ALL_LEGIT_TYPES = (
 clientIdtoUsername = {}
 
 firstInitialAppState = None
+firstClientId = None
 raw_events = []
-lastEditCodeEvent = None
 
 for line in open(sys.argv[1]):
     rec = json.loads(line)
@@ -76,42 +72,30 @@ for line in open(sys.argv[1]):
     # initiated the session
     if not firstInitialAppState and typ == 'app.initialAppState':
         firstInitialAppState = rec
+        firstClientId = tjs['clientId']
 
     # don't append any initialAppState events:
     if typ == 'app.initialAppState':
         continue
 
-    # OK this is kinda tricky. if the most recent app.editCode
-    # event has an identical delta, then DISCARD THIS EVENT since
-    # it's redundant with the prior one. the reason why we keep the
-    # prior one and NOT this one is because that was the FIRST person
-    # who initiated that code edit, so we want to credit them properly.
-    if typ == 'app.editCode' and lastEditCodeEvent:
-        if tjs['delta']['d'] == lastEditCodeEvent['togetherjs']['delta']['d']:
-            assert tjs['delta']['t'] >= lastEditCodeEvent['togetherjs']['delta']['t']
-            continue # get outta here!
+    # it's really tricky to manage editCode events since they often
+    # appear as duplicates (or even more copies if there are more people
+    # in the room). the easiest way to manage it is to record only
+    # editCode events belonging to the firstClientId user and discard
+    # all other ones.
+    if typ == 'app.editCode' and firstClientId and tjs['clientId'] != firstClientId:
+        continue
 
     raw_events.append(rec)
-    if typ == 'app.editCode':
-        lastEditCodeEvent = rec
 
+
+#        if tjs['delta']['d'] == lastEditCodeEvent['togetherjs']['delta']['d']:
+#            assert tjs['delta']['t'] >= lastEditCodeEvent['togetherjs']['delta']['t']
+#            continue # get outta here!
 
 events = []
-firstClientId = firstInitialAppState['togetherjs']['clientId']
-clientIdsWhereFirstEditRemoved = set()
 
 for e in raw_events:
-    # OK this is even more tricky: when someone who didn't initiate the
-    # session first enters that session, they get an app.editCode event
-    # saying that there's been a potentially-large diff containing the
-    # current contents of the entire text buffer. we want to IGNORE that
-    # first app.editCode event from that user.
-    if e['togetherjs']['type'] == 'app.editCode':
-        cid = e['togetherjs']['clientId']
-        if cid != firstClientId and cid not in clientIdsWhereFirstEditRemoved:
-            clientIdsWhereFirstEditRemoved.add(cid)
-            continue # skip!!!
-
     # clean up and append to final events
     dt = dateutil.parser.parse(e['date'])
     # get timestamp in milliseconds
