@@ -10,6 +10,22 @@
 # SIMPLY EXECUTE THE CODE VERBATIM TO GENERATE TRACES FOR THE CACHE; IF
 # THE CODE IS MALICIOUS, THEN IT WILL POSSIBLY HARM YOUR COMPUTER!!!
 
+'''
+
+NB: one big challenge is that some types of events are duplicated (or
+repeated N times if there are N people in the session) since TogetherJS
+logs everyone's actions separately
+- app.editCode events are DEFINITELY duplicated
+
+UGH there's also a stray app.editCode whenever someone FIRST ENTERS A
+SESSION, which may not match prior editCode events of people who were
+previously in the session, so we need to account for that
+
+TODOs:
+- not sure how much hashchange events matter
+
+'''
+
 import dateutil.parser
 import json
 import os
@@ -44,6 +60,7 @@ clientIdtoUsername = {}
 
 firstInitialAppState = None
 events = [] # all events
+lastEditCodeEvent = None
 
 for line in open(sys.argv[1]):
     rec = json.loads(line)
@@ -61,11 +78,26 @@ for line in open(sys.argv[1]):
         firstInitialAppState = rec
 
     # don't append any initialAppState events onto events:
-    if typ != 'app.initialAppState':
-        events.append(rec)
+    if typ == 'app.initialAppState':
+        continue
 
+    # OK this is kinda tricky. if the most recent app.editCode
+    # event has an identical delta, then DISCARD THIS EVENT since
+    # it's redundant with the prior one. the reason why we keep the
+    # prior one and NOT this one is because that was the FIRST person
+    # who initiated that code edit, so we want to credit them properly.
+    if typ == 'app.editCode' and lastEditCodeEvent:
+        if tjs['delta']['d'] == lastEditCodeEvent['togetherjs']['delta']['d']:
+            continue # get outta here!
+
+    events.append(rec)
+    if typ == 'app.editCode':
+        lastEditCodeEvent = rec
+
+prev = None
 for e in events:
     dt = dateutil.parser.parse(e['date'])
     # get timestamp in milliseconds
     ms = int(time.mktime(dt.timetuple())) * 1000
     print ms, e['togetherjs']
+    prev = e
