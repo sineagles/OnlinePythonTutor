@@ -12,6 +12,10 @@
 
 '''
 
+NB: now that i think about it more, it's not entirely clear to me
+whether you can always tell who initiated an app.editCode event with any
+kind of certainty. oh wells, throw up our hands for nows.
+
 NB: one big challenge is that some types of events are duplicated (or
 repeated N times if there are N people in the session) since TogetherJS
 logs everyone's actions separately
@@ -22,6 +26,7 @@ TODOs:
 
 '''
 
+from collections import defaultdict
 import dateutil.parser
 import json
 import os
@@ -58,6 +63,12 @@ firstInitialAppState = None
 firstClientId = None
 raw_events = []
 
+# Key: delta 'd' field, value: list of code edit events with that same 'd'
+#
+# NB: this won't be fully accurate if there are several *independent*
+# sets of edits occurring at vastly different times which have the same 'd'
+all_code_edits_by_deltas = defaultdict(list)
+
 for line in open(sys.argv[1]):
     rec = json.loads(line)
     if rec['type'] != 'togetherjs':
@@ -78,11 +89,13 @@ for line in open(sys.argv[1]):
     if typ == 'app.initialAppState':
         continue
 
-    # it's really tricky to manage editCode events since they often
-    # appear as duplicates (or even more copies if there are more people
-    # in the room). the easiest way to manage it is to record only
-    # editCode events belonging to the firstClientId user and discard
-    # all other ones.
+    if typ == 'app.editCode':
+        all_code_edits_by_deltas[tjs['delta']['d']].append(tjs)
+
+    # it's really tricky to log editCode events since they often appear as
+    # duplicates (or even more copies if there are more people in the session).
+    # the easiest way to manage it is to record only editCode events belonging
+    # to the firstClientId user and discard all other ones.
     if typ == 'app.editCode' and firstClientId and tjs['clientId'] != firstClientId:
         continue
 
@@ -96,18 +109,39 @@ for line in open(sys.argv[1]):
 events = []
 
 for e in raw_events:
+    tjs = e['togetherjs']
+
     # clean up and append to final events
     dt = dateutil.parser.parse(e['date'])
     # get timestamp in milliseconds
     ms = int(time.mktime(dt.timetuple())) * 1000
 
+    # for app.codeEdit events, look up who the ORIGINAL PERSON was who
+    # initiated this edit event, and log their clientId, which may be
+    # different than your own clientId
+    if tjs['type'] == 'app.editCode':
+        d = tjs['delta']['d']
+        t = tjs['delta']['t']
+        assert d in all_code_edits_by_deltas
+        firstEdit = all_code_edits_by_deltas[d][0]
+        firstEditTimestamp = firstEdit['delta']['t']
+        # sanity check: note that this will fail if we have multiple
+        # identical sets of edits that take place at vastly
+        # different points in time, but let's cross that bridge when
+        # we get to it
+        assert firstEditTimestamp <= t
+        assert t - firstEditTimestamp < 5000 # give it a 5-second buffer for sanity checking
+
+        tjs['clientId'] = firstEdit['clientId'] # change the clientId for this event!
+
+
     # add these fields to match codcast format
-    e['togetherjs']['ts'] = ms
-    e['togetherjs']['sameUrl'] = True
-    e['togetherjs']['peer'] = {'color': '#8d549f'} # not sure if this is necessary
+    tjs['ts'] = ms
+    tjs['sameUrl'] = True
+    tjs['peer'] = {'color': '#8d549f'} # not sure if this is necessary
     # TODO: we need to add frameNum field later on; or maybe just add it here?!?
 
-    events.append(e['togetherjs']) # just take the togetherjs part
+    events.append(tjs)
 
 
 for e in events:
