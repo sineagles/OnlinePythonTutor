@@ -6,10 +6,6 @@
 
 # created: 2018-05-27
 
-# HUGE WARNING: DO NOT RUN THIS ON UNTRUSTED CODE YET, SINCE IT WILL
-# SIMPLY EXECUTE THE CODE VERBATIM TO GENERATE TRACES FOR THE CACHE; IF
-# THE CODE IS MALICIOUS, THEN IT WILL POSSIBLY HARM YOUR COMPUTER!!!
-
 '''
 
 NB: now that i think about it more, it's not entirely clear to me
@@ -20,6 +16,19 @@ NB: one big challenge is that some types of events are duplicated (or
 repeated N times if there are N people in the session) since TogetherJS
 logs everyone's actions separately
 - app.editCode events are DEFINITELY duplicated
+
+
+HUGE WARNING: DO NOT RUN THIS ON UNTRUSTED CODE YET, SINCE IT WILL
+SIMPLY EXECUTE THE CODE VERBATIM TO GENERATE TRACES FOR THE CACHE; IF
+THE CODE IS MALICIOUS, THEN IT WILL POSSIBLY HARM YOUR COMPUTER!!!
+- the solution to this is to run the code on the actual server to
+  generate a real trace for the trace cache; we need to essentially
+  create a python-based driver (maybe using requests) to make the
+  proper calls to the various OPT backends, depending on language.
+  i think we can simply go off of myAppState and change the origin
+  to something like 'codechella-to-codcast' so that we can filter
+  those calls out later in the logs.
+
 
 TODOs:
 - not sure how much hashchange events matter
