@@ -59,7 +59,7 @@ ALL_LEGIT_TYPES = (
 clientIdtoUsername = {}
 
 firstInitialAppState = None
-events = [] # all events
+raw_events = []
 lastEditCodeEvent = None
 
 for line in open(sys.argv[1]):
@@ -77,7 +77,7 @@ for line in open(sys.argv[1]):
     if not firstInitialAppState and typ == 'app.initialAppState':
         firstInitialAppState = rec
 
-    # don't append any initialAppState events onto events:
+    # don't append any initialAppState events:
     if typ == 'app.initialAppState':
         continue
 
@@ -88,16 +88,43 @@ for line in open(sys.argv[1]):
     # who initiated that code edit, so we want to credit them properly.
     if typ == 'app.editCode' and lastEditCodeEvent:
         if tjs['delta']['d'] == lastEditCodeEvent['togetherjs']['delta']['d']:
+            assert tjs['delta']['t'] >= lastEditCodeEvent['togetherjs']['delta']['t']
             continue # get outta here!
 
-    events.append(rec)
+    raw_events.append(rec)
     if typ == 'app.editCode':
         lastEditCodeEvent = rec
 
-prev = None
-for e in events:
+
+events = []
+firstClientId = firstInitialAppState['togetherjs']['clientId']
+clientIdsWhereFirstEditRemoved = set()
+
+for e in raw_events:
+    # OK this is even more tricky: when someone who didn't initiate the
+    # session first enters that session, they get an app.editCode event
+    # saying that there's been a potentially-large diff containing the
+    # current contents of the entire text buffer. we want to IGNORE that
+    # first app.editCode event from that user.
+    if e['togetherjs']['type'] == 'app.editCode':
+        cid = e['togetherjs']['clientId']
+        if cid != firstClientId and cid not in clientIdsWhereFirstEditRemoved:
+            clientIdsWhereFirstEditRemoved.add(cid)
+            continue # skip!!!
+
+    # clean up and append to final events
     dt = dateutil.parser.parse(e['date'])
     # get timestamp in milliseconds
     ms = int(time.mktime(dt.timetuple())) * 1000
-    print ms, e['togetherjs']
-    prev = e
+
+    # add these fields to match codcast format
+    e['togetherjs']['ts'] = ms
+    e['togetherjs']['sameUrl'] = True
+    e['togetherjs']['peer'] = {'color': '#8d549f'} # not sure if this is necessary
+    # TODO: we need to add frameNum field later on; or maybe just add it here?!?
+
+    events.append(e['togetherjs']) # just take the togetherjs part
+
+
+for e in events:
+    print json.dumps(e)
