@@ -56,9 +56,6 @@ def call_opt_backend(myAppState, useBackupUrl=False):
         # backup cokapi server in case my primary one is too busy at the moment
         backupUrl = 'http://45.33.41.179/' + url
 
-    if 'localhost' in mainUrl or 'localhost' in backupUrl:
-        print >> sys.stderr, 'WARNING: do not run untrusted user scripts on localhost'
-
     myParams = {'user_script': myAppState['code'],
                 'raw_input_json': myAppState['rawInputLstJSON'],
                 'options_json':

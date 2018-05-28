@@ -26,10 +26,7 @@ THE CODE IS MALICIOUS, THEN IT WILL POSSIBLY HARM YOUR COMPUTER!!!
 - the solution to this is to run the code on the actual server to
   generate a real trace for the trace cache; we need to essentially
   create a python-based driver (maybe using requests) to make the
-  proper calls to the various OPT backends, depending on language.
-  i think we can simply go off of myAppState and change the origin
-  to something like 'codechella-to-codcast' so that we can filter
-  those calls out later in the logs.
+  proper calls to the various OPT backends, depending on language
 
 TODOs:
 - not sure how much hashchange events matter
