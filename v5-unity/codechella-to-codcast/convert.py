@@ -16,6 +16,8 @@ NB: one big challenge is that some types of events are duplicated (or
 repeated N times if there are N people in the session) since TogetherJS
 logs everyone's actions separately
 - app.editCode events are DEFINITELY duplicated
+- app.hashchange events might also be duplicated
+    - maybe ONLY take hashchange events for YOURSELF?
 
 
 HUGE WARNING: DO NOT RUN THIS ON UNTRUSTED CODE YET, SINCE IT WILL
@@ -29,9 +31,10 @@ THE CODE IS MALICIOUS, THEN IT WILL POSSIBLY HARM YOUR COMPUTER!!!
   to something like 'codechella-to-codcast' so that we can filter
   those calls out later in the logs.
 
-
 TODOs:
 - not sure how much hashchange events matter
+- maybe we can use app.executeCode events as 'sync points' since we know
+  that the code in the editor contains those contents when they execute
 
 '''
 
@@ -41,6 +44,8 @@ import json
 import os
 import sys
 import time
+
+from call_opt_backend import call_opt_backend
 
 print >> sys.stderr, 'WARNING: do not run this on a trace containing untrusted code'
 
@@ -107,6 +112,10 @@ for line in open(sys.argv[1]):
     # to the firstClientId user and discard all other ones.
     if typ == 'app.editCode' and firstClientId and tjs['clientId'] != firstClientId:
         continue
+
+    # TODO: do the same with hashchange events -- only take them for
+    # yourself
+    assert False
 
     raw_events.append(rec)
 
