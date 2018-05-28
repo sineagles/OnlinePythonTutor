@@ -47,8 +47,6 @@ import time
 
 from call_opt_backend import call_opt_backend
 
-print >> sys.stderr, 'WARNING: do not run this on a trace containing untrusted code'
-
 # somewhat modeled after ../js/demovideo.ts
 ALL_LEGIT_TYPES = (
     'app.initialAppState',
@@ -113,9 +111,9 @@ for line in open(sys.argv[1]):
     if typ == 'app.editCode' and firstClientId and tjs['clientId'] != firstClientId:
         continue
 
-    # TODO: do the same with hashchange events -- only take them for
-    # yourself
-    assert False
+    # ...do the same with hashchange: log them only for the firstClientId user
+    if typ == 'hashchange' and firstClientId and tjs['clientId'] != firstClientId:
+        continue
 
     raw_events.append(rec)
 
@@ -163,4 +161,10 @@ for e in raw_events:
 
 
 for e in events:
-    print json.dumps(e)
+    if e['type'] == 'app.executeCode':
+        print 'EXEC:', e['myAppState']
+        r = call_opt_backend(e['myAppState'])
+        #print r.url
+        print r.json()
+        print
+    #print json.dumps(e)

@@ -43,16 +43,20 @@ pyToUrl = {
 
 # given an appState object, call the appropriate OPT backend remotely
 # and return the retrieved data as a request object
-def call_opt_backend(myAppState):
+def call_opt_backend(myAppState, useBackupUrl=False):
     py = myAppState['py']
     url = pyToUrl[py]
     if py in ('2', '3'):
-        #url = 'http://localhost:8003/' + url
-        url = 'http://pythontutor.com/' + url
+        #mainUrl = 'http://localhost:8003/' + url
+        mainUrl = 'http://pythontutor.com/' + url
+        backupUrl = None
     else:
-        assert False
+        assert py in ('c', 'cpp', 'ruby', 'js', 'ts', 'java')
+        mainUrl = 'http://cokapi.com/' + url
+        # backup cokapi server in case my primary one is too busy at the moment
+        backupUrl = 'http://45.33.41.179/' + url
 
-    if 'localhost' in url:
+    if 'localhost' in mainUrl or 'localhost' in backupUrl:
         print >> sys.stderr, 'WARNING: do not run untrusted user scripts on localhost'
 
     myParams = {'user_script': myAppState['code'],
@@ -63,5 +67,8 @@ def call_opt_backend(myAppState):
                                 'show_only_outputs': False,
                                 'origin': 'call_opt_backend.py'})
                }
-    r = requests.get(url, params=myParams)
+    if useBackupUrl and backupUrl:
+        r = requests.get(backupUrl, params=myParams)
+    else:
+        r = requests.get(mainUrl, params=myParams)
     return r
