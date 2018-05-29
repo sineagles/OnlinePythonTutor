@@ -3,6 +3,8 @@
 #
 # and turns it into the codcast format, which is readable by
 # ../js/recorder.ts and ../js/demovideo.ts
+#
+# writes JSON output to stdout
 
 # created: 2018-05-27
 
@@ -157,11 +159,28 @@ for e in raw_events:
     events.append(tjs)
 
 
+# each element of myTraceCache is a pair of [appState, cached trace from server]
+myTraceCache = []
+
 for e in events:
     if e['type'] == 'app.executeCode':
-        print 'EXEC:', e['myAppState']
-        r = call_opt_backend(e['myAppState'])
+        myAppState = e['myAppState']
+        r = call_opt_backend(myAppState)
         #print r.url
-        print r.json()
-        print
-    #print json.dumps(e)
+        serverResultJson = r.json()
+        if 'trace' in serverResultJson:
+            myTrace = serverResultJson['trace']
+            myTraceCache.append([myAppState, myTrace])
+        else:
+            print >> sys.stderr, "ERROR while running", myAppState, '->', serverResultJson
+
+initialAppState = firstInitialAppState['togetherjs']['myAppState']
+# augment it
+initialAppState['clientId'] = firstInitialAppState['togetherjs']['clientId']
+
+# ok finally produce the codcast object and write it out to stdout as JSON
+codcastObj = {'initialAppState': initialAppState,
+              'events': events,
+              'traceCache': myTraceCache}
+
+print json.dumps(codcastObj)
