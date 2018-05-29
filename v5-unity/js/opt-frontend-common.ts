@@ -570,7 +570,9 @@ export abstract class AbstractBaseFrontend {
 
   // return whether two states match, except don't worry about mode or curInstr
   static appStateEqForCache(s1, s2) {
-    assert(s1.origin == s2.origin); // sanity check!
+    // NB: this isn't always true if we're recording and replaying
+    // in different frontend files ...
+    //assert(s1.origin == s2.origin); // sanity check!
     return (s1.code == s2.code &&
             s1.cumulative == s2.cumulative &&
             s1.heapPrimitives == s1.heapPrimitives &&

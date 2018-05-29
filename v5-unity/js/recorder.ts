@@ -9,12 +9,6 @@
 
 /* TODOs:
 
-assertion error on this playback:
-localhost:8003/visualize.html#mode=edit&codcast=testcod.json
-
-this works, though:
-localhost:8003/recorder.html#mode=edit&codcast=testcod.json
-
   - test by recording locally (with python/js/etc. backends running on
     localhost) and then replaying remotely on pythontutor.com, since
     that's what students will ultimately be doing. also make a special
@@ -93,6 +87,9 @@ longer-term notes:
 
 - how can we turn this into active learning activities like "here's a
   codcast, now you try something ..." and have the learner try something
+
+- use this codcast player to replay codechella-recorded sessions so that
+  i can manually review their contents
 
 */
 
