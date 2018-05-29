@@ -175,8 +175,18 @@ for e in events:
             print >> sys.stderr, "ERROR while running", myAppState, '->', serverResultJson
 
 initialAppState = firstInitialAppState['togetherjs']['myAppState']
-# augment it
-initialAppState['clientId'] = firstInitialAppState['togetherjs']['clientId']
+initialAppState['clientId'] = firstInitialAppState['togetherjs']['clientId'] # augment it
+
+firstDt = dateutil.parser.parse(firstInitialAppState['date'])
+firstTs = int(time.mktime(firstDt.timetuple())) * 1000 # milliseconds
+
+# prepend a special app.startRecordingDemo event to events
+startRecordingDemoEvent = {'type': 'app.startRecordingDemo',
+                           'clientId': firstInitialAppState['togetherjs']['clientId'],
+                           'ts': firstTs,
+                           'sameUrl': True,
+                           'peer': {'color': '#8d549f'}} # not sure if this is necessary
+events.insert(0, startRecordingDemoEvent)
 
 # ok finally produce the codcast object and write it out to stdout as JSON
 codcastObj = {'initialAppState': initialAppState,
