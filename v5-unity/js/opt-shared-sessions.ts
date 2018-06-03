@@ -478,6 +478,9 @@ Get live help!
     this.activateSyntaxErrorSurvey = false;
     this.activateRuntimeErrorSurvey = false;
     this.activateEurekaSurvey = false;
+    // TODO: also disable undo/redo feature since that can get annoying
+    // when replaying demo "videos"
+
     $("td#headerTdLeft").html(''); // clobber the existing contents
 
     $.get(this.codcastFile, {}, (dat) => {
