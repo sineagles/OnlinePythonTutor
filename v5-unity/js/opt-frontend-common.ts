@@ -205,7 +205,7 @@ export abstract class AbstractBaseFrontend {
 
   setFronendError(lines, ignoreLog=false) {
     $("#frontendErrorOutput").html(lines.map(htmlspecialchars).join('<br/>') +
-                                   (ignoreLog ? '' : '<br/>(' + unsupportedFeaturesStr + ')'));
+                                   (ignoreLog ? '' : '<p/>(' + unsupportedFeaturesStr + ')'));
 
     // log it to the server as well (unless ignoreLog is on)
     if (!ignoreLog) {

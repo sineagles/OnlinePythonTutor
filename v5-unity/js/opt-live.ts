@@ -265,7 +265,7 @@ export class OptLiveFrontend extends OptFrontend {
         $("#frontendErrorOutput").html('Unknown error: ' + unsupportedFeaturesStr);
 
       } else {
-        $("#frontendErrorOutput").html(htmlspecialchars(curEntry.exception_msg));
+        $("#frontendErrorOutput").html(htmlspecialchars(curEntry.exception_msg) + '<p/>(' + unsupportedFeaturesStr + ')');
       }
 
       if (myVisualizer.curLineNumber) {
@@ -275,7 +275,7 @@ export class OptLiveFrontend extends OptFrontend {
         this.allMarkerIds.push(markerId);
       }
     } else if (myVisualizer.instrLimitReached) {
-      $("#frontendErrorOutput").html(htmlspecialchars(myVisualizer.instrLimitReachedWarningMsg));
+      $("#frontendErrorOutput").html(htmlspecialchars(myVisualizer.instrLimitReachedWarningMsg) + '<p/>(' + unsupportedFeaturesStr + ')');
     } else {
       $("#frontendErrorOutput").html(''); // clear it
     }

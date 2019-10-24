@@ -240,4 +240,6 @@ v5-unity/
   programming mode due to too much load on server.
 
   2019-10 - simplified the UI by removing excess text and also removed
-  the inline Eureka survey (v5-unity/js/surveys.ts)
+  the inline Eureka survey (v5-unity/js/surveys.ts), nudged people to
+  read this doc more by adding a link to more error/warning messages:
+    https://github.com/pgbovine/OnlinePythonTutor/blob/master/unsupported-features.md
