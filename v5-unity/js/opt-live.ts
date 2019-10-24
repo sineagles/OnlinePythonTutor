@@ -50,7 +50,7 @@ import {OptFrontend} from './opt-frontend';
 import {ExecutionVisualizer, assert, brightRed, darkArrowColor, lightArrowColor, SVG_ARROW_POLYGON, htmlspecialchars} from './pytutor';
 import {eureka_survey,eureka_prompt,eureka_survey_version} from './surveys';
 import {allTabsRE} from './opt-frontend';
-import {privacyAndEndingHTML,unknownErrorLst,unsupportedFeaturesStr} from './footer-html';
+import {privacyAndEndingHTML,nullTraceErrorLst,unsupportedFeaturesStr} from './footer-html';
 
 // just punt and use global script dependencies
 require("script-loader!./lib/ace/src-min-noconflict/ace.js");
@@ -586,7 +586,7 @@ export class OptLiveFrontend extends OptFrontend {
         } else if (trace.length > 0 && trace[trace.length - 1].exception_msg) {
           this.setFronendError([trace[trace.length - 1].exception_msg]);
         } else {
-          this.setFronendError(unknownErrorLst);
+          this.setFronendError(nullTraceErrorLst);
         }
       } else {
         this.prevVisualizer = this.myVisualizer;

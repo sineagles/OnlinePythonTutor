@@ -21,7 +21,7 @@ require('./lib/jquery.ba-dotimeout.min.js');
 
 // need to directly import the class for type checking to work
 import {ExecutionVisualizer, assert, htmlspecialchars} from './pytutor';
-import {unknownErrorLst,unsupportedFeaturesStr} from './footer-html';
+import {nullTraceErrorLst,unsupportedFeaturesStr} from './footer-html';
 
 
 // the main event!
@@ -183,7 +183,7 @@ export abstract class AbstractBaseFrontend {
         this.setFronendError(
                         ["Server error! Your code might have an INFINITE LOOP or be running for too long.",
                          "The server may also be OVERLOADED. Or you're behind a FIREWALL that blocks access.",
-                         "Try again later. This site is provided for free with no available technical support."]);
+                         "Try again later. This site is free with NO technical support. [#UnknownServerError]"]);
       }
       this.doneExecutingCode();
     });
@@ -335,7 +335,7 @@ export abstract class AbstractBaseFrontend {
         } else if (trace.length > 0 && trace[trace.length - 1].exception_msg) {
           this.setFronendError([trace[trace.length - 1].exception_msg]);
         } else {
-          this.setFronendError(unknownErrorLst);
+          this.setFronendError(nullTraceErrorLst);
         }
       } else {
         // fail-soft to prevent running off of the end of trace
