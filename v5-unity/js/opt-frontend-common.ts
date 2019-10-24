@@ -21,6 +21,7 @@ require('./lib/jquery.ba-dotimeout.min.js');
 
 // need to directly import the class for type checking to work
 import {ExecutionVisualizer, assert, htmlspecialchars} from './pytutor';
+import {unknownErrorLst,unsupportedFeaturesStr} from './footer-html';
 
 
 // the main event!
@@ -204,7 +205,7 @@ export abstract class AbstractBaseFrontend {
 
   setFronendError(lines, ignoreLog=false) {
     $("#frontendErrorOutput").html(lines.map(htmlspecialchars).join('<br/>') +
-                                   (ignoreLog ? '' : '<p/>Read this list of <a target="_blank" href="https://github.com/pgbovine/OnlinePythonTutor/blob/master/unsupported-features.md">UNSUPPORTED FEATURES</a>'));
+                                   (ignoreLog ? '' : '<br/>(' + unsupportedFeaturesStr + ')'));
 
     // log it to the server as well (unless ignoreLog is on)
     if (!ignoreLog) {
@@ -334,10 +335,7 @@ export abstract class AbstractBaseFrontend {
         } else if (trace.length > 0 && trace[trace.length - 1].exception_msg) {
           this.setFronendError([trace[trace.length - 1].exception_msg]);
         } else {
-          this.setFronendError(
-                          ["Unknown error: The server may be OVERLOADED right now; try again later.",
-                           "Your code may also contain UNSUPPORTED FEATURES that this tool cannot handle.",
-                           "Try again later. This site is provided for free with no available technical support. [#NullTrace]"]);
+          this.setFronendError(unknownErrorLst);
         }
       } else {
         // fail-soft to prevent running off of the end of trace

@@ -50,7 +50,7 @@ import {OptFrontend} from './opt-frontend';
 import {ExecutionVisualizer, assert, brightRed, darkArrowColor, lightArrowColor, SVG_ARROW_POLYGON, htmlspecialchars} from './pytutor';
 import {eureka_survey,eureka_prompt,eureka_survey_version} from './surveys';
 import {allTabsRE} from './opt-frontend';
-import {privacyAndEndingHTML} from './footer-html';
+import {privacyAndEndingHTML,unknownErrorLst,unsupportedFeaturesStr} from './footer-html';
 
 // just punt and use global script dependencies
 require("script-loader!./lib/ace/src-min-noconflict/ace.js");
@@ -262,7 +262,7 @@ export class OptLiveFrontend extends OptFrontend {
         curEntry.event === 'uncaught_exception') {
       assert(curEntry.exception_msg);
       if (curEntry.exception_msg == "Unknown error") {
-        $("#frontendErrorOutput").html('Unknown error: <a target="_blank" href="https://github.com/pgbovine/OnlinePythonTutor/blob/master/unsupported-features.md">read this page for more info</a>');
+        $("#frontendErrorOutput").html('Unknown error: ' + unsupportedFeaturesStr);
 
       } else {
         $("#frontendErrorOutput").html(htmlspecialchars(curEntry.exception_msg));
@@ -586,10 +586,7 @@ export class OptLiveFrontend extends OptFrontend {
         } else if (trace.length > 0 && trace[trace.length - 1].exception_msg) {
           this.setFronendError([trace[trace.length - 1].exception_msg]);
         } else {
-          this.setFronendError(
-                          ["Unknown error: The server may be OVERLOADED right now; try again later.",
-                           "Your code may also contain UNSUPPORTED FEATURES that this tool cannot handle.",
-                           "[#NullTrace]"]);
+          this.setFronendError(unknownErrorLst);
         }
       } else {
         this.prevVisualizer = this.myVisualizer;
