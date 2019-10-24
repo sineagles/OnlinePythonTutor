@@ -16,19 +16,19 @@ This free service is maintained by one volunteer in my spare time, so I'm unable
 
 ### Read this first!
 
-Python Tutor is designed to imitate what an instructor in an introductory programming class (e.g., CS1, CS2) draws on the blackboard:
+Python Tutor is designed to imitate what an instructor in an introductory programming class draws on the blackboard:
 
 ![drawing on blackboard](board.jpg)
 
 (source: UC Berkeley's CS61B course)
 
-It is *not* meant to be a replacement for professional code debuggers or IDEs. This means that you should only use it to write **small pieces of self-contained code** that runs for not too many execution steps. After all, an instructor can't draw hundreds of lines of code, hundreds of data structures and pointers, or hundreds of execution steps on the blackboard! Also, code in introductory classes usually don't access external libraries.
+It's *not* meant as a professional code debugger or IDE. This means you should only use it to write **small pieces of self-contained code** that runs for not too many steps. After all, an instructor can't write hundreds of lines of code, draw hundreds of data structures and pointers, or walk through hundreds of execution steps on the board! Also, code in introductory classes usually don't access external libraries. In sum, if your code can't fit on a blackboard or a single presentation slide, it's probably too long to effectively visualize in Python Tutor.
 
 Due to this ultra-focused design, the following features are not supported and will likely *never* be supported:
 
-- Code that is too large in size. Shorten your code to what fits on a blackboard!
+- Code that is too large in size. Shorten your code to what fits on a blackboard or presentation slide!
 - Code that runs for too many steps (e.g., > 1,000 steps) or for a long time
-  - shorten your code to isolate exactly where you want to visualize and debug
+  - shorten your code to isolate exactly where you want to visualize
   - or [set Python breakpoints](https://youtu.be/80ztTXP90Vs?t=42) using `#break` comments
 - Reading data from external files (you can use strings to emulate files: examples for [Python3](http://goo.gl/uNvBGl) and [Python2](http://goo.gl/Q9xQ4p))
 - Interfacing with databases, network, filesystem, or other external resources
