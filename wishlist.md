@@ -13,6 +13,7 @@ First read the [**unsupported features doc**](unsupported-features.md#read-this-
 
 - unify the [regular](http://pythontutor.com/visualize.html) and [live programming](http://pythontutor.com/live.html) UIs into one, so that users don't need to switch back-and-forth between editing and visualizing code
   - we then need a clear indicator of when the visualization is "stale" (i.e., doesn't correspond to the currently-edited code)
+  - we also need a read-only mode in the editor for easily embedding (non-editable) visualizations into other sites
   - live programming can simply be a toggle switch in the unified UI
 - modernize the UI, make it more responsive and display better on mobile devices of various sizes
   - adjustable font sizes in both editor and visualizer
