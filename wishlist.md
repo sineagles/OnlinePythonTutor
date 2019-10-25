@@ -35,7 +35,7 @@ First read the [**unsupported features doc**](unsupported-features.md#read-this-
   - e.g., make certain variable values smaller for running loops fewer times, make strings shorter, numbers smaller, etc. to get at the heart of the algorithm at play
   - ... or encourage them to set breakpoints at certain places
   - this likely involves analyzing both the static code *and* the dynamic execution trace
-  - a much easier stopgap solution is to warn the user if their code exceeds, say, 2000 bytes, by [linking to here](https://github.com/pgbovine/OnlinePythonTutor/blob/master/unsupported-features.md#read-this-first)
+  - a much easier stopgap solution is to warn the user if their code exceeds, say, 1500 bytes or 100 steps, by [linking to here](https://github.com/pgbovine/OnlinePythonTutor/blob/master/unsupported-features.md#read-this-first)
 - flipping back-and-forth between edit and visualize modes can be annoying when the code is very long; would be nice to save the vertical scroll position in the editor so the user can easily jump back to editing where they left off
   - related: whatever line you're currently seeing in the visualizer, when you switch back to editor jump directly to that line ([GitHub Issue](https://github.com/pgbovine/OnlinePythonTutor/issues/253))
   - (these issues will disappear if we unify the regular and live programming UIs!)
