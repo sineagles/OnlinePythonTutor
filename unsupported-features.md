@@ -53,15 +53,19 @@ Due to this ultra-focused design, the following features are not supported and w
 ### C and C++ unsupported features
 
 - [doesn't show when function parameters get mutated](https://github.com/pgbovine/opt-cpp-backend/issues/57) (make a copy to a new local variable to visualize)
-- [function return values are not visualized](https://github.com/pgbovine/opt-cpp-backend/issues/4) (add a temporary variable to visualize)
-- unions
+- [doesn't show function return values](https://github.com/pgbovine/opt-cpp-backend/issues/4) (add a temporary variable to visualize)
+- [unions](https://github.com/pgbovine/opt-cpp-backend/issues/68)
 - some complex typedefs
-- taking text input from the user using scanf(), cin >>, etc.
+- taking text input from the user using scanf(), fgets with stdin, cin >>,  etc.
 - code with memory-related errors: it will fail-fast using [Valgrind
   Memcheck](http://valgrind.org/docs/manual/mc-manual.html)
 - C++ STL and string objects aren't visualized nicely (see [GitHub issue](https://github.com/pgbovine/OnlinePythonTutor/issues/256))
 - [stack arrays without compile-time sizes](https://github.com/pgbovine/opt-cpp-backend/issues/44)
 - [read-only memory isn't visualized separately from the heap](https://github.com/pgbovine/opt-cpp-backend/issues/70)
+- [struct members declared as unbounded arrays](https://github.com/pgbovine/opt-cpp-backend/issues/73)
+- [mixed pointer/array declared types](https://github.com/pgbovine/opt-cpp-backend/issues/74)
+
+Look at these issues for more C/C++ unsupported features: https://github.com/pgbovine/opt-cpp-backend/issues
 
 
 ### JavaScript unsupported features
@@ -90,9 +94,7 @@ Due to this ultra-focused design, the following features are not supported and w
 - https iframe embedding with non-Python languages (iframe embed should work for Python if you use `https://` for URL)
 - Standalone application or offline mode (you can download the code and install it yourself but I don't have time to provide tech support for local installations)
 
-Look through these issue trackers for more known bugs and unsupported features:
-- https://github.com/pgbovine/OnlinePythonTutor/issues
-- https://github.com/pgbovine/opt-cpp-backend/issues
+Look at these issues for more unsupported features: https://github.com/pgbovine/OnlinePythonTutor/issues
 
 
 ## FAQ
