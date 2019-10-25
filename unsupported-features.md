@@ -64,6 +64,7 @@ Due to this ultra-focused design, the following features are not supported and w
 - [read-only memory isn't visualized separately from the heap](https://github.com/pgbovine/opt-cpp-backend/issues/70)
 - [struct members declared as unbounded arrays](https://github.com/pgbovine/opt-cpp-backend/issues/73)
 - [mixed pointer/array declared types](https://github.com/pgbovine/opt-cpp-backend/issues/74)
+- [static array initializers](https://github.com/pgbovine/opt-cpp-backend/issues/75)
 
 Look at these issues for more C/C++ unsupported features: https://github.com/pgbovine/opt-cpp-backend/issues
 
