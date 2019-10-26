@@ -146,6 +146,7 @@ I've thus far resisted going down this path since there are already so many grea
 - adding basic curricula, lessons, and practice problems to the site, powered by Python Tutor visualizations
   - authoring environment for creating custom lessons and exercises
   - these can take advantage of Python Tutor's unique features, such as asking questions about writing efficient code that finishes in less than N execution steps
+  - ... or blanking out parts of run-time state and asking the user to guess what their values will be at the next step, etc.
 - in Jan 2018 I started implementing a codcast record/replay "video" feature in [recorder.ts](v5-unity/js/recorder.ts) but haven't released it yet
   - I could use that to record a bunch of inline tutorials
     - could automatically detect coding context and suggest proper videos on concepts (e.g., while loops)
