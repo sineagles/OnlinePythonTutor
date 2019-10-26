@@ -1,4 +1,4 @@
-### *Python Tutor's server and the live chat service may go down at any time and lose your code.*
+## Python Tutor's server and the live chat service may go down at any time and lose your code!
 
 This free website is maintained by one volunteer in my spare time, so I'm unable to respond to most bug reports and feature requests. Your issue is probably listed here. If you're sure it's not here, [email me](http://pgbovine.net/email-policy.htm) and use the "Generate permanent link" button to include a URL of your code.
 
