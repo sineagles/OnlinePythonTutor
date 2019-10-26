@@ -1,11 +1,9 @@
-### *Python Tutor's server may go down at any time and lose your code.*
+### *Python Tutor's server and the live chat service may go down at any time and lose your code.*
 
-### *The live chat service may also go down at any time.*
+This free website is maintained by one volunteer in my spare time, so I'm unable to respond to most bug reports and feature requests. Your issue is probably listed here. If you're sure it's not here, [email me](http://pgbovine.net/email-policy.htm) and use the "Generate permanent link" button to include a URL of your code.
 
-This free service is maintained by one volunteer in my spare time, so I'm unable to respond to most bug reports and feature requests. Your issue is probably listed here. If you're sure it's not here, [email me](http://pgbovine.net/email-policy.htm) and use the "Generate permanent link" button to include a URL of your code.
-
-- **If you don't get a reply from me, assume your issue will NOT be addressed**. Please don't email me multiple times.
-- I can't personally provide any programming help. Use the "Get live help!" button to post a public help request.
+- **If you don't get a reply from me, assume your issue will NOT be addressed**. Please don't email multiple times.
+- I can't personally provide any programming help. Use the "Get live help!" button to request help from volunteers.
 - I can't provide technical support for users who want to install Python Tutor on their own computers/servers.
 - I can't provide support for Python Tutor code embedded in other websites. Contact those site owners for help.
 - I'm not accepting any code contributions or GitHub pull requests. Feel free to fork the code, though.
