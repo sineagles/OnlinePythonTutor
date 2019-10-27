@@ -62,6 +62,7 @@ Due to this ultra-focused design, the following features are not supported and w
 - [struct members declared as unbounded arrays](https://github.com/pgbovine/opt-cpp-backend/issues/73)
 - [mixed pointer/array declared types](https://github.com/pgbovine/opt-cpp-backend/issues/74)
 - [static array initializers](https://github.com/pgbovine/opt-cpp-backend/issues/75)
+- code with [undefined behavior](https://blog.regehr.org/archives/213) may not match what happens when running on your own computer!
 
 Look at these issues for more C/C++ unsupported features: https://github.com/pgbovine/opt-cpp-backend/issues
 
