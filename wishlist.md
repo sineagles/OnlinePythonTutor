@@ -20,6 +20,7 @@ First read the [**unsupported features doc**](unsupported-features.md#read-this-
   - adjustable sizes for all widgets, and *remember* the user-adjusted sizes
   - on mobile, some users reported issues with writing or copy-pasting code in the editor (I only have iOS, maybe test on Android emulators/devices too)
     - from a bug report: 'In the mobile version we have to give a space before pressing enter, if not done then last symbol or alphabet will get removed'
+  - according to Google Analytics, ~8% of users throughout 2019 were on mobile
 - internationalization/localization of the UI into other popular languages
 - dark mode UI
 - change the name of the site to something more language-agnostic, since it's about way more than Python by now. Python Tutor has a strong brand and natural SEO at this point, so maybe keep that but then either have a more general umbrella project name or an "everything-else-tutor" for all other languages
@@ -168,6 +169,7 @@ The core issue here is that Python Tutor now has a fixed rendering algorithm (wi
   - C unions can be viewed in different ways
   - Python 2 strings: view as text or as encoded binary bytes?
   - objects: view as their constituent parts or as their "toString()"-like printed representations?
+  - numbers: formatted as hex, decimal, etc.? how much precision for floats?
   - more extreme: a binary blob can represent, say, a JPEG image; should we decode and display it?
 - define multiple linked representations: the ability to have one variable map to multiple visualization components.
   - This is useful for, say, an NLP dynamic programming algorithm where the code must both keep track of a parse tree and a 2-D matrix for the dynamic programming table, and both should update in unison.
