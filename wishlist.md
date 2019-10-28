@@ -179,3 +179,11 @@ The core issue here is that Python Tutor now has a fixed rendering algorithm (wi
 - rendering data structures commonly used in data science or machine learning (e.g., tables, data frames, SQL-like operations, 2-D plots showing points, lines, and curves)
   - for inspiration here, look at diagrams used in pandas, scikit-learn, and the R tidyverse
 - custom rendering API: Right now Python Tutor renders data structures in a single, fixed way. However, different instructors have different preferences for how they want certain objects to render on-screen. There's currently no way for them to specify these custom rendering schemes without mucking around with intricate JavaScript code in the frontend. How can we make this easier?
+
+
+## Internal Tools for Myself
+
+- web dashboard of server status, including how frequently certain server errors come up
+- better DevOps-related server monitoring in general
+- email alerts whenever something unusual is going on with the service
+- real-time map-based visualizations of how Python Tutor and live help mode are being used around the world
