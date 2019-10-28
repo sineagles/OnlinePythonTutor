@@ -13,7 +13,7 @@ This free website is maintained by one volunteer in my spare time, so I'm unable
 
 ### Read this first!
 
-Python Tutor is designed to imitate what an instructor in an introductory programming class draws on the blackboard:
+Python Tutor is designed to imitate what an instructor in an **introductory programming class** draws on the blackboard:
 
 ![drawing on blackboard](board.jpg)
 
@@ -31,7 +31,8 @@ Due to this ultra-focused design, the following features are not supported and w
 - Interfacing with databases, filesystems, networking, or other external resources
 - Anything involving GUI programming or GUI/webpage components
 - Multi-threaded, concurrent, or asynchronous code; Python Tutor is only for regular single-threaded execution
-- Importing most external libraries (try "Python 3.6 with Anaconda (experimental)" if you want to use more libraries)
+- Advanced language features or subtleties that only experts need to know (this is a tool for teaching *novices*)
+- Importing most external libraries (try "Python 3.6 with Anaconda (experimental)" to access more libraries)
 - Editing multiple source code files (Python Tutor is not an IDE!)
 - User accounts, saving code as files in the cloud, or integrating with online services like GitHub (Python Tutor is not an IDE!)
 - Integrating with programming environments like Jupyter Notebooks, IDEs, or text editors
