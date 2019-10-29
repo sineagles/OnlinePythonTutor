@@ -133,6 +133,7 @@ These features deal with the server-side backends that run the user's code.
 - implement *backend* breakpoints (like the Python #break annotation) for all other languages, so that overly-long execution traces don't get generated even for larger pieces of code
   - right now there are breakpoints in the frontend, but that doesn't help when the backend already executes for > 1,000 steps; we need breakpoints in the backend (likely implemented as comment annotations or GUI clicks in the code editor gutter) to really clamp down on overly-long executions
 - more reliable and faster server-side execution for non-Python backends
+  - this may involve creating [smaller and more efficient](https://www.youtube.com/watch?v=pPsREQbf3PA) Docker images, maybe having separate images for compiling and running the respective backend binaries (so that the image that runs the backend doesn't have all the bloat of source code or build tools)
 
 
 ## Features for Instructors
