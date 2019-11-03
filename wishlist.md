@@ -108,6 +108,7 @@ First read the [**unsupported features doc**](unsupported-features.md#read-this-
   - also an option to turn everyone's cursors off to remove clutter
 - encourage the requester to fill in a tweet-length message about what they want help on, which would be displayed above their code editor; that way when someone new joins a room, they can get some immediate context
   - also, this doesn't show up on the help queue itself so it won't spam everyone on the site
+  - (could cue with tips on [writing a good question title](https://stackoverflow.com/help/how-to-ask))
 - desktop notifications for both volunteers and requesters when something of note happens, like when someone enters a room or asks for help (so they can have Python Tutor open in a background tab and be doing other stuff while waiting)
   - maybe sound would work well here too if done tactfully
 - social features such as user accounts, profiles, reputation points, review ratings, incentives, gamification, etc. (unlikely since they go against the minimalist design philosophy of the service)
