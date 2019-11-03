@@ -122,6 +122,7 @@ First read the [**unsupported features doc**](unsupported-features.md#read-this-
 - manually implement my own improved chat box feature and code editor syncing using another library (which doesn't tie me to Ace anymore)
   - that way, I use TogetherJS only for the shared cursors (which some users even find annoying!)
   - this will give me more flexibility without being constrained by TogetherJS's clunky implementations
+- maybe some lightweight chat-based scaffolding or structure to prompt learners and helpers to interact in more productive ways rather than being a blank-slate freeform chat session
 
 
 ## Language Backends
