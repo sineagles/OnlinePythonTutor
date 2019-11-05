@@ -120,6 +120,7 @@ First read the [**unsupported features doc**](unsupported-features.md#read-this-
 - concurrent editing in the Ace editor is a bit slow and clunky; also you can't see multiple edit cursors
 - need some indicator that the chat session's original creator (i.e., the help requester) has left, so nobody in there is the original person (but it's OK for these sessions to still exist!)
 - better server-side caching of user state, such as ipstack geolocation calls since we have a limited free monthly quota
+- live chat doesn't work behind some firewalls or WiFi networks, probably due to different non-standard ports being used; would be good to fix this, but it's hard to reproduce unless I'm on such a network (e.g., "UCSD Guest" exhibits this issue)
 - manually implement my own improved chat box feature and code editor syncing using another library (which doesn't tie me to Ace anymore)
   - that way, I use TogetherJS only for the shared cursors (which some users even find annoying!)
   - this will give me more flexibility without being constrained by TogetherJS's clunky implementations
