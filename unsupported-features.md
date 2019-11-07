@@ -64,6 +64,7 @@ Due to this ultra-focused design, the following features are not supported and w
 - [static array initializers](https://github.com/pgbovine/opt-cpp-backend/issues/75)
 - C++ STL and string objects aren't visualized nicely (see [GitHub issue](https://github.com/pgbovine/OnlinePythonTutor/issues/256))
 - haven't tested on various C++ smart pointers yet
+- haven't tested on inline functions (e.g., explicitly 'inline' or implicitly inlined member functions defined within class definitions, etc)
 
 Look at these issues for more C/C++ unsupported features: https://github.com/pgbovine/opt-cpp-backend/issues
 
