@@ -28,6 +28,7 @@ Due to this ultra-focused design, the following features are not supported and w
   - shorten your code to isolate exactly where you want to visualize
   - or [set Python breakpoints](https://youtu.be/80ztTXP90Vs?t=42) using `#break` comments
 - Reading data from external files (you can use strings to emulate files: examples for [Python3](http://goo.gl/uNvBGl) and [Python2](http://goo.gl/Q9xQ4p))
+- Visualizing complex/custom data structures imported from libraries
 - Interfacing with databases, filesystems, networking, or other external resources
 - Anything involving GUI programming or GUI/webpage components
 - Multi-threaded, concurrent, or asynchronous code; Python Tutor is only for regular single-threaded execution
