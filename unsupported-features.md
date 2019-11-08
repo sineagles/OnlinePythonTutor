@@ -27,13 +27,13 @@ Due to this ultra-focused design, the following features are not supported and w
 - Code that runs for too many steps (e.g., > 1,000 steps) or for a long time
   - shorten your code to isolate exactly where you want to visualize
   - or [set Python breakpoints](https://youtu.be/80ztTXP90Vs?t=42) using `#break` comments
+- Visualizing custom data structures from imported libraries; Python Tutor visualizes only built-in types and data structures
+- Importing most external libraries (try "Python 3.6 with Anaconda (experimental)" to access more libraries)
 - Reading data from external files (you can use strings to emulate files: examples for [Python3](http://goo.gl/uNvBGl) and [Python2](http://goo.gl/Q9xQ4p))
-- Visualizing complex/custom data structures imported from libraries
 - Interfacing with databases, filesystems, networking, or other external resources
 - Anything involving GUI programming or GUI/webpage components
 - Multi-threaded, concurrent, or asynchronous code; Python Tutor is only for regular single-threaded execution
 - Advanced language features or subtleties that only experts need to know (this is a tool for teaching *novices*)
-- Importing most external libraries (try "Python 3.6 with Anaconda (experimental)" to access more libraries)
 - Editing multiple source code files (Python Tutor is not an IDE!)
 - User accounts, saving code as files in the cloud, or integrating with online services like GitHub (Python Tutor is not an IDE!)
 - Integrating with programming environments like Jupyter Notebooks, IDEs, or text editors
