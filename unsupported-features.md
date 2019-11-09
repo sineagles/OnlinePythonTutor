@@ -34,6 +34,7 @@ Due to this ultra-focused design, the following features are not supported and w
 - Anything involving GUI programming or GUI/webpage components
 - Multi-threaded, concurrent, or asynchronous code; Python Tutor is only for regular single-threaded execution
 - Advanced language features or subtleties that only experts need to know (this is a tool for teaching *novices*)
+- Compile-time magic (e.g., macros, metaprogramming, templates) isn't visualized since Python Tutor visualizes only run-time memory state
 - Editing multiple source code files (Python Tutor is not an IDE!)
 - User accounts, saving code as files in the cloud, or integrating with online services like GitHub (Python Tutor is not an IDE!)
 - Integrating with programming environments like Jupyter Notebooks, IDEs, or text editors
