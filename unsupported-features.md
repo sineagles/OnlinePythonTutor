@@ -24,12 +24,12 @@ It's meant to illustrate **small pieces of self-contained code** that runs for n
 Due to this ultra-focused design, the following features are not supported and will likely *never* be supported:
 
 - Code that is too large in size.
-  - Shorten your code to what fits on a blackboard or presentation slide!
-  - Python Tutor is *not* for debugging arbitrary code that you paste into it; you probably need to shorten your code to isolate what you want to debug
+  - [shorten your code](https://stackoverflow.com/help/minimal-reproducible-example) to what fits on a blackboard or presentation slide!
+  - Python Tutor is *not* for debugging arbitrary code that you paste into it; you'll need to shorten your code to isolate what you want to debug
 - Code that runs for too many steps (e.g., > 1,000 steps) or for a long time
-  - shorten your code to isolate exactly what operations you want to visualize
-  - make your data structures smaller and your loops/functions run fewer times
-  - [set Python breakpoints](https://youtu.be/80ztTXP90Vs?t=42) using `#break` comments
+  - [shorten your code](https://stackoverflow.com/help/minimal-reproducible-example) to isolate exactly what operations you want to visualize
+  - e.g., make your numbers and strings smaller, your data structures contain fewer items, and your loops/functions run fewer times
+  - or [set Python breakpoints](https://youtu.be/80ztTXP90Vs?t=42) using `#break` comments
 - Visualizing custom data structures from imported libraries; Python Tutor visualizes only built-in types and data structures
 - Importing most external libraries (try "Python 3.6 with Anaconda (experimental)" to access more libraries)
 - Reading data from external files (you can use strings to emulate files: examples for [Python3](http://goo.gl/uNvBGl) and [Python2](http://goo.gl/Q9xQ4p))
