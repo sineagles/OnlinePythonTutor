@@ -34,6 +34,8 @@ your bandwidth usage.
 
 For further directions, see [Overview for Developers](v3/docs/developer-overview.md) or explore the [rest of the docs](v3/docs/).
 
+Note: *I can't provide technical support for users who want to install Python Tutor on their own computers/servers ([read details here](https://github.com/pgbovine/OnlinePythonTutor/blob/master/unsupported-features.md))*
+
 
 ### Acknowledgments
 
