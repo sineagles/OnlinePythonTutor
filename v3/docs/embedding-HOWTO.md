@@ -1,5 +1,7 @@
 # Embedding Online Python Tutor visualizations
 
+Note: *I can't provide technical support for users who want to install Python Tutor on their own computers/servers ([read details here](https://github.com/pgbovine/OnlinePythonTutor/blob/master/unsupported-features.md)).*
+
 This document is a starting point for anyone who wants to embed
 Online Python Tutor (OPT) visualizations in their webpage. View it online at:
 
