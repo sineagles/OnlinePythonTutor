@@ -37,9 +37,9 @@ Due to this ultra-focused design, the following features are not supported and w
 - Anything involving GUI programming or GUI/webpage components
 - Multi-threaded, concurrent, or asynchronous code; Python Tutor is only for regular single-threaded execution
 - Advanced language features or subtleties that only experts need to know (this is a tool for teaching *novices*)
-- Compile-time magic (e.g., macros, metaprogramming, templates) isn't visualized since Python Tutor visualizes only run-time memory state
+- Compile-time magic (e.g., macros, metaprogramming, templates) can't be visualized; Python Tutor visualizes only run-time memory state
 - Editing multiple source code files (Python Tutor is not an IDE!)
-- User accounts, saving code as files in the cloud, or integrating with online services like GitHub (Python Tutor is not an IDE!)
+- User accounts, saving code as files in the cloud, or integrating with online services like GitHub (again, Python Tutor is not an IDE!)
 - Integrating with programming environments like Jupyter Notebooks, IDEs, or text editors
 
 
@@ -90,7 +90,7 @@ Look at these issues for more C/C++ unsupported features: https://github.com/pgb
 - some data structures like ArrayList aren't visualized properly (see [GitHub issue](https://github.com/pgbovine/OnlinePythonTutor/issues/236))
 
 
-### Language-independent unsupported features
+### Other language-independent unsupported features
 
 - Python Tutor is meant for desktop/laptop computers, **not for mobile devices**. Some features such as live help mode simply don't work on mobile devices. The UI also looks cluttered and can be buggy on small screens.
 - Stepping *within* a line of code to show how subexpressions get evaluated within that line; the best workaround is to split complex expressions into multiple lines and assign temporary variables on each line ([example](http://pythontutor.com/visualize.html#code=w%20%3D%205%0Ax%20%3D%2010%0Ay%20%3D%2020%0Az%20%3D%2030%0A%0A%23%20bad%3A%20executes%20all%20at%20once%0Aresult%20%3D%20w%20-%20x%20*%20%28y%20%2B%20z%29%0A%0A%23%20good%3A%20shows%20individual%20steps%0At1%20%3D%20y%20%2B%20z%0At2%20%3D%20x%20*%20t1%0Aresult2%20%3D%20w%20-%20t2&cumulative=false&heapPrimitives=nevernest&mode=edit&origin=opt-frontend.js&py=2&rawInputLstJSON=%5B%5D&textReferences=false)).
