@@ -51,6 +51,7 @@ Due to this ultra-focused design, the following features are not supported and w
   - to cut down execution times, [set Python breakpoints](https://youtu.be/80ztTXP90Vs?t=42) using `#break` comments
 - random number generators and user input (via input() or raw_input()) [sometimes don't work well together](https://github.com/pgbovine/OnlinePythonTutor/issues/110)
 - raw_input/input might not work in iframe embeds
+- more GitHub issues: https://github.com/pgbovine/OnlinePythonTutor/issues
 
 
 ### C and C++ unsupported features
@@ -72,7 +73,7 @@ Due to this ultra-focused design, the following features are not supported and w
 - haven't tested on inline functions (e.g., explicitly 'inline' or implicitly inlined member functions defined within class definitions, etc)
 - probably lots of untested subtleties with more advanced modern C++ features from C++11 and newer
 
-Look at these issues for more C/C++ unsupported features: https://github.com/pgbovine/opt-cpp-backend/issues
+Look at these GitHub issues for more C/C++ unsupported features: https://github.com/pgbovine/opt-cpp-backend/issues
 
 
 ### JavaScript unsupported features
@@ -83,11 +84,15 @@ Look at these issues for more C/C++ unsupported features: https://github.com/pgb
 - anything that operates on webpages, such as DOM manipulation, alert(), prompt(), confirm(), etc.
   - this includes trying to import frontend libraries or frameworks (e.g., jQuery, React)
 - Date() object
-
+- more JavaScript unsupported features: https://github.com/pgbovine/OnlinePythonTutor/issues?q=is%3Aissue+is%3Aopen+label%3Ajavascript
 
 ### Java unsupported features
 
 - some data structures like ArrayList aren't visualized properly (see [GitHub issue](https://github.com/pgbovine/OnlinePythonTutor/issues/236))
+
+### Ruby unsupported features
+
+- see GitHub issues: https://github.com/pgbovine/OnlinePythonTutor/issues?q=is%3Aissue+is%3Aopen+label%3Aruby
 
 
 ### Other language-independent unsupported features
