@@ -1,8 +1,9 @@
 # Overview for Developers
 
+Note: *I can't provide technical support for users who want to install Python Tutor on their own computers/servers.* ([details here](https://github.com/pgbovine/OnlinePythonTutor/blob/master/unsupported-features.md))
+
 **NOTE THAT OnlinePythonTutor/v5-unity/ is the latest version, so update
 these instructions to use that directory! e.g., see https://github.com/pgbovine/OnlinePythonTutor/blob/master/v5-unity/README.txt
-
 This document may be obsolete by now. Use at your own risk.**
 
 This document is a starting point for anyone who wants to hack on
