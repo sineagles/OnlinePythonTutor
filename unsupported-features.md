@@ -19,7 +19,7 @@ Python Tutor is designed to imitate what an instructor in an **introductory prog
 
 (source: UC Berkeley's CS61B course)
 
-It's meant to illustrate **small pieces of self-contained code** that runs for not too many steps. After all, an instructor can't write hundreds of lines of code, draw hundreds of data structures and pointers, or walk through hundreds of execution steps on the board! Also, code in introductory classes usually don't access external libraries. If your code can't fit on a blackboard or a single presentation slide, it's probably too long to visualize effectively in Python Tutor.
+It's meant to illustrate **small pieces of self-contained code** that runs for not too many steps. After all, an instructor can't write hundreds of lines of code, draw hundreds of data structures and pointers, or walk through hundreds of execution steps on the board! Also, code in introductory classes usually doesn't access external libraries. If your code can't fit on a blackboard or a single presentation slide, it's probably too long to visualize effectively in Python Tutor.
 
 Due to this ultra-focused design, the following features are not supported and will likely *never* be supported:
 
