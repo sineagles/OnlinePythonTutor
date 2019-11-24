@@ -78,6 +78,7 @@ Look at these GitHub issues for more C/C++ unsupported features: https://github.
 
 ### JavaScript unsupported features
 
+- some "let"-defined variables don't display properly (please email me or file a GitHub issue if you find more of these!)
 - asynchronous and event-driven code
   - including setTimeout, setInterval, etc.
   - promises, async/await
