@@ -1,6 +1,6 @@
 ## Python Tutor's server and live chat service may go down at any time and lose your code! There is NO on-call technical support available.
 
-This free website is maintained by one volunteer in my spare time, so I'm unable to respond to most bug reports and feature requests. Your issue is probably listed here. If you're sure it's not here, [email me](http://pgbovine.net/email-policy.htm) and use the "Generate permanent link" button to include a URL of your code.
+This free website is maintained by one volunteer in my spare time, so I'm unable to respond to most requests. Your issue is probably listed here. If you're sure it's not here yet, [email me](http://pgbovine.net/email-policy.htm) or file a GitHub issue, and use the "Generate permanent link" button to include a URL of your code. **I prioritize true reproducible bugs that show the visualizer doing something incorrect.**
 
 - If you don't get a reply from me, assume your issue will NOT be addressed. *Please don't email me multiple times.*
 - I can't personally provide any programming help. Use the "Get live help!" button to request help from volunteers.
@@ -78,7 +78,7 @@ Look at these GitHub issues for more C/C++ unsupported features: https://github.
 
 ### JavaScript unsupported features
 
-- some "let"-defined variables don't display properly (please email me or file a GitHub issue if you find more of these!)
+- some "let"-defined variables don't display properly ([example](https://github.com/pgbovine/OnlinePythonTutor/issues/285)) (email me or file a GitHub issue if you find more examples!)
 - asynchronous and event-driven code
   - including setTimeout, setInterval, etc.
   - promises, async/await
