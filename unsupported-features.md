@@ -78,13 +78,13 @@ Look at these GitHub issues for more C/C++ unsupported features: https://github.
 
 ### JavaScript unsupported features
 
-- some "let"-defined variables don't display properly ([example](https://github.com/pgbovine/OnlinePythonTutor/issues/285)) (email me or file a GitHub issue if you find more examples!)
 - asynchronous and event-driven code
   - including setTimeout, setInterval, etc.
   - promises, async/await
 - anything that operates on webpages, such as DOM manipulation, alert(), prompt(), confirm(), etc.
   - this includes trying to import frontend libraries or frameworks (e.g., jQuery, React)
 - Date() object
+- some let-defined variables don't display properly ([example](https://github.com/pgbovine/OnlinePythonTutor/issues/285)) (this is something I want to eventually fix ... email me or file a GitHub issue if you find more examples!)
 - more JavaScript unsupported features: https://github.com/pgbovine/OnlinePythonTutor/issues?q=is%3Aissue+is%3Aopen+label%3Ajavascript
 
 ### Java unsupported features
