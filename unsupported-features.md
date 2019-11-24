@@ -1,6 +1,6 @@
 ## Python Tutor's server and live chat service may go down at any time and lose your code! There is NO on-call technical support available.
 
-This free website is maintained by one volunteer in my spare time, so I'm unable to respond to most requests. Your issue is probably listed here. If you're sure it's not here yet, [email me](http://pgbovine.net/email-policy.htm) or file a GitHub issue, and use the "Generate permanent link" button to include a URL of your code. **I prioritize true reproducible bugs that show the visualizer doing something incorrect.**
+This free website is maintained by one volunteer in my spare time, so I'm unable to respond to most requests. Your issue is probably listed here. If you're sure it's not here yet, [email me](http://pgbovine.net/email-policy.htm) or file a GitHub issue, and use the "Generate permanent link" button to include a URL of your code. **I prioritize reproducible bug reports that show the visualizer doing something clearly incorrect.**
 
 - If you don't get a reply from me, assume your issue will NOT be addressed. *Please don't email me multiple times.*
 - I can't personally provide any programming help. Use the "Get live help!" button to request help from volunteers.
